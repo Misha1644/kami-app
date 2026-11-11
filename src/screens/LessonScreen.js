@@ -5,7 +5,6 @@ import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
-import { topics } from '../data/content';
 
 function shuffle(list) {
   const a = [...list];
@@ -16,7 +15,7 @@ function shuffle(list) {
   return a;
 }
 
-export default function LessonScreen({ topicId, onLearned, onClose }) {
+export default function LessonScreen({ topics, topicId, onAnswer, onClose }) {
   const topic = topics.find((t) => t.id === topicId);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('learn'); // learn → quiz → done
@@ -52,8 +51,9 @@ export default function LessonScreen({ topicId, onLearned, onClose }) {
   function choose(id) {
     if (answered) return;
     setPicked(id);
-    if (id === word.id) onLearned(word.id);
-    else setMistakes((m) => m + 1);
+    const ok = id === word.id;
+    onAnswer(word.id, ok);
+    if (!ok) setMistakes((m) => m + 1);
   }
 
   function next() {

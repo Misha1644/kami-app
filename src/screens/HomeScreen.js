@@ -3,17 +3,17 @@ import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
-import { topics, learnedCount } from '../data/content';
+import { learnedCount } from '../data/content';
 
-export default function HomeScreen({ learned, streak, onStartTopic, onOpenTask }) {
+export default function HomeScreen({ topics, studentName, learned, streak, onStartTopic, onOpenTask }) {
   const next = topics.find((t) => learnedCount(t, learned) < t.words.length) || topics[0];
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <View style={styles.header}>
-        <Text style={styles.hello}>Hola!</Text>
+        <Text style={styles.hello}>Hola, {studentName}!</Text>
         <View style={styles.streak}>
-          <Text style={styles.streakText}>{streak} {streak === 1 ? 'день' : 'дней'} подряд</Text>
+          <Text style={styles.streakText}>{streakLabel(streak)}</Text>
         </View>
       </View>
 
@@ -51,6 +51,13 @@ export default function HomeScreen({ learned, streak, onStartTopic, onOpenTask }
       <Button title="Сфотографировать задание" variant="secondary" onPress={onOpenTask} />
     </ScrollView>
   );
+}
+
+function streakLabel(n) {
+  if (n === 0) return 'Начни серию сегодня';
+  const m10 = n % 10, m100 = n % 100;
+  const word = m10 === 1 && m100 !== 11 ? 'день' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'дня' : 'дней';
+  return `${n} ${word} подряд`;
 }
 
 const styles = StyleSheet.create({

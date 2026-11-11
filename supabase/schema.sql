@@ -55,6 +55,7 @@ create table public.progress (
   last_seen     timestamptz not null default now(),
   primary key (student_id, word_id)
 );
+create index progress_word_idx on public.progress(word_id);
 
 -- Дни занятий: для серии «N дней подряд» и отчёта родителям.
 create table public.activity_days (
@@ -77,15 +78,48 @@ create policy "content readable" on public.words  for select to authenticated us
 
 create policy "parent owns students" on public.students
   for all to authenticated
-  using (parent_id = auth.uid())
-  with check (parent_id = auth.uid());
+  using (parent_id = (select auth.uid()))
+  with check (parent_id = (select auth.uid()));
 
 create policy "parent owns progress" on public.progress
   for all to authenticated
-  using (exists (select 1 from public.students s where s.id = student_id and s.parent_id = auth.uid()))
-  with check (exists (select 1 from public.students s where s.id = student_id and s.parent_id = auth.uid()));
+  using (exists (select 1 from public.students s where s.id = student_id and s.parent_id = (select auth.uid())))
+  with check (exists (select 1 from public.students s where s.id = student_id and s.parent_id = (select auth.uid())));
 
 create policy "parent owns activity" on public.activity_days
   for all to authenticated
-  using (exists (select 1 from public.students s where s.id = student_id and s.parent_id = auth.uid()))
-  with check (exists (select 1 from public.students s where s.id = student_id and s.parent_id = auth.uid()));
+  using (exists (select 1 from public.students s where s.id = student_id and s.parent_id = (select auth.uid())))
+  with check (exists (select 1 from public.students s where s.id = student_id and s.parent_id = (select auth.uid())));
+
+-- Запись ответа ученика: счётчики по слову и день занятий (для серии).
+-- security invoker: RLS не даст записать прогресс чужому ученику.
+create or replace function public.record_answer(p_student uuid, p_word text, p_correct boolean)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  insert into public.progress (student_id, word_id, correct_count, wrong_count, learned_at, last_seen)
+  values (p_student, p_word,
+          case when p_correct then 1 else 0 end,
+          case when p_correct then 0 else 1 end,
+          case when p_correct then now() else null end,
+          now())
+  on conflict (student_id, word_id) do update set
+    correct_count = public.progress.correct_count + case when p_correct then 1 else 0 end,
+    wrong_count   = public.progress.wrong_count + case when p_correct then 0 else 1 end,
+    learned_at    = coalesce(public.progress.learned_at, excluded.learned_at),
+    last_seen     = now();
+
+  insert into public.activity_days (student_id, day, words_done)
+  values (p_student, current_date, case when p_correct then 1 else 0 end)
+  on conflict (student_id, day) do update set
+    words_done = public.activity_days.words_done + case when p_correct then 1 else 0 end;
+end;
+$$;
+
+revoke execute on function public.record_answer(uuid, text, boolean) from public, anon;
+grant execute on function public.record_answer(uuid, text, boolean) to authenticated;
+
+-- Контент 1º ESO лежит в отдельной миграции seed_1eso_content (см. проект Supabase).

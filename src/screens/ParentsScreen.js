@@ -1,9 +1,9 @@
 // Экран для родителей: сколько выучено и готовность по предметам.
 // Цифры считаются из реального прогресса ученика в этом приложении.
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import { Card } from '../components/ui';
+import { Button, Card } from '../components/ui';
 import { colors } from '../theme';
-import { topics, learnedCount, GRADE } from '../data/content';
+import { learnedCount } from '../data/content';
 
 function status(done, total) {
   if (done === 0) return { label: 'Не начато', bg: '#F1EFE8', fg: '#444441' };
@@ -11,12 +11,12 @@ function status(done, total) {
   return { label: 'Готов к уроку', bg: colors.greenLight, fg: colors.greenDark };
 }
 
-export default function ParentsScreen({ learned, streak }) {
+export default function ParentsScreen({ topics, student, learned, streak, onSignOut }) {
   const totalLearned = Object.keys(learned).length;
   const topicsReady = topics.filter((t) => learnedCount(t, learned) === t.words.length).length;
 
   const stats = [
-    { value: streak, label: 'дней занимался' },
+    { value: streak, label: 'дней подряд' },
     { value: totalLearned, label: 'слов выучено' },
     { value: topicsReady, label: 'темы готовы' },
   ];
@@ -25,8 +25,8 @@ export default function ParentsScreen({ learned, streak }) {
     <ScrollView contentContainerStyle={styles.wrap}>
       <View>
         <Text style={styles.small}>Для родителей</Text>
-        <Text style={styles.h1}>Прогресс за неделю</Text>
-        <Text style={styles.small}>{GRADE}</Text>
+        <Text style={styles.h1}>Прогресс: {student.nickname}</Text>
+        <Text style={styles.small}>{student.grade}</Text>
       </View>
 
       <View style={styles.stats}>
@@ -52,6 +52,8 @@ export default function ParentsScreen({ learned, streak }) {
           );
         })}
       </Card>
+
+      <Button title="Выйти из аккаунта" variant="secondary" onPress={onSignOut} />
     </ScrollView>
   );
 }
