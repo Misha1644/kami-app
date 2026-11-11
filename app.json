@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Kami",
+    "slug": "kami-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F6F7F4",
+    "ios": { "supportsTablet": false },
+    "android": {}
+  }
+}
