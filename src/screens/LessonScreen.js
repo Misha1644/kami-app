@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
+import { Coin } from '../components/icons';
+import { plural } from '../data/content';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
 
@@ -15,12 +17,13 @@ function shuffle(list) {
   return a;
 }
 
-export default function LessonScreen({ topics, topicId, onAnswer, onClose }) {
+export default function LessonScreen({ topics, topicId, kamiColor, onAnswer, onClose }) {
   const topic = topics.find((t) => t.id === topicId);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('learn'); // learn → quiz → done
   const [picked, setPicked] = useState(null);
   const [mistakes, setMistakes] = useState(0);
+  const [earned, setEarned] = useState(0);
 
   const word = topic.words[index];
 
@@ -33,11 +36,15 @@ export default function LessonScreen({ topics, topicId, onAnswer, onClose }) {
   if (phase === 'done') {
     return (
       <View style={[styles.wrap, styles.center]}>
-        <Kami size={140} />
+        <Kami size={140} color={kamiColor} />
         <Text style={styles.h1}>Тема готова!</Text>
         <Text style={styles.mutedCenter}>
           {topic.subject}: {topic.title}. Слов: {topic.words.length}, ошибок: {mistakes}.
         </Text>
+        <View style={styles.earned}>
+          <Coin size={22} />
+          <Text style={styles.earnedText}>+{earned} {plural(earned, 'монета', 'монеты', 'монет')}</Text>
+        </View>
         <View style={{ alignSelf: 'stretch' }}>
           <Button title="На главную" onPress={onClose} />
         </View>
@@ -53,7 +60,8 @@ export default function LessonScreen({ topics, topicId, onAnswer, onClose }) {
     setPicked(id);
     const ok = id === word.id;
     onAnswer(word.id, ok);
-    if (!ok) setMistakes((m) => m + 1);
+    if (ok) setEarned((c) => c + 1);
+    else setMistakes((m) => m + 1);
   }
 
   function next() {
@@ -114,7 +122,7 @@ export default function LessonScreen({ topics, topicId, onAnswer, onClose }) {
           </View>
           {answered && (
             <View style={styles.kamiRow}>
-              <Kami size={64} />
+              <Kami size={64} color={kamiColor} />
               <Text style={styles.kamiText}>
                 {correct ? 'Верно! Так держать.' : `Почти! Правильно: ${word.es}. Вернёмся к нему позже.`}
               </Text>
@@ -148,5 +156,7 @@ const styles = StyleSheet.create({
   kamiRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   kamiText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.text },
   h1: { fontSize: 24, fontWeight: '800', color: colors.text },
+  earned: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FBF1D6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999 },
+  earnedText: { fontSize: 18, fontWeight: '800', color: '#7A5200' },
   mutedCenter: { fontSize: 15, color: colors.muted, textAlign: 'center' },
 });

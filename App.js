@@ -1,6 +1,6 @@
 // Точка входа.
 // Порядок: вход родителя → профиль ученика → основное приложение с вкладками.
-// Прогресс и серия дней хранятся в Supabase, поэтому не пропадают при перезапуске.
+// Прогресс, серия, монеты, покупки и расписание хранятся в Supabase.
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -11,22 +11,37 @@ import HomeScreen from './src/screens/HomeScreen';
 import LessonScreen from './src/screens/LessonScreen';
 import TaskScreen from './src/screens/TaskScreen';
 import ParentsScreen from './src/screens/ParentsScreen';
+import ScheduleScreen from './src/screens/ScheduleScreen';
+import ShopScreen from './src/screens/ShopScreen';
 import { colors } from './src/theme';
 import { supabase } from './src/lib/supabase';
-import { getStudent, loadTopics, loadLearned, loadStreak, recordAnswer } from './src/lib/api';
+import { KAMI_COLORS } from './src/data/content';
+import {
+  getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
+  loadShop, buyItem, equipColor, loadSchedule, saveScheduleDay,
+} from './src/lib/api';
 
 const TABS = [
   { key: 'home', label: 'Сегодня' },
+  { key: 'schedule', label: 'Расписание' },
+  { key: 'shop', label: 'Магазин' },
   { key: 'task', label: 'Задание' },
   { key: 'parents', label: 'Родителям' },
 ];
+
+const EMPTY_STREAK = { streak: 0, freezes: 0, used_freezes: 0, week: [] };
+const EMPTY_SCHEDULE = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = ещё проверяем
   const [student, setStudent] = useState(undefined);
   const [topics, setTopics] = useState([]);
   const [learned, setLearned] = useState({});
-  const [streak, setStreak] = useState(0);
+  const [streakInfo, setStreakInfo] = useState(EMPTY_STREAK);
+  const [wordsToday, setWordsToday] = useState(0);
+  const [schedule, setSchedule] = useState(EMPTY_SCHEDULE);
+  const [shop, setShop] = useState(null);
+  const [goalBanner, setGoalBanner] = useState('');
   const [tab, setTab] = useState('home');
   const [lessonTopic, setLessonTopic] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -37,7 +52,7 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // После входа: загружаем ученика и контент.
+  // После входа: ученик и контент.
   useEffect(() => {
     if (!session) {
       setStudent(undefined);
@@ -58,27 +73,67 @@ export default function App() {
     return () => { cancelled = true; };
   }, [session]);
 
-  // Когда ученик известен: его прогресс и серия.
+  // Когда ученик известен: прогресс, серия, расписание, магазин.
+  const studentId = student?.id;
   useEffect(() => {
-    if (!student) return;
-    loadLearned(student.id).then(setLearned).catch(() => {});
-    loadStreak(student.id).then(setStreak).catch(() => {});
-  }, [student]);
+    if (!studentId) return;
+    loadLearned(studentId).then(setLearned).catch(() => {});
+    loadStreak(studentId).then((info) => {
+      setStreakInfo(info);
+      setStudent((s) => (s ? { ...s, streak_freezes: info.freezes } : s));
+    });
+    loadWordsToday(studentId).then(setWordsToday);
+    loadSchedule(studentId).then(setSchedule);
+    loadShop(studentId).then(setShop).catch(() => {});
+  }, [studentId]);
 
   const onAnswer = useCallback(
-    (wordId, correct) => {
+    async (wordId, correct) => {
       if (correct) setLearned((prev) => ({ ...prev, [wordId]: true }));
-      recordAnswer(student.id, wordId, correct).then(() => loadStreak(student.id).then(setStreak));
+      const res = await recordAnswer(studentId, wordId, correct);
+      if (!res) return;
+      setStudent((s) => ({ ...s, coins: res.coins }));
+      setWordsToday(res.words_today);
+      if (res.goal_bonus > 0) setGoalBanner(`Цель дня выполнена! +${res.goal_bonus} монет`);
+      if (correct) loadStreak(studentId).then(setStreakInfo);
     },
-    [student]
+    [studentId]
   );
+
+  async function onBuy(itemId) {
+    const res = await buyItem(studentId, itemId);
+    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color }));
+    setStreakInfo((info) => ({ ...info, freezes: res.freezes }));
+    setShop(await loadShop(studentId));
+  }
+
+  async function onEquip(itemId) {
+    await equipColor(studentId, itemId);
+    setStudent((s) => ({ ...s, kami_color: itemId }));
+  }
+
+  async function onSaveDay(weekday, codes) {
+    const prev = schedule;
+    setSchedule((sch) => ({ ...sch, [weekday]: codes }));
+    try {
+      await saveScheduleDay(studentId, weekday, codes);
+    } catch (e) {
+      setSchedule(prev);
+      throw e;
+    }
+  }
 
   async function signOut() {
     await supabase.auth.signOut();
     setLearned({});
-    setStreak(0);
+    setStreakInfo(EMPTY_STREAK);
+    setSchedule(EMPTY_SCHEDULE);
+    setShop(null);
+    setGoalBanner('');
     setTab('home');
   }
+
+  const kamiColor = KAMI_COLORS[student?.kami_color] || KAMI_COLORS['color-green'];
 
   let screen;
   let showTabs = false;
@@ -96,22 +151,41 @@ export default function App() {
   } else if (!student) {
     screen = <StudentSetupScreen onCreated={setStudent} />;
   } else if (lessonTopic) {
-    screen = <LessonScreen topics={topics} topicId={lessonTopic} onAnswer={onAnswer} onClose={() => setLessonTopic(null)} />;
+    screen = (
+      <LessonScreen
+        topics={topics}
+        topicId={lessonTopic}
+        kamiColor={kamiColor}
+        onAnswer={onAnswer}
+        onClose={() => setLessonTopic(null)}
+      />
+    );
   } else {
     showTabs = true;
     if (tab === 'task') {
       screen = <TaskScreen onLearnWords={() => setLessonTopic(topics[0].id)} />;
+    } else if (tab === 'schedule') {
+      screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} />;
+    } else if (tab === 'shop') {
+      screen = <ShopScreen student={student} shop={shop} onBuy={onBuy} onEquip={onEquip} />;
     } else if (tab === 'parents') {
-      screen = <ParentsScreen topics={topics} student={student} learned={learned} streak={streak} onSignOut={signOut} />;
+      screen = (
+        <ParentsScreen topics={topics} student={student} learned={learned} streak={streakInfo.streak} onSignOut={signOut} />
+      );
     } else {
       screen = (
         <HomeScreen
           topics={topics}
-          studentName={student.nickname}
+          student={student}
+          kamiColor={kamiColor}
           learned={learned}
-          streak={streak}
-          onStartTopic={setLessonTopic}
+          streakInfo={streakInfo}
+          wordsToday={wordsToday}
+          goalBanner={goalBanner}
+          schedule={schedule}
+          onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
           onOpenTask={() => setTab('task')}
+          onOpenSchedule={() => setTab('schedule')}
         />
       );
     }
@@ -135,7 +209,7 @@ export default function App() {
                   style={styles.tab}
                 >
                   <View style={[styles.dot, active && styles.dotActive]} />
-                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
+                  <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>{t.label}</Text>
                 </Pressable>
               );
             })}
@@ -152,9 +226,9 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 15, color: colors.danger, textAlign: 'center' },
   link: { fontSize: 15, fontWeight: '700', color: colors.green, paddingVertical: 10 },
   tabs: { flexDirection: 'row', backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 6 },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 52, gap: 4 },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 52, gap: 4, paddingHorizontal: 2 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'transparent' },
   dotActive: { backgroundColor: colors.green },
-  tabText: { fontSize: 13, color: colors.muted },
+  tabText: { fontSize: 11, color: colors.muted },
   tabTextActive: { color: colors.green, fontWeight: '700' },
 });

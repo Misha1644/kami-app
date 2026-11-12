@@ -18,6 +18,7 @@ export default function ParentsScreen({ topics, student, learned, streak, onSign
   const stats = [
     { value: streak, label: 'дней подряд' },
     { value: totalLearned, label: 'слов выучено' },
+    { value: student.coins, label: 'монет' },
     { value: topicsReady, label: 'темы готовы' },
   ];
 
@@ -64,8 +65,8 @@ const styles = StyleSheet.create({
   h2: { fontSize: 17, fontWeight: '700', color: colors.text },
   small: { fontSize: 13, color: colors.muted },
   body: { fontSize: 15, color: colors.text, flexShrink: 1 },
-  stats: { flexDirection: 'row', gap: 10 },
-  stat: { flex: 1, padding: 12 },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  stat: { flexGrow: 1, flexBasis: '45%', padding: 12 },
   statValue: { fontSize: 24, fontWeight: '800', color: colors.text },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, gap: 8 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.track },

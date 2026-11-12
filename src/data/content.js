@@ -8,6 +8,7 @@ export const topics = [
   {
     id: 'mat-fracciones',
     subject: 'Matemáticas',
+    subjectCode: 'mat',
     title: 'las fracciones',
     titleRu: 'дроби',
     lessonSlot: '1-й урок',
@@ -24,6 +25,7 @@ export const topics = [
   {
     id: 'bio-celula',
     subject: 'Biología',
+    subjectCode: 'bio',
     title: 'la célula',
     titleRu: 'клетка',
     lessonSlot: '3-й урок',
@@ -40,4 +42,58 @@ export const topics = [
 
 export function learnedCount(topic, learned) {
   return topic.words.filter((w) => learned[w.id]).length;
+}
+
+// Предметы 1º ESO для расписания. code совпадает с topics.subject_code в базе.
+export const SUBJECTS = [
+  { code: 'mat', es: 'Matemáticas', ru: 'Математика' },
+  { code: 'len', es: 'Lengua Castellana', ru: 'Испанский язык' },
+  { code: 'val', es: 'Valencià', ru: 'Валенсийский' },
+  { code: 'ing', es: 'Inglés', ru: 'Английский' },
+  { code: 'bio', es: 'Biología y Geología', ru: 'Биология и геология' },
+  { code: 'geo', es: 'Geografía e Historia', ru: 'География и история' },
+  { code: 'ef', es: 'Educación Física', ru: 'Физкультура' },
+  { code: 'mus', es: 'Música', ru: 'Музыка' },
+  { code: 'tec', es: 'Tecnología', ru: 'Технология' },
+  { code: 'pla', es: 'Plástica', ru: 'ИЗО' },
+  { code: 'tut', es: 'Tutoría', ru: 'Классный час' },
+];
+
+export function subjectByCode(code) {
+  return SUBJECTS.find((s) => s.code === code) || { code, es: code, ru: '' };
+}
+
+// Цвета Ками по id товара из магазина.
+export const KAMI_COLORS = {
+  'color-green': '#3DB37F',
+  'color-blue': '#4A90D9',
+  'color-purple': '#8E6FD8',
+  'color-coral': '#E8735A',
+  'color-gold': '#D9A92B',
+};
+
+export const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'];
+const WEEKDAY_NAMES = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу'];
+
+// Следующий учебный день: завтра, а после пятницы — понедельник.
+// Возвращает { weekday: 1..5, label: 'Завтра' | 'В понедельник' }.
+export function nextSchoolDay(now = new Date()) {
+  const d = new Date(now);
+  d.setDate(d.getDate() + 1);
+  let skipped = false;
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+    skipped = true;
+  }
+  const weekday = d.getDay(); // 1..5
+  const name = WEEKDAY_NAMES[weekday - 1];
+  const label = skipped ? `В${weekday === 2 ? 'о' : ''} ${name}` : 'Завтра';
+  return { weekday, label };
+}
+
+export function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
 }

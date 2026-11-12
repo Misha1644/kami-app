@@ -1,40 +1,138 @@
-// Главная: что будет завтра в школе и сколько слов уже готово.
+// Главная: серия, монеты, цель дня и подготовка к следующему учебному дню по расписанию.
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
+import { Flame, Coin, Snowflake } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
-import { learnedCount } from '../data/content';
+import { learnedCount, nextSchoolDay, subjectByCode, plural } from '../data/content';
 
-export default function HomeScreen({ topics, studentName, learned, streak, onStartTopic, onOpenTask }) {
-  const next = topics.find((t) => learnedCount(t, learned) < t.words.length) || topics[0];
+const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+export default function HomeScreen({
+  topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
+  onStartTopic, onOpenTask, onOpenSchedule,
+}) {
+  const next = nextSchoolDay();
+  const codes = schedule[next.weekday] || [];
+  const hasSchedule = Object.values(schedule).some((d) => d.length);
+  const goal = student.daily_goal || 10;
+  const goalDone = wordsToday >= goal;
+
+  // Уникальные предметы следующего дня в порядке уроков.
+  const subjects = [...new Set(codes)];
+  const topicFor = (code) => topics.find((t) => t.subjectCode === code);
+  const shownTopics = hasSchedule ? subjects.map(topicFor).filter(Boolean) : topics;
+  const firstUnfinished = shownTopics.find((t) => learnedCount(t, learned) < t.words.length) || shownTopics[0];
+
+  let bubble;
+  if (!hasSchedule) bubble = 'Заполни расписание, и я буду готовить тебя к нужным урокам.';
+  else if (!subjects.length) bubble = `${next.label} уроков нет в расписании. Можно повторить слова!`;
+  else bubble = `${next.label}: ${subjects.map((c) => subjectByCode(c).es).join(', ')}. Подготовимся?`;
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <View style={styles.header}>
-        <Text style={styles.hello}>Hola, {studentName}!</Text>
-        <View style={styles.streak}>
-          <Text style={styles.streakText}>{streakLabel(streak)}</Text>
+        <Text style={styles.hello} numberOfLines={1}>Hola, {student.nickname}!</Text>
+        <View style={styles.chips}>
+          <View style={[styles.chip, { backgroundColor: colors.orangeLight }]}>
+            <Flame size={16} />
+            <Text style={[styles.chipText, { color: colors.orangeText }]}>{streakInfo.streak}</Text>
+          </View>
+          <View style={[styles.chip, { backgroundColor: '#FBF1D6' }]}>
+            <Coin size={16} />
+            <Text style={[styles.chipText, { color: '#7A5200' }]}>{student.coins}</Text>
+          </View>
         </View>
       </View>
+
+      {!!goalBanner && (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>{goalBanner}</Text>
+        </View>
+      )}
+
+      <Card style={{ gap: 12 }}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.cardTitle}>
+            {streakInfo.streak > 0
+              ? `${streakInfo.streak} ${plural(streakInfo.streak, 'день', 'дня', 'дней')} подряд`
+              : 'Начни серию сегодня'}
+          </Text>
+          {streakInfo.freezes > 0 && (
+            <View style={styles.freezeChip}>
+              <Snowflake size={14} />
+              <Text style={styles.freezeText}>{streakInfo.freezes}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.week}>
+          {streakInfo.week.map((d, i) => {
+            const date = new Date(d.day + 'T12:00:00');
+            const isToday = i === streakInfo.week.length - 1;
+            return (
+              <View key={d.day} style={styles.dayCol}>
+                <Text style={[styles.dayLetter, isToday && { color: colors.text, fontWeight: '700' }]}>
+                  {DAY_LETTERS[date.getDay()]}
+                </Text>
+                <View
+                  style={[
+                    styles.dayDot,
+                    d.status === 'done' && styles.dayDone,
+                    d.status === 'frozen' && styles.dayFrozen,
+                    isToday && d.status === 'none' && styles.dayToday,
+                  ]}
+                >
+                  {d.status === 'done' && <Flame size={14} color="#FFFFFF" />}
+                  {d.status === 'frozen' && <Snowflake size={12} color="#FFFFFF" />}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+        {!!streakInfo.used_freezes && (
+          <Text style={styles.small}>
+            Заморозка спасла твою серию: {streakInfo.used_freezes} {plural(streakInfo.used_freezes, 'день', 'дня', 'дней')}.
+          </Text>
+        )}
+        <View style={{ gap: 6 }}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.muted}>Цель дня</Text>
+            <Text style={[styles.muted, goalDone && { color: colors.green, fontWeight: '700' }]}>
+              {goalDone ? 'выполнена' : `${wordsToday} из ${goal} слов`}
+            </Text>
+          </View>
+          <ProgressBar value={wordsToday / goal} />
+        </View>
+      </Card>
 
       <View style={styles.kamiRow}>
-        <Kami size={96} />
+        <Kami size={88} color={kamiColor} />
         <View style={styles.bubble}>
-          <Text style={styles.bubbleText}>
-            Завтра {topics.map((t) => t.subject.toLowerCase()).join(' и ')}. Подготовимся за 10 минут?
-          </Text>
+          <Text style={styles.bubbleText}>{bubble}</Text>
         </View>
       </View>
 
-      <Text style={styles.h2}>Завтра в школе</Text>
-      {topics.map((t) => {
+      {!hasSchedule && <Button title="Заполнить расписание" variant="secondary" onPress={onOpenSchedule} />}
+
+      <Text style={styles.h2}>{hasSchedule ? `${next.label} в школе` : 'Темы'}</Text>
+      {hasSchedule && subjects.length === 0 && (
+        <Text style={styles.muted}>В расписании на этот день пусто.</Text>
+      )}
+      {(hasSchedule ? subjects : topics.map((t) => t.subjectCode)).map((code) => {
+        const t = topicFor(code);
+        const subj = subjectByCode(code);
+        if (!t) {
+          return (
+            <Card key={code} style={{ gap: 4 }}>
+              <Text style={styles.subject}>{subj.es}</Text>
+              <Text style={styles.small}>Слова по этому предмету скоро появятся.</Text>
+            </Card>
+          );
+        }
         const done = learnedCount(t, learned);
         return (
-          <Card key={t.id} style={{ gap: 8 }}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.subject}>{t.subject}</Text>
-              <Text style={styles.small}>{t.lessonSlot}</Text>
-            </View>
+          <Card key={code} style={{ gap: 8 }}>
+            <Text style={styles.subject}>{subj.es}</Text>
             <Text style={styles.muted}>Тема: {t.title} · {t.titleRu}</Text>
             <ProgressBar value={done / t.words.length} />
             <View style={styles.rowBetween}>
@@ -47,25 +145,31 @@ export default function HomeScreen({ topics, studentName, learned, streak, onSta
         );
       })}
 
-      <Button title="Начать подготовку" onPress={() => onStartTopic(next.id)} />
-      <Button title="Сфотографировать задание" variant="secondary" onPress={onOpenTask} />
+      {firstUnfinished && <Button title="Начать подготовку" onPress={() => onStartTopic(firstUnfinished.id)} />}
+      <Button title="Разобрать задание" variant="secondary" onPress={onOpenTask} />
     </ScrollView>
   );
 }
 
-function streakLabel(n) {
-  if (n === 0) return 'Начни серию сегодня';
-  const m10 = n % 10, m100 = n % 100;
-  const word = m10 === 1 && m100 !== 11 ? 'день' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'дня' : 'дней';
-  return `${n} ${word} подряд`;
-}
-
 const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 14 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  hello: { fontSize: 26, fontWeight: '800', color: colors.text },
-  streak: { backgroundColor: colors.orangeLight, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
-  streakText: { color: colors.orangeText, fontWeight: '700', fontSize: 14 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  hello: { fontSize: 24, fontWeight: '800', color: colors.text, flexShrink: 1 },
+  chips: { flexDirection: 'row', gap: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  chipText: { fontWeight: '800', fontSize: 15 },
+  banner: { backgroundColor: '#FBF1D6', borderRadius: radius.md, padding: 12 },
+  bannerText: { color: '#7A5200', fontWeight: '700', fontSize: 15 },
+  cardTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
+  freezeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E6F0FB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  freezeText: { color: '#1D5A9E', fontWeight: '700', fontSize: 13 },
+  week: { flexDirection: 'row', justifyContent: 'space-between' },
+  dayCol: { alignItems: 'center', gap: 4 },
+  dayLetter: { fontSize: 12, color: colors.muted },
+  dayDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.track, alignItems: 'center', justifyContent: 'center' },
+  dayDone: { backgroundColor: colors.orange },
+  dayFrozen: { backgroundColor: '#4A90D9' },
+  dayToday: { borderWidth: 2, borderColor: colors.orange, backgroundColor: colors.card },
   kamiRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   bubble: { flex: 1, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: 12 },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },
