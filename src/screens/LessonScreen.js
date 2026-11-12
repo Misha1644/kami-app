@@ -5,12 +5,13 @@
 // Режим повторения (review) пропускает карточки и сразу проверяет.
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import Kami from '../components/Kami';
 import { Coin } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
 import { plural } from '../data/content';
 import { kamiSays } from '../data/kami';
+import { teacherFor, KAMI_TEACHER, pickLine } from '../data/teachers';
+import Teacher from '../components/Teacher';
 import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey } from '../lib/speech';
 import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
 
@@ -69,9 +70,16 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
   const [mistakes, setMistakes] = useState(0);
   const [earned, setEarned] = useState(0);
   // Реплики Ками: новые на каждое слово, но не меняются при перерисовке.
-  const praise = useMemo(() => kamiSays('correct'), [index, phase]);
-  const comfort = useMemo(() => kamiSays('wrong'), [index, phase]);
-  const ending = useMemo(() => ({ done: kamiSays('done'), perfect: kamiSays('perfect'), review: kamiSays('reviewDone') }), []);
+  // Урок ведёт учитель предмета; повторение и свои предметы — Ками.
+  const teacher = review || topic.custom ? KAMI_TEACHER : teacherFor(topic.subjectCode);
+  const hello = useMemo(() => pickLine(teacher.hello), [teacher]);
+  const praise = useMemo(() => pickLine(teacher.praise), [index, phase, teacher]);
+  const comfort = useMemo(() => pickLine(teacher.wrong), [index, phase, teacher]);
+  const ending = useMemo(() => ({
+    done: pickLine(teacher.done),
+    perfect: teacher === KAMI_TEACHER ? kamiSays('perfect') : `Ни одной ошибки! ${pickLine(teacher.done)}`,
+    review: kamiSays('reviewDone'),
+  }), [teacher]);
 
   const word = words[index];
 
@@ -144,8 +152,9 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
   if (phase === 'done') {
     return (
       <View style={[styles.wrap, styles.center]}>
-        <Kami size={140} color={kamiColor} mood="excited" />
+        <Teacher teacher={teacher} size={140} kamiColor={kamiColor} mood="excited" />
         <Text style={styles.h1}>{review ? 'Повторение готово!' : 'Тема готова!'}</Text>
+        {teacher !== KAMI_TEACHER && <Text style={styles.teacherName}>{teacher.name} · {teacher.who}</Text>}
         <Text style={styles.mutedCenter}>{mistakes === 0 ? ending.perfect : review ? ending.review : ending.done}</Text>
         <Text style={styles.mutedCenter}>
           {review ? 'Слова закреплены.' : `${topic.subject}: ${topic.title}.`} Слов: {words.length}, ошибок: {mistakes}.
@@ -162,7 +171,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
   }
 
   if (phase === 'match') {
-    return <MatchRound words={words} kamiColor={kamiColor} onDone={finish} onClose={onClose} />;
+    return <MatchRound words={words} kamiColor={kamiColor} teacher={teacher} onDone={finish} onClose={onClose} />;
   }
 
   const correctNow = verdict === 'right';
@@ -179,9 +188,22 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
         </View>
         <Text style={styles.counter}>{index + 1}/{words.length}</Text>
       </View>
-      <Text style={styles.caps}>
-        {review ? 'ПОВТОРЕНИЕ' : `${topic.subject.toUpperCase()} · ${topic.title.toUpperCase()}`}
-      </Text>
+      <View style={styles.capsRow}>
+        <Teacher teacher={teacher} size={28} kamiColor={kamiColor} />
+        <Text style={[styles.caps, { flex: 1 }]}>
+          {review ? 'ПОВТОРЕНИЕ' : `${topic.subject.toUpperCase()} · ${topic.title.toUpperCase()}`}
+        </Text>
+      </View>
+
+      {phase === 'learn' && index === 0 && (
+        <View style={styles.helloRow}>
+          <Teacher teacher={teacher} size={64} kamiColor={kamiColor} />
+          <View style={styles.helloBubble}>
+            <Text style={styles.teacherName}>{teacher.name}</Text>
+            <Text style={styles.kamiText}>{hello}</Text>
+          </View>
+        </View>
+      )}
 
       {phase === 'learn' && (
         <>
@@ -276,7 +298,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
       {phase === 'exercise' && answered && (
         <>
           <View style={styles.kamiRow}>
-            <Kami size={64} color={kamiColor} mood={correctNow ? 'excited' : 'worried'} />
+            <Teacher teacher={teacher} size={64} kamiColor={kamiColor} mood={correctNow ? 'excited' : 'worried'} />
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={styles.kamiText}>{correctNow ? praise : comfort}</Text>
               {!correctNow && kind !== 'phrase' && <Text style={styles.kamiText}>Правильно: {word.es}. Вернёмся к нему в повторении.</Text>}
@@ -475,7 +497,7 @@ function Options({ options, word, picked, onChoose }) {
 }
 
 // «Соедини пары»: испанские слова слева, переводы справа.
-function MatchRound({ words, kamiColor, onDone, onClose }) {
+function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
   const pairs = useMemo(() => shuffle(words).slice(0, 5), [words]);
   const left = useMemo(() => shuffle(pairs), [pairs]);
   const right = useMemo(() => shuffle(pairs), [pairs]);
@@ -550,7 +572,7 @@ function MatchRound({ words, kamiColor, onDone, onClose }) {
         </View>
       </View>
       <View style={styles.kamiRow}>
-        <Kami size={56} color={kamiColor} mood={wrong ? 'worried' : 'happy'} />
+        <Teacher teacher={teacher} size={56} kamiColor={kamiColor} mood={wrong ? 'worried' : 'happy'} />
         <Text style={styles.kamiText}>{wrong ? '¡Uy! Не та пара — попробуй ещё.' : matchLine}</Text>
       </View>
     </ScrollView>
@@ -603,6 +625,10 @@ const styles = StyleSheet.create({
   note: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
   small: { fontSize: 13, color: colors.muted },
   kamiRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  capsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  helloRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  helloBubble: { flex: 1, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 2 },
+  teacherName: { fontSize: 13, fontWeight: '800', color: colors.muted },
   kamiText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.text },
   h1: { fontSize: 24, fontWeight: '800', color: colors.text },
   mutedCenter: { fontSize: 15, color: colors.muted, textAlign: 'center' },

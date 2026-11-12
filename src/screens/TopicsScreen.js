@@ -1,5 +1,8 @@
 // Все темы предмета: прогресс по каждой, «Учить» и выбор темы, которую сейчас проходят в классе.
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import Teacher from '../components/Teacher';
+import { TEACHERS } from '../data/teachers';
+import { speak } from '../lib/speech';
 import { Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
 import { learnedCount, subjectByCode } from '../data/content';
@@ -16,6 +19,32 @@ export default function TopicsScreen({ subjectCode, topics, learned, currentId, 
         <Text style={styles.h1}>{subj.es}</Text>
         <Text style={styles.small}>Отметь тему, которую сейчас проходите в классе, — Ками покажет её на главной.</Text>
       </View>
+
+      {!!TEACHERS[subjectCode] && (() => {
+        const t = TEACHERS[subjectCode];
+        return (
+          <Card style={styles.teacherCard}>
+            <View style={styles.teacherHead}>
+              <Teacher teacher={t} size={72} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.small}>Учитель предмета</Text>
+                <Text style={styles.title}>{t.name}</Text>
+                <Text style={styles.small}>{t.who}</Text>
+              </View>
+            </View>
+            <Text style={styles.about}>{t.about}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Послушать: ${t.motto[0]}`}
+              onPress={() => speak(t.motto[0], { lang: subjectCode === 'val' ? 'ca-ES' : 'es-ES' })}
+              style={[styles.motto, { borderColor: t.color }]}
+            >
+              <Text style={styles.mottoEs}>🔊 «{t.motto[0]}»</Text>
+              <Text style={styles.small}>{t.motto[1]}</Text>
+            </Pressable>
+          </Card>
+        );
+      })()}
 
       {topics.length === 0 && <Text style={styles.small}>Для этого класса тем по предмету пока нет.</Text>}
 
@@ -59,6 +88,11 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, fontWeight: '700', color: colors.green },
   h1: { fontSize: 24, fontWeight: '800', color: colors.text },
   small: { fontSize: 13, color: colors.muted },
+  teacherCard: { gap: 10 },
+  teacherHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  about: { fontSize: 15, lineHeight: 21, color: colors.text },
+  motto: { alignSelf: 'flex-start', borderLeftWidth: 4, paddingLeft: 10, paddingVertical: 4, minHeight: 44, justifyContent: 'center' },
+  mottoEs: { fontSize: 15, fontWeight: '700', color: colors.text, fontStyle: 'italic' },
   current: { borderColor: colors.green, borderWidth: 2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   num: { width: 24, fontSize: 15, fontWeight: '800', color: colors.muted, textAlign: 'center' },

@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { ScrollView, View, Text, Pressable, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import FactCard from '../components/FactCard';
+import Teacher from '../components/Teacher';
+import { teacherFor, TEACHERS } from '../data/teachers';
 import { greeting, kamiSays, kamiFact } from '../data/kami';
 import { Flame, Coin, Snowflake } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
@@ -191,7 +193,13 @@ export default function HomeScreen({
         const blocks = [current].filter(Boolean);
         return (
           <Card key={code} style={{ gap: 10 }}>
-            <Text style={styles.subject}>{subj.es}</Text>
+            <View style={styles.subjectRow}>
+              <Teacher teacher={teacherFor(code)} size={36} kamiColor={kamiColor} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.subject}>{subj.es}</Text>
+                {!!TEACHERS[code] && <Text style={styles.small}>Ведёт {TEACHERS[code].name}</Text>}
+              </View>
+            </View>
             {blocks.length === 0 && (
               <Text style={styles.small}>
                 {subj.custom ? 'Свой предмет — готовых слов для него нет.' : 'Слова по этому предмету скоро появятся.'}
@@ -257,6 +265,7 @@ const styles = StyleSheet.create({
   reviewButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   bubble: { flex: 1, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: 12 },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },
+  subjectRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bubbleHint: { fontSize: 12, color: colors.muted, marginTop: 6 },
   h2: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
