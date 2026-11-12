@@ -10,6 +10,10 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'content'))
 from eso_topics import TOPICS, SUBJECT_NAMES  # noqa: E402
+from eso_topics_more import MORE_TOPICS  # noqa: E402
+
+SUBJECT_NAMES = {**SUBJECT_NAMES, 'val': 'Valencià', 'ing': 'Inglés', 'ef': 'Educación Física',
+                 'mus': 'Música', 'tec': 'Tecnología', 'pla': 'Plástica', 'tut': 'Tutoría'}
 
 # Порядок тем внутри предмета: существующие темы встраиваются в программу.
 ORDER = {
@@ -23,8 +27,8 @@ def q(s):
     return "'" + str(s).replace("'", "''") + "'"
 
 
-def main():
-    lines = [
+def main(topics=TOPICS, out_name='009_content_eso.sql', start=0, header=True):
+    lines = [] if not header else [
         '-- Контент 1º и 2º ESO. Сгенерировано scripts/build_content_sql.py из content/eso_topics.py.',
         '-- Требует проверки учителем.',
         '',
@@ -35,8 +39,8 @@ def main():
     ]
     seen_words = set()
     topic_rows, word_rows = [], []
-    for i, (tid, grade, code, title, ru, en, words) in enumerate(TOPICS):
-        sort = ORDER.get(tid, 100 + i)
+    for i, (tid, grade, code, title, ru, en, words) in enumerate(topics):
+        sort = ORDER.get(tid, 100 + start + i)
         topic_rows.append(f'({q(tid)},{q(grade)},{q(SUBJECT_NAMES[code])},{q(code)},{q(title)},{q(ru)},{q(en)},{sort})')
         for n, (es, w_ru, w_en, teacher) in enumerate(words, start=1):
             wid = f'{tid}-{n}'
@@ -52,10 +56,11 @@ def main():
                  + ',\n'.join(word_rows)
                  + '\non conflict (id) do update set es=excluded.es, ru=excluded.ru, en=excluded.en, '
                    'teacher=excluded.teacher, sort=excluded.sort;')
-    out = os.path.join(ROOT, 'supabase', 'migrations', '009_content_eso.sql')
+    out = os.path.join(ROOT, 'supabase', 'migrations', out_name)
     open(out, 'w', encoding='utf-8').write('\n'.join(lines))
-    print('written', out, '| topics:', len(TOPICS), '| words:', len(seen_words))
+    print('written', out, '| topics:', len(topics), '| words:', len(seen_words))
 
 
 if __name__ == '__main__':
     main()
+    main(MORE_TOPICS, '011_content_all_subjects.sql', start=len(TOPICS), header=False)

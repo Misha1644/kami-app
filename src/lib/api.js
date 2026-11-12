@@ -6,21 +6,28 @@ import { topics as localTopics } from '../data/content';
 const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal';
 
 // Темы со словами. Если база недоступна — берём встроенный контент, чтобы приложение работало.
+// Язык озвучки слова: в Valencià слова валенсийские, остальное — испанский.
+export const langFor = (subjectCode) => (subjectCode === 'val' ? 'ca-ES' : 'es-ES');
+
+// Темы класса ученика + общие темы ('ESO'). Если по предмету нет тем для этого класса
+// (например, Biología во 2º ESO), берём темы того же предмета из другого класса.
 export async function loadTopics(grade = '1º ESO') {
   const { data, error } = await supabase
     .from('topics')
     .select('id, grade, subject, subject_code, title, title_ru, sort, words(id, es, ru, en, teacher, sort)')
-    .eq('grade', grade)
     .order('sort')
     .order('sort', { referencedTable: 'words' });
   if (error || !data?.length) return grade === '1º ESO' ? localTopics : [];
-  return data.map((t) => ({
+  const mine = data.filter((t) => t.grade === grade || t.grade === 'ESO');
+  const covered = new Set(mine.map((t) => t.subject_code));
+  const borrowed = data.filter((t) => !covered.has(t.subject_code) && t.grade !== grade && t.grade !== 'ESO');
+  return [...mine, ...borrowed].map((t) => ({
     id: t.id,
     subject: t.subject,
     subjectCode: t.subject_code,
     title: t.title,
     titleRu: t.title_ru,
-    words: t.words,
+    words: (t.words || []).map((w) => ({ ...w, lang: langFor(t.subject_code) })),
   }));
 }
 
@@ -252,7 +259,9 @@ export async function updateGrade(studentId, grade) {
 
 // Слова, которые пора повторить (умное повторение): обычные и свои. Не больше 15 за раз.
 export async function loadDueWords(studentId) {
-  const { data } = await supabase.from('progress').select('word_id, due_at, words(id, es, ru, en, teacher)')
+  const { data } = await supabase.from('progress').select('word_id, due_at, words(id, es, ru, en, teacher, topics(subject_code))')
     .eq('student_id', studentId).lte('due_at', new Date().toISOString()).order('due_at').limit(15);
-  return (data || []).filter((r) => r.words).map((r) => r.words);
+  return (data || []).filter((r) => r.words).map(({ words: w }) => ({
+    id: w.id, es: w.es, ru: w.ru, en: w.en, teacher: w.teacher, lang: langFor(w.topics?.subject_code),
+  }));
 }

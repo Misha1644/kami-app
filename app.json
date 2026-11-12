@@ -6,7 +6,17 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F6F7F4",
-    "ios": { "supportsTablet": false },
-    "android": {}
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {},
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Kami слушает, как ты произносишь испанские слова."
+        }
+      ]
+    ]
   }
 }
