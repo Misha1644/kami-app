@@ -84,21 +84,46 @@ export default function App() {
 
   // Когда ученик известен: прогресс, серия, расписание, магазин.
   const studentId = student?.id;
+
+  // Всё, что относится к ученику. Вызывается при входе и по кнопке «Обновить».
+  const loadStudentData = useCallback(async (id) => {
+    const [learnedStd, info, today, sch, shopData, words] = await Promise.all([
+      loadLearned(id).catch(() => ({})),
+      loadStreak(id),
+      loadWordsToday(id),
+      loadSchedule(id),
+      loadShop(id).catch(() => null),
+      loadCustomWords(id),
+    ]);
+    const learnedOwn = Object.fromEntries(words.filter((w) => w.learned_at).map((w) => [w.id, true]));
+    setLearned({ ...learnedStd, ...learnedOwn });
+    setStreakInfo(info);
+    setStudent((s) => (s ? { ...s, streak_freezes: info.freezes } : s));
+    setWordsToday(today);
+    setSchedule(sch);
+    if (shopData) setShop(shopData);
+    setCustomWords(words);
+  }, []);
+
   useEffect(() => {
-    if (!studentId) return;
-    loadLearned(studentId).then(setLearned).catch(() => {});
-    loadStreak(studentId).then((info) => {
-      setStreakInfo(info);
-      setStudent((s) => (s ? { ...s, streak_freezes: info.freezes } : s));
-    });
-    loadWordsToday(studentId).then(setWordsToday);
-    loadSchedule(studentId).then(setSchedule);
-    loadShop(studentId).then(setShop).catch(() => {});
-    loadCustomWords(studentId).then((list) => {
-      setCustomWords(list);
-      setLearned((prev) => ({ ...prev, ...Object.fromEntries(list.filter((w) => w.learned_at).map((w) => [w.id, true])) }));
-    });
-  }, [studentId]);
+    if (studentId) loadStudentData(studentId);
+  }, [studentId, loadStudentData]);
+
+  // Кнопка «Обновить» и «потянуть вниз»: заново загружает всё с сервера.
+  const [refreshing, setRefreshing] = useState(false);
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const [s, t, p] = await Promise.all([getStudent(), loadTopics(), loadPlan()]);
+      setPlan(p);
+      setTopics(t);
+      setStudent(s);
+      if (s) await loadStudentData(s.id);
+    } catch (e) {
+      // Нет сети — оставляем то, что уже показано.
+    }
+    setRefreshing(false);
+  }
 
   // Обычные темы + «Мои слова» по каждому предмету.
   const allTopics = useMemo(() => [...topics, ...customTopics(customWords)], [topics, customWords]);
@@ -231,7 +256,16 @@ export default function App() {
       screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} onOpenWords={setWordsFor} />;
     } else if (tab === 'shop') {
       screen = (
-        <ShopScreen student={student} shop={shop} plan={plan} onBuy={onBuy} onEquip={onEquip} onOpenPlus={() => setShowPlus(true)} />
+        <ShopScreen
+          student={student}
+          shop={shop}
+          plan={plan}
+          onBuy={onBuy}
+          onEquip={onEquip}
+          onOpenPlus={() => setShowPlus(true)}
+          refreshing={refreshing}
+          onRefresh={refresh}
+        />
       );
     } else if (tab === 'parents') {
       screen = (
@@ -243,6 +277,8 @@ export default function App() {
           plan={plan}
           onOpenPlus={() => setShowPlus(true)}
           onSignOut={signOut}
+          refreshing={refreshing}
+          onRefresh={refresh}
         />
       );
     } else {
@@ -260,6 +296,8 @@ export default function App() {
           onOpenTask={() => setTab('task')}
           onOpenSchedule={() => setTab('schedule')}
           onOpenWords={setWordsFor}
+          refreshing={refreshing}
+          onRefresh={refresh}
         />
       );
     }

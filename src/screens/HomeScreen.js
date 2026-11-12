@@ -1,5 +1,5 @@
 // Главная: серия, монеты, цель дня и подготовка к следующему учебному дню по расписанию.
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import { Flame, Coin, Snowflake } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
@@ -10,7 +10,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
-  onStartTopic, onOpenTask, onOpenSchedule, onOpenWords,
+  onStartTopic, onOpenTask, onOpenSchedule, onOpenWords, refreshing, onRefresh,
 }) {
   const next = nextSchoolDay();
   const codes = schedule[next.weekday] || [];
@@ -32,10 +32,22 @@ export default function HomeScreen({
   else bubble = `${next.label}: ${subjects.map((c) => subjectByCode(c).es).join(', ')}. Подготовимся?`;
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
+    <ScrollView
+      contentContainerStyle={styles.wrap}
+      refreshControl={<RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
+    >
       <View style={styles.header}>
         <Text style={styles.hello} numberOfLines={1}>Hola, {student.nickname}!</Text>
         <View style={styles.chips}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Обновить"
+            onPress={onRefresh}
+            disabled={refreshing}
+            style={styles.refresh}
+          >
+            {refreshing ? <ActivityIndicator size="small" color={colors.green} /> : <Text style={styles.refreshText}>↻</Text>}
+          </Pressable>
           <View style={[styles.chip, { backgroundColor: colors.orangeLight }]}>
             <Flame size={16} />
             <Text style={[styles.chipText, { color: colors.orangeText }]}>{streakInfo.streak}</Text>
@@ -167,7 +179,9 @@ const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 14 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   hello: { fontSize: 24, fontWeight: '800', color: colors.text, flexShrink: 1 },
-  chips: { flexDirection: 'row', gap: 8 },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  refresh: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: '#C9D0CB', backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  refreshText: { fontSize: 20, fontWeight: '700', color: colors.green, marginTop: -2 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   chipText: { fontWeight: '800', fontSize: 15 },
   banner: { backgroundColor: '#FBF1D6', borderRadius: radius.md, padding: 12 },

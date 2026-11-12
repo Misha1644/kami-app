@@ -1,12 +1,12 @@
 // Магазин: монеты тратятся на заморозки серии и новые цвета Ками.
 import { useState } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 
-export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpenPlus }) {
+export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpenPlus, refreshing, onRefresh }) {
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +32,10 @@ export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpen
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
+    <ScrollView
+      contentContainerStyle={styles.wrap}
+      refreshControl={<RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
+    >
       <View style={styles.header}>
         <Text style={styles.h1}>Магазин</Text>
         <View style={styles.balance}>

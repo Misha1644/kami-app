@@ -1,7 +1,7 @@
 // Экран для родителей: сколько выучено и готовность по предметам.
 // Цифры считаются из реального прогресса ученика в этом приложении.
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { Button, Card } from '../components/ui';
 import { colors } from '../theme';
 import { learnedCount } from '../data/content';
@@ -13,7 +13,7 @@ function status(done, total) {
   return { label: 'Готов к уроку', bg: colors.greenLight, fg: colors.greenDark };
 }
 
-export default function ParentsScreen({ topics, student, learned, streak, plan, onOpenPlus, onSignOut }) {
+export default function ParentsScreen({ topics, student, learned, streak, plan, onOpenPlus, onSignOut, refreshing, onRefresh }) {
   const [hard, setHard] = useState(null);
   useEffect(() => {
     if (plan.plus) loadHardWords(student.id).then(setHard);
@@ -30,7 +30,10 @@ export default function ParentsScreen({ topics, student, learned, streak, plan, 
   ];
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
+    <ScrollView
+      contentContainerStyle={styles.wrap}
+      refreshControl={<RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
+    >
       <View>
         <Text style={styles.small}>Для родителей</Text>
         <Text style={styles.h1}>Прогресс: {student.nickname}</Text>
