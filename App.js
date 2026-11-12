@@ -1,7 +1,7 @@
 // Точка входа.
 // Порядок: вход родителя → профиль ученика → основное приложение с вкладками.
 // Прогресс, серия, монеты, покупки и расписание хранятся в Supabase.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -13,12 +13,14 @@ import TaskScreen from './src/screens/TaskScreen';
 import ParentsScreen from './src/screens/ParentsScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ShopScreen from './src/screens/ShopScreen';
+import WordsScreen from './src/screens/WordsScreen';
 import { colors } from './src/theme';
 import { supabase } from './src/lib/supabase';
-import { KAMI_COLORS } from './src/data/content';
+import { KAMI_COLORS, customTopics } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipColor, loadSchedule, saveScheduleDay,
+  loadCustomWords, addCustomWord, deleteCustomWord, recordCustomAnswer,
 } from './src/lib/api';
 
 const TABS = [
@@ -44,6 +46,8 @@ export default function App() {
   const [goalBanner, setGoalBanner] = useState('');
   const [tab, setTab] = useState('home');
   const [lessonTopic, setLessonTopic] = useState(null);
+  const [customWords, setCustomWords] = useState([]);
+  const [wordsFor, setWordsFor] = useState(null); // код предмета, для которого открыт экран «Мои слова»
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -85,20 +89,40 @@ export default function App() {
     loadWordsToday(studentId).then(setWordsToday);
     loadSchedule(studentId).then(setSchedule);
     loadShop(studentId).then(setShop).catch(() => {});
+    loadCustomWords(studentId).then((list) => {
+      setCustomWords(list);
+      setLearned((prev) => ({ ...prev, ...Object.fromEntries(list.filter((w) => w.learned_at).map((w) => [w.id, true])) }));
+    });
   }, [studentId]);
+
+  // Обычные темы + «Мои слова» по каждому предмету.
+  const allTopics = useMemo(() => [...topics, ...customTopics(customWords)], [topics, customWords]);
+  const customIds = useMemo(() => new Set(customWords.map((w) => w.id)), [customWords]);
 
   const onAnswer = useCallback(
     async (wordId, correct) => {
       if (correct) setLearned((prev) => ({ ...prev, [wordId]: true }));
-      const res = await recordAnswer(studentId, wordId, correct);
+      const res = customIds.has(wordId)
+        ? await recordCustomAnswer(studentId, wordId, correct)
+        : await recordAnswer(studentId, wordId, correct);
       if (!res) return;
       setStudent((s) => ({ ...s, coins: res.coins }));
       setWordsToday(res.words_today);
       if (res.goal_bonus > 0) setGoalBanner(`Цель дня выполнена! +${res.goal_bonus} монет`);
       if (correct) loadStreak(studentId).then(setStreakInfo);
     },
-    [studentId]
+    [studentId, customIds]
   );
+
+  async function onAddWord(word) {
+    const created = await addCustomWord(studentId, word);
+    setCustomWords((list) => [...list, created]);
+  }
+
+  async function onDeleteWord(id) {
+    await deleteCustomWord(id);
+    setCustomWords((list) => list.filter((w) => w.id !== id));
+  }
 
   async function onBuy(itemId) {
     const res = await buyItem(studentId, itemId);
@@ -129,6 +153,8 @@ export default function App() {
     setStreakInfo(EMPTY_STREAK);
     setSchedule(EMPTY_SCHEDULE);
     setShop(null);
+    setCustomWords([]);
+    setWordsFor(null);
     setGoalBanner('');
     setTab('home');
   }
@@ -153,11 +179,23 @@ export default function App() {
   } else if (lessonTopic) {
     screen = (
       <LessonScreen
-        topics={topics}
+        topics={allTopics}
         topicId={lessonTopic}
         kamiColor={kamiColor}
         onAnswer={onAnswer}
         onClose={() => setLessonTopic(null)}
+      />
+    );
+  } else if (wordsFor) {
+    screen = (
+      <WordsScreen
+        subjectCode={wordsFor}
+        words={allTopics.find((t) => t.id === `my-${wordsFor}`)?.words || []}
+        learned={learned}
+        onAdd={onAddWord}
+        onDelete={onDeleteWord}
+        onStudy={() => setLessonTopic(`my-${wordsFor}`)}
+        onBack={() => setWordsFor(null)}
       />
     );
   } else {
@@ -165,17 +203,17 @@ export default function App() {
     if (tab === 'task') {
       screen = <TaskScreen onLearnWords={() => setLessonTopic(topics[0].id)} />;
     } else if (tab === 'schedule') {
-      screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} />;
+      screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} onOpenWords={setWordsFor} />;
     } else if (tab === 'shop') {
       screen = <ShopScreen student={student} shop={shop} onBuy={onBuy} onEquip={onEquip} />;
     } else if (tab === 'parents') {
       screen = (
-        <ParentsScreen topics={topics} student={student} learned={learned} streak={streakInfo.streak} onSignOut={signOut} />
+        <ParentsScreen topics={allTopics} student={student} learned={learned} streak={streakInfo.streak} onSignOut={signOut} />
       );
     } else {
       screen = (
         <HomeScreen
-          topics={topics}
+          topics={allTopics}
           student={student}
           kamiColor={kamiColor}
           learned={learned}
@@ -186,6 +224,7 @@ export default function App() {
           onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
           onOpenTask={() => setTab('task')}
           onOpenSchedule={() => setTab('schedule')}
+          onOpenWords={setWordsFor}
         />
       );
     }

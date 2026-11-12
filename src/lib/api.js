@@ -140,3 +140,46 @@ export async function saveScheduleDay(studentId, weekday, codes) {
   const ins = await supabase.from('schedule').insert(rows);
   if (ins.error) throw ins.error;
 }
+
+// ----- Свои слова ученика -----
+
+export async function loadCustomWords(studentId) {
+  const { data, error } = await supabase
+    .from('custom_words')
+    .select('id, subject_code, es, translation, example, learned_at')
+    .eq('student_id', studentId)
+    .order('created_at');
+  if (error) return [];
+  return data;
+}
+
+export async function addCustomWord(studentId, { subjectCode, es, translation, example }) {
+  const { data, error } = await supabase
+    .from('custom_words')
+    .insert({
+      student_id: studentId,
+      subject_code: subjectCode,
+      es: es.trim(),
+      translation: translation.trim(),
+      example: example?.trim() ? example.trim() : null,
+    })
+    .select('id, subject_code, es, translation, example, learned_at')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteCustomWord(wordId) {
+  const { error } = await supabase.from('custom_words').delete().eq('id', wordId);
+  if (error) throw error;
+}
+
+// Ответ по своему слову: монета только при первом правильном ответе.
+export async function recordCustomAnswer(studentId, wordId, correct) {
+  const { data, error } = await supabase.rpc('record_custom_answer', { p_student: studentId, p_word: wordId, p_correct: correct });
+  if (error) {
+    console.warn('record_custom_answer failed', error.message);
+    return null;
+  }
+  return data;
+}

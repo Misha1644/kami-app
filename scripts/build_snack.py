@@ -17,14 +17,15 @@ MODULES = [
     ('src/theme.js', ['colors', 'radius']),
     ('src/data/content.js', ['GRADE', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
                              'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural',
-                             'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom']),
+                             'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom', 'customTopics']),
     ('src/components/Kami.js', ['Kami']),
     ('src/components/icons.js', ['Flame', 'Coin', 'Snowflake']),
     ('src/components/ui.js', ['ProgressBar', 'Button', 'Card']),
     ('src/lib/supabase.js', ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'supabase']),
     ('src/lib/api.js', ['loadTopics', 'getStudent', 'createStudent', 'loadLearned', 'recordAnswer',
                         'loadStreak', 'loadWordsToday', 'loadShop', 'buyItem', 'equipColor',
-                        'loadSchedule', 'saveScheduleDay']),
+                        'loadSchedule', 'saveScheduleDay', 'loadCustomWords', 'addCustomWord',
+                        'deleteCustomWord', 'recordCustomAnswer']),
     ('src/screens/AuthScreen.js', ['AuthScreen']),
     ('src/screens/StudentSetupScreen.js', ['StudentSetupScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
@@ -33,6 +34,7 @@ MODULES = [
     ('src/screens/ParentsScreen.js', ['ParentsScreen']),
     ('src/screens/ScheduleScreen.js', ['ScheduleScreen']),
     ('src/screens/ShopScreen.js', ['ShopScreen']),
+    ('src/screens/WordsScreen.js', ['WordsScreen']),
 ]
 
 # В Snack (веб) этот полифил не нужен и мешает загрузке.

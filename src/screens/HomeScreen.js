@@ -10,7 +10,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
-  onStartTopic, onOpenTask, onOpenSchedule,
+  onStartTopic, onOpenTask, onOpenSchedule, onOpenWords,
 }) {
   const next = nextSchoolDay();
   const codes = schedule[next.weekday] || [];
@@ -20,8 +20,10 @@ export default function HomeScreen({
 
   // Уникальные предметы следующего дня в порядке уроков.
   const subjects = [...new Set(codes)];
-  const topicFor = (code) => topics.find((t) => t.subjectCode === code);
-  const shownTopics = hasSchedule ? subjects.map(topicFor).filter(Boolean) : topics;
+  const topicsFor = (code) => topics.filter((t) => t.subjectCode === code);
+  const allCodes = [...new Set(topics.map((t) => t.subjectCode))];
+  const shownCodes = hasSchedule ? subjects : allCodes;
+  const shownTopics = shownCodes.flatMap(topicsFor);
   const firstUnfinished = shownTopics.find((t) => learnedCount(t, learned) < t.words.length) || shownTopics[0];
 
   let bubble;
@@ -118,31 +120,35 @@ export default function HomeScreen({
       {hasSchedule && subjects.length === 0 && (
         <Text style={styles.muted}>В расписании на этот день пусто.</Text>
       )}
-      {(hasSchedule ? subjects : topics.map((t) => t.subjectCode)).map((code) => {
-        const t = topicFor(code);
+      {shownCodes.map((code) => {
         const subj = subjectByCode(code);
-        if (!t) {
-          return (
-            <Card key={code} style={{ gap: 4 }}>
-              <Text style={styles.subject}>{subj.es}</Text>
-              <Text style={styles.small}>
-                {subj.custom ? 'Свой предмет. Слова для него пока не добавлены.' : 'Слова по этому предмету скоро появятся.'}
-              </Text>
-            </Card>
-          );
-        }
-        const done = learnedCount(t, learned);
+        const list = topicsFor(code);
         return (
-          <Card key={code} style={{ gap: 8 }}>
+          <Card key={code} style={{ gap: 10 }}>
             <Text style={styles.subject}>{subj.es}</Text>
-            <Text style={styles.muted}>Тема: {t.title} · {t.titleRu}</Text>
-            <ProgressBar value={done / t.words.length} />
-            <View style={styles.rowBetween}>
-              <Text style={styles.small}>{done} из {t.words.length} слов</Text>
-              <Text style={styles.link} onPress={() => onStartTopic(t.id)} accessibilityRole="button">
-                {done === t.words.length ? 'Повторить' : 'Учить'}
+            {list.length === 0 && (
+              <Text style={styles.small}>
+                {subj.custom ? 'Добавь слова с урока, и Ками поможет их выучить.' : 'Готовые слова по этому предмету скоро появятся. Пока можно добавить свои.'}
               </Text>
-            </View>
+            )}
+            {list.map((t) => {
+              const done = learnedCount(t, learned);
+              return (
+                <View key={t.id} style={{ gap: 6 }}>
+                  <Text style={styles.muted}>{t.custom ? 'Мои слова' : `Тема: ${t.title} · ${t.titleRu}`}</Text>
+                  <ProgressBar value={done / t.words.length} />
+                  <View style={styles.rowBetween}>
+                    <Text style={styles.small}>{done} из {t.words.length} слов</Text>
+                    <Text style={styles.link} onPress={() => onStartTopic(t.id)} accessibilityRole="button">
+                      {done === t.words.length ? 'Повторить' : 'Учить'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+            <Text style={styles.link} onPress={() => onOpenWords(code)} accessibilityRole="button">
+              + Свои слова
+            </Text>
           </Card>
         );
       })}

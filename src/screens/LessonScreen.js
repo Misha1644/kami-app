@@ -92,10 +92,12 @@ export default function LessonScreen({ topics, topicId, kamiColor, onAnswer, onC
           <Card style={{ gap: 12, padding: 20 }}>
             <Text style={styles.word}>{word.es}</Text>
             <Text style={styles.translation}>{word.ru}</Text>
-            <View style={styles.teacherBox}>
-              <Text style={styles.teacherLabel}>Как скажет учитель</Text>
-              <Text style={styles.teacher}>«{word.teacher}»</Text>
-            </View>
+            {!!word.teacher && (
+              <View style={styles.teacherBox}>
+                <Text style={styles.teacherLabel}>{topic.custom ? 'Пример' : 'Как скажет учитель'}</Text>
+                <Text style={styles.teacher}>«{word.teacher}»</Text>
+              </View>
+            )}
           </Card>
           <Button title="Понятно, проверь меня" onPress={() => setPhase('quiz')} />
         </>

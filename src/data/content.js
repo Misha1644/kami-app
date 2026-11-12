@@ -110,3 +110,25 @@ export function plural(n, one, few, many) {
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
   return many;
 }
+
+// Свои слова ученика превращаются в «темы»: одна тема «Мои слова» на каждый предмет.
+export function customTopics(customWords) {
+  const byCode = {};
+  customWords.forEach((w) => {
+    (byCode[w.subject_code] = byCode[w.subject_code] || []).push({
+      id: w.id,
+      es: w.es,
+      ru: w.translation,
+      teacher: w.example,
+    });
+  });
+  return Object.entries(byCode).map(([code, words]) => ({
+    id: `my-${code}`,
+    subject: subjectByCode(code).es,
+    subjectCode: code,
+    title: 'мои слова',
+    titleRu: '',
+    custom: true,
+    words,
+  }));
+}

@@ -6,7 +6,7 @@ import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { SUBJECTS, WEEKDAYS, subjectByCode, nextSchoolDay, customCode, isCustom, CUSTOM_MAX } from '../data/content';
 
-export default function ScheduleScreen({ schedule, onSaveDay }) {
+export default function ScheduleScreen({ schedule, onSaveDay, onOpenWords }) {
   const [day, setDay] = useState(nextSchoolDay().weekday);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
@@ -74,6 +74,14 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
                 <Text style={styles.subject}>{s.es}</Text>
                 <Text style={styles.small}>{s.ru}</Text>
               </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Свои слова для ${s.es}`}
+                onPress={() => onOpenWords(code)}
+                style={styles.wordsButton}
+              >
+                <Text style={styles.wordsText}>Слова</Text>
+              </Pressable>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Убрать урок ${s.es}`}
@@ -178,6 +186,8 @@ const styles = StyleSheet.create({
   lessonBorder: { borderBottomWidth: 1, borderBottomColor: colors.track },
   num: { width: 24, fontSize: 15, fontWeight: '800', color: colors.muted, textAlign: 'center' },
   subject: { fontSize: 16, fontWeight: '700', color: colors.text },
+  wordsButton: { minHeight: 36, paddingHorizontal: 10, borderRadius: radius.sm, backgroundColor: colors.greenLight, justifyContent: 'center' },
+  wordsText: { fontSize: 13, fontWeight: '700', color: colors.greenDark },
   remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   removeText: { fontSize: 16, color: colors.muted },
   addButton: { minHeight: 52, borderRadius: radius.md, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9AA49F', alignItems: 'center', justifyContent: 'center' },
