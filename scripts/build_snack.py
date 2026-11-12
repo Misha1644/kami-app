@@ -16,7 +16,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODULES = [
     ('src/theme.js', ['colors', 'radius']),
     ('src/data/content.js', ['GRADE', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
-                             'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural']),
+                             'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural',
+                             'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom']),
     ('src/components/Kami.js', ['Kami']),
     ('src/components/icons.js', ['Flame', 'Coin', 'Snowflake']),
     ('src/components/ui.js', ['ProgressBar', 'Button', 'Card']),

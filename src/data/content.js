@@ -59,7 +59,20 @@ export const SUBJECTS = [
   { code: 'tut', es: 'Tutoría', ru: 'Классный час' },
 ];
 
+// Свой предмет ученика хранится как код с приставкой "x:", например "x:Robótica".
+export const CUSTOM_PREFIX = 'x:';
+export const CUSTOM_MAX = 40;
+
+export function customCode(name) {
+  return CUSTOM_PREFIX + name.trim().replace(/\s+/g, ' ').slice(0, CUSTOM_MAX);
+}
+
+export function isCustom(code) {
+  return code.startsWith(CUSTOM_PREFIX);
+}
+
 export function subjectByCode(code) {
+  if (isCustom(code)) return { code, es: code.slice(CUSTOM_PREFIX.length), ru: 'свой предмет', custom: true };
   return SUBJECTS.find((s) => s.code === code) || { code, es: code, ru: '' };
 }
 

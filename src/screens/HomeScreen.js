@@ -125,7 +125,9 @@ export default function HomeScreen({
           return (
             <Card key={code} style={{ gap: 4 }}>
               <Text style={styles.subject}>{subj.es}</Text>
-              <Text style={styles.small}>Слова по этому предмету скоро появятся.</Text>
+              <Text style={styles.small}>
+                {subj.custom ? 'Свой предмет. Слова для него пока не добавлены.' : 'Слова по этому предмету скоро появятся.'}
+              </Text>
             </Card>
           );
         }
