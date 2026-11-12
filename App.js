@@ -14,6 +14,7 @@ import ProgressScreen from './src/screens/ProgressScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import { TabIcon } from './src/components/TabIcons';
 import UserAvatar from './src/components/UserAvatar';
+import { parseBg, PatternLayer } from './src/components/Background';
 import { loadPrefs, savePrefs, DEFAULT_PREFS } from './src/lib/prefs';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ShopScreen from './src/screens/ShopScreen';
@@ -261,7 +262,7 @@ export default function App() {
 
   const kamiColor = KAMI_COLORS[student?.kami_color] || KAMI_COLORS['color-green'];
   const itemValue = (id) => shop?.items.find((i) => i.id === id)?.value;
-  const bgColor = (student && itemValue(student.bg)) || colors.bg;
+  const bg = parseBg((student && itemValue(student.bg)) || colors.bg);
   const avatarValue = (student && itemValue(student.avatar)) || 'person';
 
   let screen;
@@ -410,7 +411,8 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
+      <SafeAreaView style={[styles.root, { backgroundColor: bg.color || colors.bg }]} edges={['top', 'bottom']}>
+        {!!bg.pattern && <PatternLayer pattern={bg.pattern} />}
         <StatusBar style="dark" />
         <View style={{ flex: 1 }}><ErrorBoundary>{screen}</ErrorBoundary></View>
         {showTabs && (

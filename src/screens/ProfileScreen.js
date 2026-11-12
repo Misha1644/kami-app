@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { RefreshControl, ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import UserAvatar from '../components/UserAvatar';
+import { BgSwatch } from '../components/Background';
 import ParentalGate from '../components/ParentalGate';
 import { Button, Card } from '../components/ui';
 import { colors, radius } from '../theme';
@@ -146,13 +147,14 @@ export default function ProfileScreen({
               accessibilityLabel={`Фон ${i.title_ru}`}
               accessibilityState={{ selected: worn }}
               onPress={() => !worn && act(() => onEquip(i.id))}
-              style={[styles.swatch, { backgroundColor: i.value }, worn && styles.pickActive]}
+              style={[styles.swatchWrap, worn && styles.pickActive]}
             >
-              <Text style={styles.swatchText}>{i.title_ru}</Text>
+              <BgSwatch value={i.value} style={styles.swatch} />
+              <Text style={styles.swatchText} numberOfLines={1}>{i.title_ru}</Text>
             </Pressable>
           );
         })}
-        <Pressable accessibilityRole="button" onPress={onOpenShop} style={[styles.swatch, styles.more]}>
+        <Pressable accessibilityRole="button" onPress={onOpenShop} style={[styles.swatchWrap, styles.more, { height: 60, justifyContent: 'center' }]}>
           <Text style={styles.moreText}>+ ещё</Text>
         </Pressable>
       </ScrollView>
@@ -264,7 +266,8 @@ const styles = StyleSheet.create({
   pickActive: { borderColor: colors.green, borderWidth: 3 },
   more: { borderColor: '#C9D0CB', borderStyle: 'dashed', borderWidth: 1.5, backgroundColor: colors.card },
   moreText: { fontSize: 12, fontWeight: '700', color: colors.green, textAlign: 'center' },
-  swatch: { width: 92, height: 60, borderRadius: radius.md, alignItems: 'center', justifyContent: 'flex-end', padding: 6, borderWidth: 1, borderColor: colors.border },
+  swatchWrap: { width: 96, alignItems: 'center', gap: 4, borderRadius: radius.md, borderWidth: 2, borderColor: 'transparent', padding: 2 },
+  swatch: { width: 88, height: 56, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
   swatchText: { fontSize: 12, fontWeight: '700', color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { minHeight: 40, minWidth: 48, paddingHorizontal: 14, borderRadius: radius.md, borderWidth: 1.5, borderColor: '#C9D0CB', alignItems: 'center', justifyContent: 'center' },

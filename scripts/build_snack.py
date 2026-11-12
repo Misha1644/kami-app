@@ -26,6 +26,7 @@ MODULES = [
     ('src/components/Kami.js', ['Kami']),
     ('src/components/Teacher.js', ['Teacher']),
     ('src/components/TabIcons.js', ['TabIcon']),
+    ('src/components/Background.js', ['parseBg', 'PatternLayer', 'BgSwatch']),
     ('src/components/icons.js', ['Flame', 'Coin', 'Snowflake']),
     ('src/components/ui.js', ['ProgressBar', 'Button', 'Card']),
     ('src/components/ErrorBoundary.js', ['ErrorBoundary']),

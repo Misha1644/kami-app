@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { PLUS_ENABLED } from '../config';
 import UserAvatar from '../components/UserAvatar';
+import { BgSwatch } from '../components/Background';
 import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
@@ -27,7 +28,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
 
   function preview(item) {
     if (item.kind === 'avatar') return <UserAvatar value={item.value} size={72} kamiColor={kamiColor} />;
-    if (item.kind === 'bg') return <View style={[styles.bgPreview, { backgroundColor: item.value }]} />;
+    if (item.kind === 'bg') return <BgSwatch value={item.value} style={styles.bgPreview} />;
     return <Kami size={88} color={item.value} />;
   }
 
@@ -41,7 +42,8 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
             const locked = item.plus_only && !plan.plus;
             const isWorn = worn[kind] === item.id;
             return (
-              <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn]}>
+              <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn, item.price >= 5000 && styles.legendCard]}>
+                {item.price >= 5000 && <Text style={styles.legend}>ЛЕГЕНДАРНОЕ</Text>}
                 {preview(item)}
                 <Text style={styles.itemTitle} numberOfLines={1}>{item.title_ru}</Text>
                 {isWorn ? (
@@ -167,6 +169,8 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorCard: { width: '48%', alignItems: 'center', gap: 8, padding: 12 },
   bgPreview: { width: 88, height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
+  legendCard: { borderColor: '#F5C443', borderWidth: 2, backgroundColor: '#FFFBEB' },
+  legend: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#B54708' },
   colorCardWorn: { borderColor: colors.green, borderWidth: 2 },
   worn: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 10 },
   equip: { minHeight: 40, paddingHorizontal: 16, borderRadius: radius.sm, borderWidth: 1.5, borderColor: colors.green, alignItems: 'center', justifyContent: 'center' },

@@ -190,6 +190,52 @@ const FACES = {
       <Path d="M24 78 Q50 92 76 78 L72 88 Q50 98 28 88 Z" fill="#D92D20" opacity={0.85} />
     </>
   ),
+  // Легендарные аватары (магазин).
+  // Дракон с рожками и гребнем.
+  dragon: (c, mood) => (
+    <>
+      <Path d="M30 30 L24 10 L40 26 Z M70 30 L76 10 L60 26 Z" fill="#F5C443" />
+      <Path d="M44 22 L50 10 L56 22 Z" fill="#F04438" />
+      <Circle cx={50} cy={54} r={29} fill={c} />
+      <Ellipse cx={50} cy={68} rx={16} ry={11} fill="#A6F4C5" />
+      <Circle cx={44} cy={66} r={1.8} fill={INK} /><Circle cx={56} cy={66} r={1.8} fill={INK} />
+      <Eyes y={48} dx={13} r={6} pupil={3} />
+      {mood === 'worried'
+        ? <Path d="M42 76 Q50 72 58 76" stroke={INK} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+        : <Path d="M42 74 Q50 80 58 74" stroke={INK} strokeWidth={2.5} fill="none" strokeLinecap="round" />}
+      <Path d="M80 46 Q92 40 88 30" stroke="#F04438" strokeWidth={3} fill="none" strokeLinecap="round" />
+    </>
+  ),
+  // Единорог с радужной гривой.
+  unicorn: (c, mood) => (
+    <>
+      <Path d="M44 26 L50 2 L56 26 Z" fill="#F5C443" />
+      <Path d="M47 18 L53 16 M46 23 L54 21" stroke="#D9A92B" strokeWidth={1.5} />
+      <Path d="M28 34 L30 18 L40 30 Z M72 34 L70 18 L60 30 Z" fill="#FFFFFF" stroke="#E4E7EC" strokeWidth={1.5} />
+      <Circle cx={50} cy={56} r={28} fill="#FFFFFF" stroke="#E4E7EC" strokeWidth={1.5} />
+      <Path d="M24 44 Q20 60 26 76" stroke="#F04438" strokeWidth={5} fill="none" strokeLinecap="round" />
+      <Path d="M29 40 Q24 58 30 74" stroke="#F5C443" strokeWidth={5} fill="none" strokeLinecap="round" />
+      <Path d="M34 36 Q28 56 34 72" stroke="#7A5AF8" strokeWidth={5} fill="none" strokeLinecap="round" />
+      <Eyes y={52} dx={11} />
+      <Ellipse cx={38} cy={62} rx={4} ry={2.5} fill="#F9A8D4" /><Ellipse cx={66} cy={62} rx={4} ry={2.5} fill="#F9A8D4" />
+      <Mouth y={67} mood={mood} w={6} />
+    </>
+  ),
+  // Космонавт в шлеме.
+  astronaut: (c, mood) => (
+    <>
+      <Circle cx={50} cy={50} r={36} fill="#F2F4F7" stroke="#98A2B3" strokeWidth={3} />
+      <Rect x={26} y={34} width={48} height={36} rx={18} fill="#101828" />
+      <Circle cx={50} cy={53} r={14} fill="#F2C29B" />
+      <Circle cx={45} cy={51} r={2.2} fill={INK} /><Circle cx={55} cy={51} r={2.2} fill={INK} />
+      <Mouth y={58} mood={mood} w={4} />
+      <Circle cx={34} cy={40} r={3} fill="#FFFFFF" opacity={0.7} />
+      <Circle cx={66} cy={64} r={1.5} fill="#FFFFFF" /><Circle cx={62} cy={40} r={1.2} fill="#FFFFFF" />
+      <Rect x={44} y={84} width={12} height={8} rx={2} fill={c} />
+      <Line x1={76} y1={22} x2={84} y2={12} stroke="#98A2B3" strokeWidth={2.5} />
+      <Circle cx={85} cy={11} r={3} fill="#F04438" />
+    </>
+  ),
 };
 
 export default function Teacher({ teacher, size = 64, mood = 'happy', kamiColor }) {
