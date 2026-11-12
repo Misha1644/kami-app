@@ -2,19 +2,68 @@
   "expo": {
     "name": "Kami",
     "slug": "kami-app",
-    "version": "0.1.0",
+    "scheme": "kami",
+    "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F6F7F4",
-    "ios": {
-      "supportsTablet": false
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#EEF6F1"
     },
-    "android": {},
+    "ios": {
+      "bundleIdentifier": "com.misha1644.kami",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true,
+        "NSCameraUsageDescription": "Камера нужна, чтобы сфотографировать школьное задание и получить объяснение.",
+        "NSPhotoLibraryUsageDescription": "Доступ к фото нужен, чтобы выбрать снимок школьного задания.",
+        "NSMicrophoneUsageDescription": "Микрофон нужен, чтобы записать, как ты произносишь испанские слова. Запись остаётся на телефоне."
+      }
+    },
+    "android": {
+      "package": "com.misha1644.kami",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#EEF6F1"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
     "plugins": [
       [
         "expo-audio",
         {
-          "microphonePermission": "Kami слушает, как ты произносишь испанские слова."
+          "microphonePermission": "Микрофон нужен, чтобы записать, как ты произносишь испанские слова. Запись остаётся на телефоне."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Камера нужна, чтобы сфотографировать школьное задание и получить объяснение.",
+          "photosPermission": "Доступ к фото нужен, чтобы выбрать снимок школьного задания.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#1F7A52"
         }
       ]
     ]

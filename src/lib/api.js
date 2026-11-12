@@ -84,7 +84,9 @@ export async function loadStreak(studentId) {
 
 // Сколько слов выучено сегодня (для цели дня).
 export async function loadWordsToday(studentId) {
-  const today = new Date().toISOString().slice(0, 10);
+  // «Сегодня» — по Мадриду, как в базе.
+  const { data: today } = await supabase.rpc('kami_today');
+  if (!today) return 0;
   const { data } = await supabase
     .from('activity_days')
     .select('words_done')
@@ -264,4 +266,21 @@ export async function loadDueWords(studentId) {
   return (data || []).filter((r) => r.words).map(({ words: w }) => ({
     id: w.id, es: w.es, ru: w.ru, en: w.en, teacher: w.teacher, lang: langFor(w.topics?.subject_code),
   }));
+}
+
+// Подключён ли ИИ для разбора заданий (без расхода лимита). Если нет — вкладку прячем.
+export async function taskHelpAvailable() {
+  try {
+    const { data, error } = await supabase.functions.invoke('explain-task', { body: { ping: true } });
+    return !error && !!data?.configured;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Удаление аккаунта родителя вместе со всеми данными детей.
+export async function deleteAccount() {
+  const { data, error } = await supabase.functions.invoke('delete-account', { body: {} });
+  if (error || !data?.ok) throw new Error('Не получилось удалить аккаунт. Попробуйте позже.');
+  await supabase.auth.signOut();
 }

@@ -15,6 +15,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Порядок важен: модуль идёт после всех, от которых зависит.
 MODULES = [
     ('src/theme.js', ['colors', 'radius']),
+    ('src/config.js', ['PAYMENTS_ENABLED', 'SUPPORT_EMAIL', 'PRIVACY_UPDATED']),
+    ('src/data/privacy.js', ['PRIVACY']),
     ('src/data/kami.js', ['greeting', 'kamiSays', 'kamiFact']),
     ('src/data/content.js', ['GRADE', 'GRADES', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
                              'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural',
@@ -22,6 +24,7 @@ MODULES = [
     ('src/components/Kami.js', ['Kami']),
     ('src/components/icons.js', ['Flame', 'Coin', 'Snowflake']),
     ('src/components/ui.js', ['ProgressBar', 'Button', 'Card']),
+    ('src/components/ErrorBoundary.js', ['ErrorBoundary']),
     ('src/lib/supabase.js', ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'supabase']),
     ('src/lib/speech.js', ['speak', 'checkTyped', 'checkSpoken', 'phraseTokens', 'tokenKey']),
     ('src/lib/voice.js', ['useVoiceRecorder', 'canAutoCheck', 'recognizeOnce']),
@@ -30,7 +33,9 @@ MODULES = [
                         'loadStreak', 'loadWordsToday', 'loadShop', 'buyItem', 'equipColor',
                         'loadSchedule', 'saveScheduleDay', 'loadCustomWords', 'addCustomWord',
                         'deleteCustomWord', 'recordCustomAnswer', 'explainTask', 'completeLesson',
-                        'loadPlan', 'loadHardWords', 'updateGrade', 'loadDueWords']),
+                        'loadPlan', 'loadHardWords', 'updateGrade', 'loadDueWords',
+                        'langFor', 'taskHelpAvailable', 'deleteAccount']),
+    ('src/screens/PrivacyScreen.js', ['PrivacyScreen']),
     ('src/screens/AuthScreen.js', ['AuthScreen']),
     ('src/screens/StudentSetupScreen.js', ['StudentSetupScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
@@ -102,6 +107,7 @@ def main():
         for stmt in imports:
             collect(stmt, path)
         body = re.sub(r"export default function ", "function ", body)
+        body = re.sub(r"export default class ", "class ", body)
         body = re.sub(r"^export (async function|function|const) ", r"\1 ", body, flags=re.M)
         alias_lines = ''.join(f"const {local} = {orig};\n" for orig, local in aliases.get(path, []))
         blocks.append(

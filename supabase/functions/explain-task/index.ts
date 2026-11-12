@@ -51,7 +51,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const { studentId, mediaType, data } = await req.json();
+    const body = await req.json();
+    // Проверка без расхода лимита: подключён ли ИИ (приложение прячет вкладку, если нет).
+    if (body?.ping) return reply({ configured: !!Deno.env.get("ANTHROPIC_API_KEY") });
+    const { studentId, mediaType, data } = body;
     if (typeof studentId !== "string" || typeof data !== "string" || !MEDIA_TYPES.includes(mediaType)) {
       return reply({ error: "bad_request" });
     }

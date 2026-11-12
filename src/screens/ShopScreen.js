@@ -1,6 +1,7 @@
 // Магазин: монеты тратятся на заморозки серии и новые цвета Ками.
 import { useState } from 'react';
 import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { PAYMENTS_ENABLED } from '../config';
 import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
@@ -16,7 +17,8 @@ export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpen
   }
 
   const freeze = shop.items.find((i) => i.kind === 'freeze');
-  const colorItems = shop.items.filter((i) => i.kind === 'color');
+  // Пока оплата Плюса не подключена, цвета «только с Плюсом» видны лишь тем, у кого Плюс уже есть.
+  const colorItems = shop.items.filter((i) => i.kind === 'color' && (PAYMENTS_ENABLED || plan.plus || !i.plus_only));
 
   async function run(id, action, okText) {
     setBusy(id);

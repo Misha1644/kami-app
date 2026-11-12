@@ -219,7 +219,7 @@ export default function HomeScreen({
       })}
 
       {firstUnfinished && <Button title="Начать подготовку" onPress={() => onStartTopic(firstUnfinished.id)} />}
-      <Button title="Разобрать задание" variant="secondary" onPress={onOpenTask} />
+      {!!onOpenTask && <Button title="Разобрать задание" variant="secondary" onPress={onOpenTask} />}
     </ScrollView>
   );
 }

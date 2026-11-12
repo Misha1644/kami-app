@@ -14,6 +14,9 @@ import ParentsScreen from './src/screens/ParentsScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import PlusScreen from './src/screens/PlusScreen';
+import PrivacyScreen from './src/screens/PrivacyScreen';
+import ErrorBoundary from './src/components/ErrorBoundary';
+import { PAYMENTS_ENABLED } from './src/config';
 import TopicsScreen from './src/screens/TopicsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from './src/theme';
@@ -23,7 +26,7 @@ import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipColor, loadSchedule, saveScheduleDay,
   completeLesson, loadPlan,
-  updateGrade, loadDueWords,
+  updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
 import { remindersSupported, remindersEnabled, rescheduleReminders, setRemindersEnabled } from './src/lib/reminders';
 
@@ -53,6 +56,8 @@ export default function App() {
 
   const [plan, setPlan] = useState({ plus: false });
   const [showPlus, setShowPlus] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [taskReady, setTaskReady] = useState(false); // подключён ли ИИ для разбора заданий
   const [dueWords, setDueWords] = useState([]);
   const [currentTopics, setCurrentTopics] = useState({}); // { [код предмета]: id темы, которую проходят сейчас }
   const [topicsFor, setTopicsFor] = useState(null); // код предмета для экрана «Все темы»
@@ -65,6 +70,13 @@ export default function App() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // Вкладку «Задание» показываем, только если на сервере подключён ИИ.
+  useEffect(() => {
+    if (session) taskHelpAvailable().then(setTaskReady);
+  }, [session]);
+  const tabs = TABS.filter((t) => t.key !== 'task' || taskReady);
+  const openPlus = PAYMENTS_ENABLED || plan.plus ? () => setShowPlus(true) : null;
 
   // После входа: ученик и контент.
   useEffect(() => {
@@ -213,6 +225,7 @@ export default function App() {
     setShop(null);
     setPlan({ plus: false });
     setShowPlus(false);
+    setShowPrivacy(false);
     setDueWords([]);
     setTopicsFor(null);
     setGoalBanner('');
@@ -255,6 +268,8 @@ export default function App() {
         onClose={() => setLessonTopic(null)}
       />
     );
+  } else if (showPrivacy) {
+    screen = <PrivacyScreen onBack={() => setShowPrivacy(false)} />;
   } else if (showPlus) {
     screen = <PlusScreen plan={plan} onBack={() => setShowPlus(false)} />;
   } else if (topicsFor) {
@@ -271,7 +286,7 @@ export default function App() {
     );
   } else {
     showTabs = true;
-    if (tab === 'task') {
+    if (tab === 'task' && taskReady) {
       screen = (
         <TaskScreen
           student={student}
@@ -289,7 +304,7 @@ export default function App() {
           plan={plan}
           onBuy={onBuy}
           onEquip={onEquip}
-          onOpenPlus={() => setShowPlus(true)}
+          onOpenPlus={openPlus}
           refreshing={refreshing}
           onRefresh={refresh}
         />
@@ -302,7 +317,8 @@ export default function App() {
           learned={learned}
           streak={streakInfo.streak}
           plan={plan}
-          onOpenPlus={() => setShowPlus(true)}
+          onOpenPlus={openPlus}
+          onOpenPrivacy={() => setShowPrivacy(true)}
           onSignOut={signOut}
           onChangeGrade={onChangeGrade}
           reminders={reminders}
@@ -324,7 +340,7 @@ export default function App() {
           goalBanner={goalBanner}
           schedule={schedule}
           onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
-          onOpenTask={() => setTab('task')}
+          onOpenTask={taskReady ? () => setTab('task') : null}
           onOpenSchedule={() => setTab('schedule')}
           refreshing={refreshing}
           onRefresh={refresh}
@@ -341,10 +357,10 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <StatusBar style="dark" />
-        <View style={{ flex: 1 }}>{screen}</View>
+        <View style={{ flex: 1 }}><ErrorBoundary>{screen}</ErrorBoundary></View>
         {showTabs && (
           <View style={styles.tabs}>
-            {TABS.map((t) => {
+            {tabs.map((t) => {
               const active = t.key === tab;
               return (
                 <Pressable
