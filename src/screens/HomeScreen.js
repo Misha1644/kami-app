@@ -11,6 +11,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
   onStartTopic, onOpenTask, onOpenSchedule, onOpenWords, refreshing, onRefresh,
+  currentTopics, onOpenTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
   const codes = schedule[next.weekday] || [];
@@ -23,7 +24,18 @@ export default function HomeScreen({
   const topicsFor = (code) => topics.filter((t) => t.subjectCode === code);
   const allCodes = [...new Set(topics.map((t) => t.subjectCode))];
   const shownCodes = hasSchedule ? subjects : allCodes;
-  const shownTopics = shownCodes.flatMap(topicsFor);
+
+  // Текущая тема предмета: выбранная учеником, иначе первая невыученная по программе.
+  const currentFor = (code) => {
+    const list = topicsFor(code).filter((t) => !t.custom);
+    return (
+      list.find((t) => t.id === currentTopics?.[code]) ||
+      list.find((t) => learnedCount(t, learned) < t.words.length) ||
+      list[list.length - 1]
+    );
+  };
+  const customFor = (code) => topicsFor(code).find((t) => t.custom);
+  const shownTopics = shownCodes.flatMap((c) => [currentFor(c), customFor(c)].filter(Boolean));
   const firstUnfinished = shownTopics.find((t) => learnedCount(t, learned) < t.words.length) || shownTopics[0];
 
   let bubble;
@@ -123,6 +135,18 @@ export default function HomeScreen({
         </View>
       </Card>
 
+      {dueCount > 0 && (
+        <Card style={styles.review}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.reviewTitle}>Повторение: {dueCount} {plural(dueCount, 'слово', 'слова', 'слов')}</Text>
+            <Text style={styles.small}>Слова, которые пора освежить, чтобы не забылись.</Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={onStartReview} style={styles.reviewButton}>
+            <Text style={styles.reviewButtonText}>Повторить</Text>
+          </Pressable>
+        </Card>
+      )}
+
       <View style={styles.kamiRow}>
         <Kami size={88} color={kamiColor} />
         <View style={styles.bubble}>
@@ -138,16 +162,19 @@ export default function HomeScreen({
       )}
       {shownCodes.map((code) => {
         const subj = subjectByCode(code);
-        const list = topicsFor(code);
+        const current = currentFor(code);
+        const own = customFor(code);
+        const count = topicsFor(code).filter((t) => !t.custom).length;
+        const blocks = [current, own].filter(Boolean);
         return (
           <Card key={code} style={{ gap: 10 }}>
             <Text style={styles.subject}>{subj.es}</Text>
-            {list.length === 0 && (
+            {blocks.length === 0 && (
               <Text style={styles.small}>
                 {subj.custom ? 'Добавь слова с урока, и Ками поможет их выучить.' : 'Готовые слова по этому предмету скоро появятся. Пока можно добавить свои.'}
               </Text>
             )}
-            {list.map((t) => {
+            {blocks.map((t) => {
               const done = learnedCount(t, learned);
               return (
                 <View key={t.id} style={{ gap: 6 }}>
@@ -162,9 +189,16 @@ export default function HomeScreen({
                 </View>
               );
             })}
-            <Text style={styles.link} onPress={() => onOpenWords(code)} accessibilityRole="button">
-              + Свои слова
-            </Text>
+            <View style={styles.rowBetween}>
+              {count > 1 ? (
+                <Text style={styles.link} onPress={() => onOpenTopics(code)} accessibilityRole="button">
+                  Все темы ({count})
+                </Text>
+              ) : <View />}
+              <Text style={styles.link} onPress={() => onOpenWords(code)} accessibilityRole="button">
+                + Свои слова
+              </Text>
+            </View>
           </Card>
         );
       })}
@@ -199,6 +233,10 @@ const styles = StyleSheet.create({
   hint: { fontSize: 13, color: colors.orangeText },
   hintDone: { fontSize: 13, fontWeight: '700', color: colors.greenDark },
   kamiRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  review: { flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: '#4A90D9', backgroundColor: '#EEF5FC' },
+  reviewTitle: { fontSize: 16, fontWeight: '800', color: '#1D5A9E' },
+  reviewButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: '#2F6FB7', justifyContent: 'center' },
+  reviewButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   bubble: { flex: 1, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: 12 },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },
   h2: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },

@@ -1,10 +1,10 @@
 // Экран для родителей: сколько выучено и готовность по предметам.
 // Цифры считаются из реального прогресса ученика в этом приложении.
 import { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
 import { Button, Card } from '../components/ui';
 import { colors } from '../theme';
-import { learnedCount } from '../data/content';
+import { learnedCount, GRADES } from '../data/content';
 import { loadHardWords } from '../lib/api';
 
 function status(done, total) {
@@ -13,7 +13,10 @@ function status(done, total) {
   return { label: 'Готов к уроку', bg: colors.greenLight, fg: colors.greenDark };
 }
 
-export default function ParentsScreen({ topics, student, learned, streak, plan, onOpenPlus, onSignOut, refreshing, onRefresh }) {
+export default function ParentsScreen({
+  topics, student, learned, streak, plan, onOpenPlus, onSignOut, refreshing, onRefresh,
+  onChangeGrade, reminders, remindersSupported, onToggleReminders,
+}) {
   const [hard, setHard] = useState(null);
   useEffect(() => {
     if (plan.plus) loadHardWords(student.id).then(setHard);
@@ -93,6 +96,44 @@ export default function ParentsScreen({ topics, student, learned, streak, plan, 
         <Text style={styles.small}>Список слов, в которых ребёнок чаще ошибается, — в Ками Плюс.</Text>
       )}
 
+      <Text style={styles.h2}>Настройки</Text>
+      <Card style={{ gap: 14 }}>
+        <View style={{ gap: 8 }}>
+          <Text style={styles.body}>Класс</Text>
+          <View style={styles.gradeRow}>
+            {GRADES.map((g) => {
+              const active = g === student.grade;
+              return (
+                <Pressable
+                  key={g}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  onPress={() => !active && onChangeGrade(g)}
+                  style={[styles.gradeChip, active && styles.gradeChipActive]}
+                >
+                  <Text style={[styles.gradeText, active && styles.gradeTextActive]}>{g}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.body}>Напоминание в 19:00</Text>
+            <Text style={styles.small}>
+              {remindersSupported ? 'Какие уроки завтра и что серия под угрозой.' : 'Работает в приложении на телефоне, не в браузере.'}
+            </Text>
+          </View>
+          <Switch
+            value={reminders}
+            onValueChange={onToggleReminders}
+            disabled={!remindersSupported}
+            trackColor={{ true: colors.green }}
+            accessibilityLabel="Напоминание в 19:00"
+          />
+        </View>
+      </Card>
+
       <Button title="Выйти из аккаунта" variant="secondary" onPress={onSignOut} />
     </ScrollView>
   );
@@ -116,4 +157,9 @@ const styles = StyleSheet.create({
   plusTitle: { fontSize: 16, fontWeight: '800', color: '#6B3FB8' },
   plusArrow: { fontSize: 24, color: '#6B3FB8' },
   mistakes: { fontSize: 13, fontWeight: '700', color: colors.danger },
+  gradeRow: { flexDirection: 'row', gap: 8 },
+  gradeChip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5, borderColor: '#C9D0CB', justifyContent: 'center' },
+  gradeChipActive: { borderColor: colors.green, backgroundColor: colors.greenLight },
+  gradeText: { fontSize: 15, color: colors.text },
+  gradeTextActive: { color: colors.greenDark, fontWeight: '700' },
 });

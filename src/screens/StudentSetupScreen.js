@@ -6,6 +6,7 @@ import Kami from '../components/Kami';
 import { Button } from '../components/ui';
 import { colors, radius } from '../theme';
 import { createStudent } from '../lib/api';
+import { GRADES } from '../data/content';
 
 const LANGS = [
   { code: 'ru', label: 'Русский' },
@@ -17,6 +18,7 @@ const LANGS = [
 export default function StudentSetupScreen({ onCreated }) {
   const [nickname, setNickname] = useState('');
   const [lang, setLang] = useState('ru');
+  const [grade, setGrade] = useState(GRADES[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -25,7 +27,7 @@ export default function StudentSetupScreen({ onCreated }) {
     setBusy(true);
     setError('');
     try {
-      onCreated(await createStudent({ nickname, nativeLang: lang }));
+      onCreated(await createStudent({ nickname, nativeLang: lang, grade }));
     } catch (e) {
       setError(e.message);
       setBusy(false);
@@ -71,7 +73,25 @@ export default function StudentSetupScreen({ onCreated }) {
         <Text style={styles.small}>Пока переводы есть на русском и английском, остальные языки скоро.</Text>
       </View>
 
-      <Text style={styles.small}>Класс: 1º ESO (другие классы появятся позже).</Text>
+      <View style={{ gap: 8 }}>
+        <Text style={styles.label}>Класс</Text>
+        <View style={styles.chips}>
+          {GRADES.map((g) => {
+            const active = g === grade;
+            return (
+              <Pressable
+                key={g}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: active }}
+                onPress={() => setGrade(g)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{g}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
       {!!error && <Text style={styles.error}>{error}</Text>}
       <Button title={busy ? 'Сохраняем…' : 'Начать'} onPress={save} disabled={busy} />
     </ScrollView>

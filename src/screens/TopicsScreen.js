@@ -1,0 +1,69 @@
+// Все темы предмета: прогресс по каждой, «Учить» и выбор темы, которую сейчас проходят в классе.
+import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { Card, ProgressBar } from '../components/ui';
+import { colors, radius } from '../theme';
+import { learnedCount, subjectByCode } from '../data/content';
+
+export default function TopicsScreen({ subjectCode, topics, learned, currentId, onSetCurrent, onStudy, onBack }) {
+  const subj = subjectByCode(subjectCode);
+  return (
+    <ScrollView contentContainerStyle={styles.wrap}>
+      <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
+        <Text style={styles.backText}>‹ Назад</Text>
+      </Pressable>
+      <View>
+        <Text style={styles.small}>Темы предмета</Text>
+        <Text style={styles.h1}>{subj.es}</Text>
+        <Text style={styles.small}>Отметь тему, которую сейчас проходите в классе, — Ками покажет её на главной.</Text>
+      </View>
+
+      {topics.length === 0 && <Text style={styles.small}>Для этого класса тем по предмету пока нет.</Text>}
+
+      {topics.map((t, i) => {
+        const done = learnedCount(t, learned);
+        const current = t.id === currentId;
+        return (
+          <Card key={t.id} style={[{ gap: 8 }, current && styles.current]}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.num}>{i + 1}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{t.title}</Text>
+                <Text style={styles.small}>{t.titleRu}</Text>
+              </View>
+              {current && <Text style={styles.badge}>сейчас в классе</Text>}
+            </View>
+            <ProgressBar value={done / t.words.length} />
+            <View style={styles.rowBetween}>
+              <Text style={styles.small}>{done} из {t.words.length} слов</Text>
+              <View style={{ flexDirection: 'row', gap: 16 }}>
+                {!current && (
+                  <Text style={styles.linkMuted} onPress={() => onSetCurrent(t.id)} accessibilityRole="button">
+                    Проходим сейчас
+                  </Text>
+                )}
+                <Text style={styles.link} onPress={() => onStudy(t.id)} accessibilityRole="button">
+                  {done === t.words.length ? 'Повторить' : 'Учить'}
+                </Text>
+              </View>
+            </View>
+          </Card>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { padding: 20, gap: 12 },
+  back: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  backText: { fontSize: 16, fontWeight: '700', color: colors.green },
+  h1: { fontSize: 24, fontWeight: '800', color: colors.text },
+  small: { fontSize: 13, color: colors.muted },
+  current: { borderColor: colors.green, borderWidth: 2 },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  num: { width: 24, fontSize: 15, fontWeight: '800', color: colors.muted, textAlign: 'center' },
+  title: { fontSize: 16, fontWeight: '700', color: colors.text },
+  badge: { fontSize: 12, fontWeight: '700', color: colors.greenDark, backgroundColor: colors.greenLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.sm },
+  link: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 6 },
+  linkMuted: { fontSize: 14, fontWeight: '700', color: colors.muted, paddingVertical: 6 },
+});

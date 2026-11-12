@@ -6,13 +6,14 @@ import { topics as localTopics } from '../data/content';
 const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal';
 
 // Темы со словами. Если база недоступна — берём встроенный контент, чтобы приложение работало.
-export async function loadTopics() {
+export async function loadTopics(grade = '1º ESO') {
   const { data, error } = await supabase
     .from('topics')
-    .select('id, subject, subject_code, title, title_ru, sort, words(id, es, ru, en, teacher, sort)')
+    .select('id, grade, subject, subject_code, title, title_ru, sort, words(id, es, ru, en, teacher, sort)')
+    .eq('grade', grade)
     .order('sort')
     .order('sort', { referencedTable: 'words' });
-  if (error || !data?.length) return localTopics;
+  if (error || !data?.length) return grade === '1º ESO' ? localTopics : [];
   return data.map((t) => ({
     id: t.id,
     subject: t.subject,
@@ -241,4 +242,26 @@ export async function loadHardWords(studentId) {
     ...(own.data || []).map((r) => ({ es: r.es, ru: r.translation, wrong: r.wrong_count, right: r.correct_count })),
   ];
   return list.filter((w) => w.es).sort((a, b) => b.wrong - a.wrong).slice(0, 5);
+}
+
+// Смена класса ученика (1º ESO / 2º ESO).
+export async function updateGrade(studentId, grade) {
+  const { error } = await supabase.from('students').update({ grade }).eq('id', studentId);
+  if (error) throw error;
+}
+
+// Слова, которые пора повторить (умное повторение): обычные и свои. Не больше 15 за раз.
+export async function loadDueWords(studentId) {
+  const nowIso = new Date().toISOString();
+  const [std, own] = await Promise.all([
+    supabase.from('progress').select('word_id, due_at, words(id, es, ru, en, teacher)')
+      .eq('student_id', studentId).lte('due_at', nowIso).order('due_at').limit(15),
+    supabase.from('custom_words').select('id, es, translation, example, due_at')
+      .eq('student_id', studentId).lte('due_at', nowIso).order('due_at').limit(15),
+  ]);
+  const list = [
+    ...(std.data || []).filter((r) => r.words).map((r) => ({ ...r.words, due: r.due_at })),
+    ...(own.data || []).map((r) => ({ id: r.id, es: r.es, ru: r.translation, teacher: r.example, due: r.due_at })),
+  ];
+  return list.sort((a, b) => (a.due < b.due ? -1 : 1)).slice(0, 15);
 }

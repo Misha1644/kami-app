@@ -15,18 +15,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Порядок важен: модуль идёт после всех, от которых зависит.
 MODULES = [
     ('src/theme.js', ['colors', 'radius']),
-    ('src/data/content.js', ['GRADE', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
+    ('src/data/content.js', ['GRADE', 'GRADES', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
                              'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural',
                              'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom', 'customTopics']),
     ('src/components/Kami.js', ['Kami']),
     ('src/components/icons.js', ['Flame', 'Coin', 'Snowflake']),
     ('src/components/ui.js', ['ProgressBar', 'Button', 'Card']),
     ('src/lib/supabase.js', ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'supabase']),
+    ('src/lib/speech.js', ['speak', 'checkTyped']),
+    ('src/lib/reminders.js', ['remindersSupported', 'remindersEnabled', 'rescheduleReminders', 'setRemindersEnabled']),
     ('src/lib/api.js', ['loadTopics', 'getStudent', 'createStudent', 'loadLearned', 'recordAnswer',
                         'loadStreak', 'loadWordsToday', 'loadShop', 'buyItem', 'equipColor',
                         'loadSchedule', 'saveScheduleDay', 'loadCustomWords', 'addCustomWord',
                         'deleteCustomWord', 'recordCustomAnswer', 'explainTask', 'completeLesson',
-                        'loadPlan', 'loadHardWords']),
+                        'loadPlan', 'loadHardWords', 'updateGrade', 'loadDueWords']),
     ('src/screens/AuthScreen.js', ['AuthScreen']),
     ('src/screens/StudentSetupScreen.js', ['StudentSetupScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
@@ -37,6 +39,7 @@ MODULES = [
     ('src/screens/ShopScreen.js', ['ShopScreen']),
     ('src/screens/WordsScreen.js', ['WordsScreen']),
     ('src/screens/PlusScreen.js', ['PlusScreen']),
+    ('src/screens/TopicsScreen.js', ['TopicsScreen']),
 ]
 
 # В Snack (веб) этот полифил не нужен и мешает загрузке.

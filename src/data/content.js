@@ -3,6 +3,7 @@
 // У каждого слова: испанский термин, перевод (ru, en) и фраза, как её скажет учитель.
 
 export const GRADE = '1º ESO';
+export const GRADES = ['1º ESO', '2º ESO'];
 
 export const topics = [
   {
@@ -52,6 +53,7 @@ export const SUBJECTS = [
   { code: 'ing', es: 'Inglés', ru: 'Английский' },
   { code: 'bio', es: 'Biología y Geología', ru: 'Биология и геология' },
   { code: 'geo', es: 'Geografía e Historia', ru: 'География и история' },
+  { code: 'fyq', es: 'Física y Química', ru: 'Физика и химия' },
   { code: 'ef', es: 'Educación Física', ru: 'Физкультура' },
   { code: 'mus', es: 'Música', ru: 'Музыка' },
   { code: 'tec', es: 'Tecnología', ru: 'Технология' },
