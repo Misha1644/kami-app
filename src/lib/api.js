@@ -3,7 +3,7 @@
 import { supabase } from './supabase';
 import { topics as localTopics } from '../data/content';
 
-const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal';
+const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg';
 
 // Темы со словами. Если база недоступна — берём встроенный контент, чтобы приложение работало.
 // Язык озвучки слова: в Valencià слова валенсийские, остальное — испанский.
@@ -123,9 +123,28 @@ export async function buyItem(studentId, itemId) {
   return data;
 }
 
-export async function equipColor(studentId, itemId) {
-  const { error } = await supabase.rpc('equip_color', { p_student: studentId, p_item: itemId });
-  if (error) throw new Error(error.message);
+// Надеть купленную вещь: цвет Ками, аватар или фон.
+export async function equipItem(studentId, itemId) {
+  const { error } = await supabase.rpc('equip_item', { p_student: studentId, p_item: itemId });
+  if (error) throw new Error('Не получилось. Попробуй ещё раз.');
+}
+export const equipColor = equipItem;
+
+// Настройки ученика, которые он меняет сам: цель дня, язык переводов, имя.
+export async function updateStudent(studentId, fields) {
+  const allowed = {};
+  for (const k of ['daily_goal', 'native_lang', 'nickname']) if (k in fields) allowed[k] = fields[k];
+  const { error } = await supabase.from('students').update(allowed).eq('id', studentId);
+  if (error) throw new Error('Не получилось сохранить. Попробуй ещё раз.');
+}
+
+// Активность по дням за последние N дней: [{ day, words, lessons }].
+export async function loadActivity(studentId, days = 14) {
+  const from = new Date();
+  from.setDate(from.getDate() - days + 1);
+  const { data } = await supabase.from('activity_days').select('day, words_done, lessons_done')
+    .eq('student_id', studentId).gte('day', from.toISOString().slice(0, 10)).order('day');
+  return (data || []).map((r) => ({ day: r.day, words: r.words_done, lessons: r.lessons_done }));
 }
 
 // Расписание: { 1: ['mat', 'len', ...], ..., 5: [...] } — коды предметов по порядку уроков.
@@ -203,7 +222,7 @@ export async function recordCustomAnswer(studentId, wordId, correct) {
 // ----- Разбор задания по фото или файлу -----
 
 const TASK_ERRORS = {
-  limit: 'На сегодня разборы закончились. Бесплатно — 3 в день, с Ками Плюс — 15.',
+  limit: 'На сегодня разборы закончились. С Ками Плюс — до 15 в день. Без Плюса разбор недоступен.',
   not_configured: 'Разбор фото ещё не включён: нужно добавить ключ ИИ в Supabase.',
   too_large: 'Файл слишком большой. Попробуй фото поменьше или PDF до 5 МБ.',
   forbidden: 'Не удалось проверить аккаунт. Выйди и войди снова.',
@@ -232,22 +251,34 @@ export async function completeLesson(studentId) {
 // ----- Подписка «Ками Плюс» -----
 
 // { plus: true/false, source: 'comp'|'app_store'|'google_play'|null, expiresAt }
+// Статус подписки: { plus, source, expiresAt, trialUsed }. source: comp | trial | app_store | google_play.
 export async function loadPlan() {
-  const { data } = await supabase.from('parent_plans').select('plan, source, expires_at').maybeSingle();
-  const active = !!data && data.plan === 'plus' && (!data.expires_at || new Date(data.expires_at) > new Date());
-  return { plus: active, source: data?.source || null, expiresAt: data?.expires_at || null };
+  const { data, error } = await supabase.rpc('plan_status');
+  if (error || !data) return { plus: false, source: null, expiresAt: null, trialUsed: false };
+  return { plus: !!data.plus, source: data.source, expiresAt: data.expires_at, trialUsed: !!data.trial_used };
+}
+
+// Пробный период Плюса (один раз на аккаунт).
+export async function startTrial() {
+  const { error } = await supabase.rpc('start_trial');
+  if (error) {
+    if (error.message.includes('trial used')) throw new Error('Пробный период уже был на этом аккаунте.');
+    if (error.message.includes('already plus')) throw new Error('Ками Плюс уже подключён.');
+    throw new Error('Не получилось включить пробный период. Попробуйте позже.');
+  }
+  return loadPlan();
 }
 
 // Трудные слова для отчёта родителям: где больше всего ошибок.
 export async function loadHardWords(studentId) {
   const [std, own] = await Promise.all([
-    supabase.from('progress').select('wrong_count, correct_count, words(es, ru)')
+    supabase.from('progress').select('wrong_count, correct_count, words(es, ru, en)')
       .eq('student_id', studentId).gt('wrong_count', 0).order('wrong_count', { ascending: false }).limit(5),
     supabase.from('custom_words').select('wrong_count, correct_count, es, translation')
       .eq('student_id', studentId).gt('wrong_count', 0).order('wrong_count', { ascending: false }).limit(5),
   ]);
   const list = [
-    ...(std.data || []).map((r) => ({ es: r.words?.es, ru: r.words?.ru, wrong: r.wrong_count, right: r.correct_count })),
+    ...(std.data || []).map((r) => ({ es: r.words?.es, ru: r.words?.ru, en: r.words?.en, wrong: r.wrong_count, right: r.correct_count })),
     ...(own.data || []).map((r) => ({ es: r.es, ru: r.translation, wrong: r.wrong_count, right: r.correct_count })),
   ];
   return list.filter((w) => w.es).sort((a, b) => b.wrong - a.wrong).slice(0, 5);

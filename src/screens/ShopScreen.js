@@ -1,13 +1,14 @@
-// Магазин: монеты тратятся на заморозки серии и новые цвета Ками.
+// Магазин: монеты тратятся на заморозки серии, цвета Ками, аватары и фоны.
 import { useState } from 'react';
 import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
-import { PAYMENTS_ENABLED } from '../config';
+import { PLUS_ENABLED } from '../config';
+import UserAvatar from '../components/UserAvatar';
 import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 
-export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpenPlus, refreshing, onRefresh }) {
+export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEquip, onOpenPlus, refreshing, onRefresh }) {
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -17,8 +18,70 @@ export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpen
   }
 
   const freeze = shop.items.find((i) => i.kind === 'freeze');
-  // Пока оплата Плюса не подключена, цвета «только с Плюсом» видны лишь тем, у кого Плюс уже есть.
-  const colorItems = shop.items.filter((i) => i.kind === 'color' && (PAYMENTS_ENABLED || plan.plus || !i.plus_only));
+  // Вещи «только с Плюсом» видны, если подписка включена (или Плюс уже есть).
+  const visible = (kind) => shop.items.filter((i) => i.kind === kind && (PLUS_ENABLED || plan.plus || !i.plus_only));
+  const DEFAULTS = ['color-green', 'avatar-person', 'bg-default'];
+  const worn = { color: student.kami_color, avatar: student.avatar, bg: student.bg };
+  const WORN_TEXT = { color: 'Надет', avatar: 'Выбран', bg: 'Выбран' };
+  const OK_TEXT = { color: 'Ками переоделся!', avatar: 'Новый аватар!', bg: 'Новый фон!' };
+
+  function preview(item) {
+    if (item.kind === 'avatar') return <UserAvatar value={item.value} size={72} kamiColor={kamiColor} />;
+    if (item.kind === 'bg') return <View style={[styles.bgPreview, { backgroundColor: item.value }]} />;
+    return <Kami size={88} color={item.value} />;
+  }
+
+  function section(kind, title) {
+    return (
+      <>
+        <Text style={styles.h2}>{title}</Text>
+        <View style={styles.grid}>
+          {visible(kind).map((item) => {
+            const owned = DEFAULTS.includes(item.id) || shop.owned.has(item.id);
+            const locked = item.plus_only && !plan.plus;
+            const isWorn = worn[kind] === item.id;
+            return (
+              <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn]}>
+                {preview(item)}
+                <Text style={styles.itemTitle} numberOfLines={1}>{item.title_ru}</Text>
+                {isWorn ? (
+                  <Text style={styles.worn}>{WORN_TEXT[kind]}</Text>
+                ) : locked ? (
+                  <Pressable accessibilityRole="button" onPress={onOpenPlus} style={styles.plusLock}>
+                    <Text style={styles.plusLockText}>Только с Плюсом</Text>
+                  </Pressable>
+                ) : owned ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={busy === item.id}
+                    onPress={() => run(item.id, () => onEquip(item.id), OK_TEXT[kind])}
+                    style={styles.equip}
+                  >
+                    <Text style={styles.equipText}>{kind === 'color' ? 'Надеть' : 'Выбрать'}</Text>
+                  </Pressable>
+                ) : item.price === 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={busy === item.id}
+                    onPress={() => run(item.id, () => onBuy(item.id), 'Получено!')}
+                    style={styles.equip}
+                  >
+                    <Text style={styles.equipText}>Получить</Text>
+                  </Pressable>
+                ) : (
+                  <PriceButton
+                    price={item.price}
+                    disabled={busy === item.id || student.coins < item.price}
+                    onPress={() => run(item.id, () => onBuy(item.id), 'Куплено!')}
+                  />
+                )}
+              </Card>
+            );
+          })}
+        </View>
+      </>
+    );
+  }
 
   async function run(id, action, okText) {
     setBusy(id);
@@ -65,53 +128,9 @@ export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpen
         </Card>
       )}
 
-      <Text style={styles.h2}>Цвет Ками</Text>
-      <View style={styles.grid}>
-        {colorItems.map((item) => {
-          const owned = item.id === 'color-green' || shop.owned.has(item.id);
-          const locked = item.plus_only && !plan.plus;
-          const worn = student.kami_color === item.id;
-          return (
-            <Card key={item.id} style={[styles.colorCard, worn && styles.colorCardWorn]}>
-              <Kami size={88} color={item.value} />
-              <Text style={styles.itemTitle} numberOfLines={1}>{item.title_ru}</Text>
-              {worn ? (
-                <Text style={styles.worn}>Надет</Text>
-              ) : locked ? (
-                <Pressable accessibilityRole="button" onPress={onOpenPlus} style={styles.plusLock}>
-                  <Text style={styles.plusLockText}>Только с Плюсом</Text>
-                </Pressable>
-              ) : owned ? (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={busy === item.id}
-                  onPress={() => run(item.id, () => onEquip(item.id), 'Ками переоделся!')}
-                  style={styles.equip}
-                >
-                  <Text style={styles.equipText}>Надеть</Text>
-                </Pressable>
-              ) : (
-                item.price === 0 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={busy === item.id}
-                    onPress={() => run(item.id, () => onBuy(item.id), 'Цвет получен!')}
-                    style={styles.equip}
-                  >
-                    <Text style={styles.equipText}>Получить</Text>
-                  </Pressable>
-                ) : (
-                  <PriceButton
-                    price={item.price}
-                    disabled={busy === item.id}
-                    onPress={() => run(item.id, () => onBuy(item.id), 'Новый цвет куплен!')}
-                  />
-                )
-              )}
-            </Card>
-          );
-        })}
-      </View>
+      {section('avatar', 'Аватары')}
+      {section('color', 'Цвет Ками')}
+      {section('bg', 'Фоны')}
     </ScrollView>
   );
 }
@@ -147,6 +166,7 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorCard: { width: '48%', alignItems: 'center', gap: 8, padding: 12 },
+  bgPreview: { width: 88, height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
   colorCardWorn: { borderColor: colors.green, borderWidth: 2 },
   worn: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 10 },
   equip: { minHeight: 40, paddingHorizontal: 16, borderRadius: radius.sm, borderWidth: 1.5, borderColor: colors.green, alignItems: 'center', justifyContent: 'center' },

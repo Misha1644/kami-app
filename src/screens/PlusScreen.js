@@ -1,7 +1,10 @@
 // «Ками Плюс» — подписка для родителей.
-// Оплата появится в версии из App Store / Google Play; здесь — описание, тарифы и статус.
-// Цены — предварительные, их легко поменять в PLANS.
+// Бесплатно работают уроки. С Плюсом — отчёты об успехах и разбор заданий по фото.
+// Пробный период 3 дня (один раз на аккаунт). Оплата — через App Store / Google Play,
+// пока не подключена (PAYMENTS_ENABLED). Цены — предварительные, их легко поменять в PLANS.
 import { useState } from 'react';
+import ParentalGate from '../components/ParentalGate';
+import { PAYMENTS_ENABLED, TRIAL_DAYS } from '../config';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import { Button, Card } from '../components/ui';
@@ -14,14 +17,32 @@ const PLANS = [
 ];
 
 const BENEFITS = [
-  { title: 'Разбор заданий по фото', free: '3 в день', plus: '15 в день' },
-  { title: 'Цвет «Ками Плюс»', free: '—', plus: 'бесплатно' },
-  { title: 'Трудные слова в отчёте', free: '—', plus: 'есть' },
+  { title: 'Уроки, повторение, факт дня', free: '✓', plus: '✓' },
+  { title: 'Магазин, аватары, серия', free: '✓', plus: '✓' },
+  { title: 'Активность по дням', free: '—', plus: '✓' },
+  { title: 'Готовность по предметам', free: '—', plus: '✓' },
+  { title: 'Трудные слова', free: '—', plus: '✓' },
+  { title: 'Разбор заданий по фото', free: '—', plus: '15 в день' },
+  { title: 'Фиолетовый Ками и звёздный фон', free: '—', plus: '✓' },
 ];
 
-export default function PlusScreen({ plan, onBack }) {
+export default function PlusScreen({ plan, onBack, onStartTrial }) {
   const [picked, setPicked] = useState('year');
   const [note, setNote] = useState('');
+  const [gate, setGate] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function trial() {
+    setBusy(true);
+    setNote('');
+    try {
+      await onStartTrial();
+      setNote(`Готово! Ками Плюс открыт на ${TRIAL_DAYS} дня.`);
+    } catch (e) {
+      setNote(e.message);
+    }
+    setBusy(false);
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -41,6 +62,8 @@ export default function PlusScreen({ plan, onBack }) {
           <Text style={styles.small}>
             {plan.source === 'comp'
               ? 'Бессрочно — подарок от разработчика.'
+              : plan.source === 'trial'
+                ? `Пробный период до ${new Date(plan.expiresAt).toLocaleDateString('ru-RU')}. Потом отчёты закроются, а уроки останутся бесплатными.`
               : plan.expiresAt
                 ? `Действует до ${new Date(plan.expiresAt).toLocaleDateString('ru-RU')}.`
                 : 'Подписка активна.'}
@@ -62,6 +85,14 @@ export default function PlusScreen({ plan, onBack }) {
           </View>
         ))}
       </Card>
+
+      {!plan.plus && !plan.trialUsed && (
+        <Card style={styles.trial}>
+          <Text style={styles.activeTitle}>{TRIAL_DAYS} дня бесплатно</Text>
+          <Text style={styles.small}>Все возможности Плюса без оплаты и без привязки карты. После пробного периода ничего не списывается.</Text>
+          <Button title={busy ? 'Подождите…' : `Попробовать ${TRIAL_DAYS} дня бесплатно`} onPress={trial} disabled={busy} />
+        </Card>
+      )}
 
       {!plan.plus && (
         <>
@@ -85,10 +116,22 @@ export default function PlusScreen({ plan, onBack }) {
               );
             })}
           </View>
-          <Button
-            title="Оформить Ками Плюс"
-            onPress={() => setNote('Оплата заработает в версии приложения из App Store и Google Play. Пока Ками Плюс можно получить только от разработчика.')}
-          />
+          {gate ? (
+            <ParentalGate
+              title="Подписку оформляет взрослый"
+              onCancel={() => setGate(false)}
+              onPass={() => {
+                setGate(false);
+                setNote('Оплата заработает в версии приложения из App Store и Google Play.');
+              }}
+            />
+          ) : (
+            <Button
+              title={PAYMENTS_ENABLED ? 'Оформить Ками Плюс' : 'Оформить (скоро)'}
+              variant={plan.trialUsed ? undefined : 'secondary'}
+              onPress={() => setGate(true)}
+            />
+          )}
           {!!note && <Text style={styles.note}>{note}</Text>}
           <Text style={styles.small}>Подписку оформляет и оплачивает только взрослый.</Text>
         </>
@@ -105,6 +148,7 @@ const styles = StyleSheet.create({
   h1: { fontSize: 26, fontWeight: '800', color: colors.text },
   muted: { fontSize: 15, color: colors.muted, textAlign: 'center' },
   small: { fontSize: 13, color: colors.muted },
+  trial: { gap: 8, borderColor: '#B07CE8', borderWidth: 2, backgroundColor: '#F7F2FD' },
   active: { backgroundColor: '#F3ECFC', borderColor: '#B07CE8', gap: 4 },
   activeTitle: { fontSize: 16, fontWeight: '800', color: '#6B3FB8' },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 8 },

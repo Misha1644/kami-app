@@ -57,7 +57,7 @@ function ListenButtons({ text, lang }) {
   );
 }
 
-export default function LessonScreen({ topics, topicId, review, kamiColor, onAnswer, onComplete, onClose }) {
+export default function LessonScreen({ topics, topicId, review, kamiColor, prefs = {}, onAnswer, onComplete, onClose }) {
   const topic = topics.find((t) => t.id === topicId);
   const words = topic.words;
   const [index, setIndex] = useState(0);
@@ -66,7 +66,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
   const [typed, setTyped] = useState('');
   const [typedResult, setTypedResult] = useState(null); // 'exact' | 'accents' | 'wrong'
   const [verdict, setVerdict] = useState(null); // null | 'right' | 'wrong' — ответ на текущее упражнение
-  const [speakOff, setSpeakOff] = useState(false); // «не могу говорить сейчас» — до конца урока
+  const [speakOff, setSpeakOff] = useState(prefs.speaking === false); // выключено в профиле или «не могу говорить сейчас»
   const [mistakes, setMistakes] = useState(0);
   const [earned, setEarned] = useState(0);
   // Реплики Ками: новые на каждое слово, но не меняются при перерисовке.
@@ -96,7 +96,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
 
   // Озвучка: на карточке и в «услышь и выбери» слово звучит сразу.
   useEffect(() => {
-    if (phase === 'learn' || (phase === 'exercise' && (kind === 'listen' || kind === 'dictation'))) speak(word.es, { lang: word.lang });
+    if ((phase === 'learn' && prefs.autoplay !== false) || (phase === 'exercise' && (kind === 'listen' || kind === 'dictation'))) speak(word.es, { lang: word.lang });
     if (phase === 'exercise' && kind === 'phrase') speak(word.teacher, { lang: word.lang });
   }, [phase, index, kind, word]);
 

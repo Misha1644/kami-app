@@ -10,13 +10,17 @@ import StudentSetupScreen from './src/screens/StudentSetupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import LessonScreen from './src/screens/LessonScreen';
 import TaskScreen from './src/screens/TaskScreen';
-import ParentsScreen from './src/screens/ParentsScreen';
+import ProgressScreen from './src/screens/ProgressScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import { TabIcon } from './src/components/TabIcons';
+import UserAvatar from './src/components/UserAvatar';
+import { loadPrefs, savePrefs, DEFAULT_PREFS } from './src/lib/prefs';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import PlusScreen from './src/screens/PlusScreen';
 import PrivacyScreen from './src/screens/PrivacyScreen';
 import ErrorBoundary from './src/components/ErrorBoundary';
-import { PAYMENTS_ENABLED } from './src/config';
+import { PLUS_ENABLED } from './src/config';
 import TopicsScreen from './src/screens/TopicsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from './src/theme';
@@ -24,7 +28,7 @@ import { supabase } from './src/lib/supabase';
 import { KAMI_COLORS } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
-  loadShop, buyItem, equipColor, loadSchedule, saveScheduleDay,
+  loadShop, buyItem, equipItem, loadSchedule, saveScheduleDay, updateStudent, startTrial,
   completeLesson, loadPlan,
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
@@ -34,8 +38,8 @@ const TABS = [
   { key: 'home', label: 'Сегодня' },
   { key: 'schedule', label: 'Расписание' },
   { key: 'shop', label: 'Магазин' },
-  { key: 'task', label: 'Задание' },
-  { key: 'parents', label: 'Родителям' },
+  { key: 'progress', label: 'Успехи' },
+  { key: 'profile', label: 'Профиль' },
 ];
 
 const EMPTY_STREAK = { streak: 0, freezes: 0, used_freezes: 0, week: [] };
@@ -54,7 +58,9 @@ export default function App() {
   const [tab, setTab] = useState('home');
   const [lessonTopic, setLessonTopic] = useState(null);
 
-  const [plan, setPlan] = useState({ plus: false });
+  const [plan, setPlan] = useState({ plus: false, trialUsed: false });
+  const [showTask, setShowTask] = useState(false);
+  const [prefs, setPrefs] = useState(DEFAULT_PREFS);
   const [showPlus, setShowPlus] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [taskReady, setTaskReady] = useState(false); // подключён ли ИИ для разбора заданий
@@ -71,12 +77,17 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Вкладку «Задание» показываем, только если на сервере подключён ИИ.
+  // Кнопку «Разобрать задание» показываем, только если на сервере подключён ИИ.
   useEffect(() => {
     if (session) taskHelpAvailable().then(setTaskReady);
   }, [session]);
-  const tabs = TABS.filter((t) => t.key !== 'task' || taskReady);
-  const openPlus = PAYMENTS_ENABLED || plan.plus ? () => setShowPlus(true) : null;
+  // Настройки этого устройства (озвучка, «скажи вслух», скорость голоса).
+  useEffect(() => { loadPrefs().then(setPrefs); }, []);
+  function onSavePrefs(p) {
+    setPrefs(p);
+    savePrefs(p);
+  }
+  const openPlus = PLUS_ENABLED || plan.plus ? () => setShowPlus(true) : null;
 
   // После входа: ученик и контент.
   useEffect(() => {
@@ -149,11 +160,14 @@ export default function App() {
     setRefreshing(false);
   }
 
+  // Переводы слов на выбранном языке (русский или английский).
+  const en = student?.native_lang === 'en';
+  const tr = useCallback((w) => (en && w.en ? { ...w, ru: w.en } : w), [en]);
+  const allTopics = useMemo(() => (en ? topics.map((t) => ({ ...t, words: t.words.map(tr) })) : topics), [topics, en, tr]);
   // Темы класса + сессия повторения.
-  const allTopics = topics;
   const lessonTopics = useMemo(
-    () => [...allTopics, { id: 'review', subject: 'Повторение', title: 'повторение', titleRu: '', words: dueWords }],
-    [allTopics, dueWords]
+    () => [...allTopics, { id: 'review', subject: 'Повторение', title: 'повторение', titleRu: '', words: dueWords.map(tr) }],
+    [allTopics, dueWords, tr]
   );
 
   const onAnswer = useCallback(
@@ -195,14 +209,26 @@ export default function App() {
 
   async function onBuy(itemId) {
     const res = await buyItem(studentId, itemId);
-    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color }));
+    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color, avatar: res.avatar, bg: res.bg }));
     setStreakInfo((info) => ({ ...info, freezes: res.freezes }));
     setShop(await loadShop(studentId));
   }
 
+  // Надеть вещь: цвет Ками, аватар или фон.
   async function onEquip(itemId) {
-    await equipColor(studentId, itemId);
-    setStudent((s) => ({ ...s, kami_color: itemId }));
+    const kind = shop?.items.find((i) => i.id === itemId)?.kind;
+    await equipItem(studentId, itemId);
+    const field = { color: 'kami_color', avatar: 'avatar', bg: 'bg' }[kind];
+    if (field) setStudent((s) => ({ ...s, [field]: itemId }));
+  }
+
+  async function onUpdateStudent(fields) {
+    await updateStudent(studentId, fields);
+    setStudent((s) => ({ ...s, ...fields }));
+  }
+
+  async function onStartTrial() {
+    setPlan(await startTrial());
   }
 
   async function onSaveDay(weekday, codes) {
@@ -223,7 +249,8 @@ export default function App() {
     setStreakInfo(EMPTY_STREAK);
     setSchedule(EMPTY_SCHEDULE);
     setShop(null);
-    setPlan({ plus: false });
+    setPlan({ plus: false, trialUsed: false });
+    setShowTask(false);
     setShowPlus(false);
     setShowPrivacy(false);
     setDueWords([]);
@@ -233,6 +260,9 @@ export default function App() {
   }
 
   const kamiColor = KAMI_COLORS[student?.kami_color] || KAMI_COLORS['color-green'];
+  const itemValue = (id) => shop?.items.find((i) => i.id === id)?.value;
+  const bgColor = (student && itemValue(student.bg)) || colors.bg;
+  const avatarValue = (student && itemValue(student.avatar)) || 'person';
 
   let screen;
   let showTabs = false;
@@ -263,6 +293,7 @@ export default function App() {
         topicId={lessonTopic}
         review={lessonTopic === 'review'}
         kamiColor={kamiColor}
+        prefs={prefs}
         onAnswer={onAnswer}
         onComplete={onCompleteLesson}
         onClose={() => setLessonTopic(null)}
@@ -271,7 +302,17 @@ export default function App() {
   } else if (showPrivacy) {
     screen = <PrivacyScreen onBack={() => setShowPrivacy(false)} />;
   } else if (showPlus) {
-    screen = <PlusScreen plan={plan} onBack={() => setShowPlus(false)} />;
+    screen = <PlusScreen plan={plan} onBack={() => setShowPlus(false)} onStartTrial={onStartTrial} />;
+  } else if (showTask && taskReady) {
+    screen = (
+      <TaskScreen
+        student={student}
+        kamiColor={kamiColor}
+        plan={plan}
+        onOpenPlus={openPlus}
+        onBack={() => setShowTask(false)}
+      />
+    );
   } else if (topicsFor) {
     screen = (
       <TopicsScreen
@@ -286,15 +327,7 @@ export default function App() {
     );
   } else {
     showTabs = true;
-    if (tab === 'task' && taskReady) {
-      screen = (
-        <TaskScreen
-          student={student}
-          kamiColor={kamiColor}
-          schedule={schedule}
-        />
-      );
-    } else if (tab === 'schedule') {
+    if (tab === 'schedule') {
       screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} />;
     } else if (tab === 'shop') {
       screen = (
@@ -302,6 +335,7 @@ export default function App() {
           student={student}
           shop={shop}
           plan={plan}
+          kamiColor={kamiColor}
           onBuy={onBuy}
           onEquip={onEquip}
           onOpenPlus={openPlus}
@@ -309,21 +343,42 @@ export default function App() {
           onRefresh={refresh}
         />
       );
-    } else if (tab === 'parents') {
+    } else if (tab === 'progress') {
       screen = (
-        <ParentsScreen
+        <ProgressScreen
           topics={allTopics}
           student={student}
           learned={learned}
-          streak={streakInfo.streak}
+          streakInfo={streakInfo}
+          wordsToday={wordsToday}
           plan={plan}
+          kamiColor={kamiColor}
           onOpenPlus={openPlus}
-          onOpenPrivacy={() => setShowPrivacy(true)}
-          onSignOut={signOut}
+          refreshing={refreshing}
+          onRefresh={refresh}
+        />
+      );
+    } else if (tab === 'profile') {
+      screen = (
+        <ProfileScreen
+          student={student}
+          plan={plan}
+          shop={shop}
+          kamiColor={kamiColor}
+          streak={streakInfo.streak}
+          learnedTotal={Object.keys(learned).length}
+          prefs={prefs}
+          onSavePrefs={onSavePrefs}
+          onEquip={onEquip}
           onChangeGrade={onChangeGrade}
+          onUpdateStudent={onUpdateStudent}
           reminders={reminders}
           remindersSupported={remindersSupported}
           onToggleReminders={onToggleReminders}
+          onOpenPlus={openPlus}
+          onOpenPrivacy={() => setShowPrivacy(true)}
+          onOpenShop={() => setTab('shop')}
+          onSignOut={signOut}
           refreshing={refreshing}
           onRefresh={refresh}
         />
@@ -340,7 +395,7 @@ export default function App() {
           goalBanner={goalBanner}
           schedule={schedule}
           onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
-          onOpenTask={taskReady ? () => setTab('task') : null}
+          onOpenTask={taskReady ? () => setShowTask(true) : null}
           onOpenSchedule={() => setTab('schedule')}
           refreshing={refreshing}
           onRefresh={refresh}
@@ -355,22 +410,29 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
         <StatusBar style="dark" />
         <View style={{ flex: 1 }}><ErrorBoundary>{screen}</ErrorBoundary></View>
         {showTabs && (
           <View style={styles.tabs}>
-            {tabs.map((t) => {
+            {TABS.map((t) => {
               const active = t.key === tab;
               return (
                 <Pressable
                   key={t.key}
                   accessibilityRole="tab"
+                  accessibilityLabel={t.label}
                   accessibilityState={{ selected: active }}
                   onPress={() => setTab(t.key)}
                   style={styles.tab}
                 >
-                  <View style={[styles.dot, active && styles.dotActive]} />
+                  {t.key === 'profile' && avatarValue !== 'person' ? (
+                    <View style={[styles.tabAvatar, active && styles.tabAvatarActive]}>
+                      <UserAvatar value={avatarValue} size={24} kamiColor={kamiColor} />
+                    </View>
+                  ) : (
+                    <TabIcon name={t.key} color={active ? colors.green : colors.muted} />
+                  )}
                   <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>{t.label}</Text>
                 </Pressable>
               );
@@ -389,8 +451,8 @@ const styles = StyleSheet.create({
   link: { fontSize: 15, fontWeight: '700', color: colors.green, paddingVertical: 10 },
   tabs: { flexDirection: 'row', backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 6 },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 52, gap: 4, paddingHorizontal: 2 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'transparent' },
-  dotActive: { backgroundColor: colors.green },
+  tabAvatar: { borderRadius: 14, borderWidth: 2, borderColor: 'transparent' },
+  tabAvatarActive: { borderColor: colors.green },
   tabText: { fontSize: 11, color: colors.muted },
   tabTextActive: { color: colors.green, fontWeight: '700' },
 });

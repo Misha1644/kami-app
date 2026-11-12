@@ -2,11 +2,15 @@
 // в браузере — через голос браузера).
 import * as Speech from 'expo-speech';
 
+// Скорость голоса по умолчанию — из настроек профиля.
+let normalRate = 0.9;
+export function setVoiceSlow(on) { normalRate = on ? 0.7 : 0.9; }
+
 export function speak(text, { slow = false, lang = 'es-ES' } = {}) {
   if (!text) return;
   try {
     Speech.stop();
-    Speech.speak(text, { language: lang, rate: slow ? 0.6 : 0.9 });
+    Speech.speak(text, { language: lang, rate: slow ? 0.55 : normalRate });
   } catch (e) {
     // Голос недоступен — просто молчим.
   }

@@ -2,7 +2,8 @@
 // Ученик фотографирует задание или загружает фото/PDF → функция explain-task в Supabase
 // читает его и объясняет, что спрашивают. Приложение объясняет, но НЕ решает задание.
 import { useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, ActivityIndicator, Image, Platform } from 'react-native';
+import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Image, Platform } from 'react-native';
+import { PLUS_ENABLED } from '../config';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import Kami from '../components/Kami';
@@ -34,7 +35,8 @@ function normalizeImageType(t) {
   return t;
 }
 
-export default function TaskScreen({ student, kamiColor }) {
+export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBack }) {
+  const locked = PLUS_ENABLED && !plan?.plus;
   const [preview, setPreview] = useState(null); // { uri, isPdf, name }
   const [busy, setBusy] = useState(false);
   const [taskLine] = useState(() => kamiSays('task'));
@@ -91,8 +93,22 @@ export default function TaskScreen({ student, kamiColor }) {
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
+      {!!onBack && (
+        <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
+          <Text style={styles.backText}>‹ Назад</Text>
+        </Pressable>
+      )}
       <Text style={styles.h1}>Разбор задания</Text>
       <Text style={styles.muted}>Сфотографируй задание или загрузи файл — Ками объяснит, что от тебя хотят.</Text>
+
+      {locked ? (
+        <Pressable accessibilityRole="button" onPress={onOpenPlus} style={styles.locked}>
+          <Text style={styles.lockTitle}>🔒 Разбор заданий — с Ками Плюс</Text>
+          <Text style={styles.muted}>До 15 разборов в день: Ками прочитает задание и объяснит, что нужно сделать.</Text>
+          <Text style={styles.lockCta}>{plan?.trialUsed ? 'Открыть с Ками Плюс ›' : 'Попробовать 3 дня бесплатно ›'}</Text>
+        </Pressable>
+      ) : (
+      <>
 
       <View style={{ gap: 10 }}>
         <Button title="Сфотографировать" onPress={takePhoto} disabled={busy} />
@@ -171,11 +187,18 @@ export default function TaskScreen({ student, kamiColor }) {
           {left !== null && <Text style={styles.small}>Разборов на сегодня осталось: {left}</Text>}
         </>
       )}
+      </>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  back: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  backText: { fontSize: 16, fontWeight: '700', color: colors.green },
+  locked: { gap: 6, padding: 16, borderRadius: 16, borderWidth: 1.5, borderColor: '#D9C8F5', backgroundColor: '#F7F2FD' },
+  lockTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
+  lockCta: { fontSize: 14, fontWeight: '800', color: '#6B3FB8' },
   wrap: { padding: 20, gap: 14 },
   h1: { fontSize: 22, fontWeight: '800', color: colors.text },
   row: { flexDirection: 'row', gap: 10 },
