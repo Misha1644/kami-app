@@ -25,7 +25,8 @@ MODULES = [
     ('src/lib/api.js', ['loadTopics', 'getStudent', 'createStudent', 'loadLearned', 'recordAnswer',
                         'loadStreak', 'loadWordsToday', 'loadShop', 'buyItem', 'equipColor',
                         'loadSchedule', 'saveScheduleDay', 'loadCustomWords', 'addCustomWord',
-                        'deleteCustomWord', 'recordCustomAnswer', 'explainTask', 'completeLesson']),
+                        'deleteCustomWord', 'recordCustomAnswer', 'explainTask', 'completeLesson',
+                        'loadPlan', 'loadHardWords']),
     ('src/screens/AuthScreen.js', ['AuthScreen']),
     ('src/screens/StudentSetupScreen.js', ['StudentSetupScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
@@ -35,6 +36,7 @@ MODULES = [
     ('src/screens/ScheduleScreen.js', ['ScheduleScreen']),
     ('src/screens/ShopScreen.js', ['ShopScreen']),
     ('src/screens/WordsScreen.js', ['WordsScreen']),
+    ('src/screens/PlusScreen.js', ['PlusScreen']),
 ]
 
 # В Snack (веб) этот полифил не нужен и мешает загрузке.

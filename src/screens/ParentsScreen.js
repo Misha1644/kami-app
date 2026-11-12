@@ -1,9 +1,11 @@
 // Экран для родителей: сколько выучено и готовность по предметам.
 // Цифры считаются из реального прогресса ученика в этом приложении.
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { Button, Card } from '../components/ui';
 import { colors } from '../theme';
 import { learnedCount } from '../data/content';
+import { loadHardWords } from '../lib/api';
 
 function status(done, total) {
   if (done === 0) return { label: 'Не начато', bg: '#F1EFE8', fg: '#444441' };
@@ -11,7 +13,12 @@ function status(done, total) {
   return { label: 'Готов к уроку', bg: colors.greenLight, fg: colors.greenDark };
 }
 
-export default function ParentsScreen({ topics, student, learned, streak, onSignOut }) {
+export default function ParentsScreen({ topics, student, learned, streak, plan, onOpenPlus, onSignOut }) {
+  const [hard, setHard] = useState(null);
+  useEffect(() => {
+    if (plan.plus) loadHardWords(student.id).then(setHard);
+  }, [plan.plus, student.id]);
+
   const totalLearned = Object.keys(learned).length;
   const topicsReady = topics.filter((t) => learnedCount(t, learned) === t.words.length).length;
 
@@ -29,6 +36,16 @@ export default function ParentsScreen({ topics, student, learned, streak, onSign
         <Text style={styles.h1}>Прогресс: {student.nickname}</Text>
         <Text style={styles.small}>{student.grade}</Text>
       </View>
+
+      <Pressable accessibilityRole="button" onPress={onOpenPlus} style={[styles.plus, plan.plus && styles.plusActive]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.plusTitle}>{plan.plus ? 'Ками Плюс подключён' : 'Ками Плюс'}</Text>
+          <Text style={styles.small}>
+            {plan.plus ? 'Все возможности открыты.' : '15 разборов фото в день, свои слова без лимита, отчёт о трудных словах.'}
+          </Text>
+        </View>
+        <Text style={styles.plusArrow}>›</Text>
+      </Pressable>
 
       <View style={styles.stats}>
         {stats.map((s) => (
@@ -54,6 +71,25 @@ export default function ParentsScreen({ topics, student, learned, streak, onSign
         })}
       </Card>
 
+      <Text style={styles.h2}>Трудные слова</Text>
+      {plan.plus ? (
+        <Card style={{ paddingVertical: 4 }}>
+          {hard === null && <Text style={[styles.small, { paddingVertical: 12 }]}>Загружаем…</Text>}
+          {hard?.length === 0 && <Text style={[styles.small, { paddingVertical: 12 }]}>Ошибок пока нет — отлично!</Text>}
+          {hard?.map((w, i) => (
+            <View key={`${w.es}-${i}`} style={[styles.row, i < hard.length - 1 && styles.rowBorder]}>
+              <View style={{ flexShrink: 1 }}>
+                <Text style={[styles.body, { fontWeight: '700' }]}>{w.es}</Text>
+                <Text style={styles.small}>{w.ru}</Text>
+              </View>
+              <Text style={styles.mistakes}>ошибок: {w.wrong}</Text>
+            </View>
+          ))}
+        </Card>
+      ) : (
+        <Text style={styles.small}>Список слов, в которых ребёнок чаще ошибается, — в Ками Плюс.</Text>
+      )}
+
       <Button title="Выйти из аккаунта" variant="secondary" onPress={onSignOut} />
     </ScrollView>
   );
@@ -72,4 +108,9 @@ const styles = StyleSheet.create({
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.track },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   badgeText: { fontSize: 13, fontWeight: '700' },
+  plus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1.5, borderColor: '#B07CE8', backgroundColor: colors.card },
+  plusActive: { backgroundColor: '#F3ECFC' },
+  plusTitle: { fontSize: 16, fontWeight: '800', color: '#6B3FB8' },
+  plusArrow: { fontSize: 24, color: '#6B3FB8' },
+  mistakes: { fontSize: 13, fontWeight: '700', color: colors.danger },
 });

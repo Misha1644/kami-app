@@ -14,13 +14,14 @@ import ParentsScreen from './src/screens/ParentsScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import WordsScreen from './src/screens/WordsScreen';
+import PlusScreen from './src/screens/PlusScreen';
 import { colors } from './src/theme';
 import { supabase } from './src/lib/supabase';
 import { KAMI_COLORS, customTopics } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipColor, loadSchedule, saveScheduleDay,
-  loadCustomWords, addCustomWord, deleteCustomWord, recordCustomAnswer, completeLesson,
+  loadCustomWords, addCustomWord, deleteCustomWord, recordCustomAnswer, completeLesson, loadPlan,
 } from './src/lib/api';
 
 const TABS = [
@@ -48,6 +49,8 @@ export default function App() {
   const [lessonTopic, setLessonTopic] = useState(null);
   const [customWords, setCustomWords] = useState([]);
   const [wordsFor, setWordsFor] = useState(null);
+  const [plan, setPlan] = useState({ plus: false });
+  const [showPlus, setShowPlus] = useState(false);
   const pendingAnswer = useRef(Promise.resolve()); // последний ответ, ещё не записанный в базу // код предмета, для которого открыт экран «Мои слова»
   const [loadError, setLoadError] = useState('');
 
@@ -67,8 +70,9 @@ export default function App() {
     (async () => {
       try {
         setLoadError('');
-        const [s, t] = await Promise.all([getStudent(), loadTopics()]);
+        const [s, t, p] = await Promise.all([getStudent(), loadTopics(), loadPlan()]);
         if (cancelled) return;
+        setPlan(p);
         setTopics(t);
         setStudent(s);
       } catch (e) {
@@ -163,6 +167,8 @@ export default function App() {
     setShop(null);
     setCustomWords([]);
     setWordsFor(null);
+    setPlan({ plus: false });
+    setShowPlus(false);
     setGoalBanner('');
     setTab('home');
   }
@@ -195,6 +201,8 @@ export default function App() {
         onClose={() => setLessonTopic(null)}
       />
     );
+  } else if (showPlus) {
+    screen = <PlusScreen plan={plan} onBack={() => setShowPlus(false)} />;
   } else if (wordsFor) {
     screen = (
       <WordsScreen
@@ -222,10 +230,20 @@ export default function App() {
     } else if (tab === 'schedule') {
       screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} onOpenWords={setWordsFor} />;
     } else if (tab === 'shop') {
-      screen = <ShopScreen student={student} shop={shop} onBuy={onBuy} onEquip={onEquip} />;
+      screen = (
+        <ShopScreen student={student} shop={shop} plan={plan} onBuy={onBuy} onEquip={onEquip} onOpenPlus={() => setShowPlus(true)} />
+      );
     } else if (tab === 'parents') {
       screen = (
-        <ParentsScreen topics={allTopics} student={student} learned={learned} streak={streakInfo.streak} onSignOut={signOut} />
+        <ParentsScreen
+          topics={allTopics}
+          student={student}
+          learned={learned}
+          streak={streakInfo.streak}
+          plan={plan}
+          onOpenPlus={() => setShowPlus(true)}
+          onSignOut={signOut}
+        />
       );
     } else {
       screen = (

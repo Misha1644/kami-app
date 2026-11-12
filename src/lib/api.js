@@ -89,7 +89,7 @@ export async function loadWordsToday(studentId) {
 // Магазин: товары и то, что уже куплено.
 export async function loadShop(studentId) {
   const [items, owned] = await Promise.all([
-    supabase.from('shop_items').select('id, kind, title_ru, price, value, sort').order('sort'),
+    supabase.from('shop_items').select('id, kind, title_ru, price, value, sort, plus_only').order('sort'),
     supabase.from('student_items').select('item_id').eq('student_id', studentId),
   ]);
   if (items.error) throw items.error;
@@ -103,6 +103,7 @@ const SHOP_ERRORS = {
   'not enough coins': 'Не хватает монет. Учи слова — за каждое верное слово 1 монета.',
   'max freezes': 'Больше двух заморозок держать нельзя.',
   'already owned': 'Это уже куплено.',
+  'plus only': 'Этот цвет — только для Ками Плюс.',
 };
 
 // Покупка. Возвращает { coins, freezes, kami_color } или бросает ошибку с понятным текстом.
@@ -165,7 +166,12 @@ export async function addCustomWord(studentId, { subjectCode, es, translation, e
     })
     .select('id, subject_code, es, translation, example, learned_at')
     .single();
-  if (error) throw error;
+  if (error) {
+    if (error.message?.includes('free words limit')) {
+      throw new Error('В бесплатной версии можно добавить до 50 своих слов. С Ками Плюс — без лимита.');
+    }
+    throw error;
+  }
   return data;
 }
 
@@ -187,7 +193,7 @@ export async function recordCustomAnswer(studentId, wordId, correct) {
 // ----- Разбор задания по фото или файлу -----
 
 const TASK_ERRORS = {
-  limit: 'На сегодня разборы закончились (15 в день). Завтра можно снова.',
+  limit: 'На сегодня разборы закончились. Бесплатно — 3 в день, с Ками Плюс — 15.',
   not_configured: 'Разбор фото ещё не включён: нужно добавить ключ ИИ в Supabase.',
   too_large: 'Файл слишком большой. Попробуй фото поменьше или PDF до 5 МБ.',
   forbidden: 'Не удалось проверить аккаунт. Выйди и войди снова.',
@@ -211,4 +217,28 @@ export async function completeLesson(studentId) {
   const { data, error } = await supabase.rpc('complete_lesson', { p_student: studentId });
   if (error) return null;
   return data;
+}
+
+// ----- Подписка «Ками Плюс» -----
+
+// { plus: true/false, source: 'comp'|'app_store'|'google_play'|null, expiresAt }
+export async function loadPlan() {
+  const { data } = await supabase.from('parent_plans').select('plan, source, expires_at').maybeSingle();
+  const active = !!data && data.plan === 'plus' && (!data.expires_at || new Date(data.expires_at) > new Date());
+  return { plus: active, source: data?.source || null, expiresAt: data?.expires_at || null };
+}
+
+// Трудные слова для отчёта родителям: где больше всего ошибок.
+export async function loadHardWords(studentId) {
+  const [std, own] = await Promise.all([
+    supabase.from('progress').select('wrong_count, correct_count, words(es, ru)')
+      .eq('student_id', studentId).gt('wrong_count', 0).order('wrong_count', { ascending: false }).limit(5),
+    supabase.from('custom_words').select('wrong_count, correct_count, es, translation')
+      .eq('student_id', studentId).gt('wrong_count', 0).order('wrong_count', { ascending: false }).limit(5),
+  ]);
+  const list = [
+    ...(std.data || []).map((r) => ({ es: r.words?.es, ru: r.words?.ru, wrong: r.wrong_count, right: r.correct_count })),
+    ...(own.data || []).map((r) => ({ es: r.es, ru: r.translation, wrong: r.wrong_count, right: r.correct_count })),
+  ];
+  return list.filter((w) => w.es).sort((a, b) => b.wrong - a.wrong).slice(0, 5);
 }

@@ -6,7 +6,7 @@ import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 
-export default function ShopScreen({ student, shop, onBuy, onEquip }) {
+export default function ShopScreen({ student, shop, plan, onBuy, onEquip, onOpenPlus }) {
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -63,7 +63,8 @@ export default function ShopScreen({ student, shop, onBuy, onEquip }) {
       <Text style={styles.h2}>Цвет Ками</Text>
       <View style={styles.grid}>
         {colorItems.map((item) => {
-          const owned = item.price === 0 || shop.owned.has(item.id);
+          const owned = item.id === 'color-green' || shop.owned.has(item.id);
+          const locked = item.plus_only && !plan.plus;
           const worn = student.kami_color === item.id;
           return (
             <Card key={item.id} style={[styles.colorCard, worn && styles.colorCardWorn]}>
@@ -71,6 +72,10 @@ export default function ShopScreen({ student, shop, onBuy, onEquip }) {
               <Text style={styles.itemTitle} numberOfLines={1}>{item.title_ru}</Text>
               {worn ? (
                 <Text style={styles.worn}>Надет</Text>
+              ) : locked ? (
+                <Pressable accessibilityRole="button" onPress={onOpenPlus} style={styles.plusLock}>
+                  <Text style={styles.plusLockText}>Только с Плюсом</Text>
+                </Pressable>
               ) : owned ? (
                 <Pressable
                   accessibilityRole="button"
@@ -81,11 +86,22 @@ export default function ShopScreen({ student, shop, onBuy, onEquip }) {
                   <Text style={styles.equipText}>Надеть</Text>
                 </Pressable>
               ) : (
-                <PriceButton
-                  price={item.price}
-                  disabled={busy === item.id}
-                  onPress={() => run(item.id, () => onBuy(item.id), 'Новый цвет куплен!')}
-                />
+                item.price === 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={busy === item.id}
+                    onPress={() => run(item.id, () => onBuy(item.id), 'Цвет получен!')}
+                    style={styles.equip}
+                  >
+                    <Text style={styles.equipText}>Получить</Text>
+                  </Pressable>
+                ) : (
+                  <PriceButton
+                    price={item.price}
+                    disabled={busy === item.id}
+                    onPress={() => run(item.id, () => onBuy(item.id), 'Новый цвет куплен!')}
+                  />
+                )
               )}
             </Card>
           );
@@ -130,6 +146,8 @@ const styles = StyleSheet.create({
   worn: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 10 },
   equip: { minHeight: 40, paddingHorizontal: 16, borderRadius: radius.sm, borderWidth: 1.5, borderColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   equipText: { fontSize: 14, fontWeight: '700', color: colors.green },
+  plusLock: { minHeight: 40, paddingHorizontal: 12, borderRadius: radius.sm, backgroundColor: '#F3ECFC', alignItems: 'center', justifyContent: 'center' },
+  plusLockText: { fontSize: 13, fontWeight: '700', color: '#6B3FB8' },
   price: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.sm, backgroundColor: colors.green },
   priceText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
 });
