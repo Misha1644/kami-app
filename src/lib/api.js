@@ -183,3 +183,25 @@ export async function recordCustomAnswer(studentId, wordId, correct) {
   }
   return data;
 }
+
+// ----- Разбор задания по фото или файлу -----
+
+const TASK_ERRORS = {
+  limit: 'На сегодня разборы закончились (15 в день). Завтра можно снова.',
+  not_configured: 'Разбор фото ещё не включён: нужно добавить ключ ИИ в Supabase.',
+  too_large: 'Файл слишком большой. Попробуй фото поменьше или PDF до 5 МБ.',
+  forbidden: 'Не удалось проверить аккаунт. Выйди и войди снова.',
+  ai_failed: 'Ками не смог прочитать задание. Попробуй ещё раз или сделай фото чётче.',
+  failed: 'Что-то пошло не так. Попробуй ещё раз.',
+  bad_request: 'Этот тип файла не подходит. Нужны фото (JPG, PNG) или PDF.',
+};
+
+// Возвращает { result: { original, meaning, keywords: [{es, tr}], phrase_es, phrase_tr, not_a_task }, left }.
+export async function explainTask(studentId, { mediaType, base64 }) {
+  const { data, error } = await supabase.functions.invoke('explain-task', {
+    body: { studentId, mediaType, data: base64 },
+  });
+  if (error) throw new Error(TASK_ERRORS.failed);
+  if (data.error) throw new Error(TASK_ERRORS[data.error] || TASK_ERRORS.failed);
+  return data;
+}

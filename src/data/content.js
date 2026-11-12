@@ -83,6 +83,7 @@ export const KAMI_COLORS = {
   'color-purple': '#8E6FD8',
   'color-coral': '#E8735A',
   'color-gold': '#D9A92B',
+  'color-diamond': '#7FD6E8',
 };
 
 export const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'];

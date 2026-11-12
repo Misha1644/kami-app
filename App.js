@@ -201,7 +201,15 @@ export default function App() {
   } else {
     showTabs = true;
     if (tab === 'task') {
-      screen = <TaskScreen onLearnWords={() => setLessonTopic(topics[0].id)} />;
+      screen = (
+        <TaskScreen
+          student={student}
+          kamiColor={kamiColor}
+          schedule={schedule}
+          onAddWord={onAddWord}
+          onOpenWords={setWordsFor}
+        />
+      );
     } else if (tab === 'schedule') {
       screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} onOpenWords={setWordsFor} />;
     } else if (tab === 'shop') {

@@ -25,7 +25,7 @@ MODULES = [
     ('src/lib/api.js', ['loadTopics', 'getStudent', 'createStudent', 'loadLearned', 'recordAnswer',
                         'loadStreak', 'loadWordsToday', 'loadShop', 'buyItem', 'equipColor',
                         'loadSchedule', 'saveScheduleDay', 'loadCustomWords', 'addCustomWord',
-                        'deleteCustomWord', 'recordCustomAnswer']),
+                        'deleteCustomWord', 'recordCustomAnswer', 'explainTask']),
     ('src/screens/AuthScreen.js', ['AuthScreen']),
     ('src/screens/StudentSetupScreen.js', ['StudentSetupScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
@@ -77,7 +77,11 @@ def main():
                     if len(parts) == 2:
                         aliases.setdefault(path, []).append(parts)
             return
-        entry = external.setdefault(mod, {'default': None, 'named': set()})
+        entry = external.setdefault(mod, {'default': None, 'named': set(), 'ns': None})
+        ns = re.match(r"^\*\s+as\s+([A-Za-z_$][\w$]*)$", spec.strip())
+        if ns:
+            entry['ns'] = ns.group(1)
+            return
         default = re.match(r"^([A-Za-z_$][\w$]*)\s*(,|$)", spec)
         if default and not spec.startswith('{'):
             entry['default'] = default.group(1)
@@ -109,6 +113,10 @@ def main():
     ]
     out += [f"import '{s}';" for s in side_effects]
     for mod, e in external.items():
+        if e.get('ns'):
+            out.append(f"import * as {e['ns']} from '{mod}';")
+            if not e['default'] and not e['named']:
+                continue
         parts = ([e['default']] if e['default'] else []) + (['{ ' + ', '.join(sorted(e['named'])) + ' }'] if e['named'] else [])
         out.append(f"import {', '.join(parts)} from '{mod}';")
     out.append('')
