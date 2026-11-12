@@ -91,6 +91,10 @@ export default function HomeScreen({
             );
           })}
         </View>
+        {!streakInfo.today_done && (
+          <Text style={styles.hint}>Пройди сегодня хотя бы один урок до конца, чтобы продлить серию.</Text>
+        )}
+        {streakInfo.today_done && <Text style={styles.hintDone}>Серия на сегодня продлена!</Text>}
         {!!streakInfo.used_freezes && (
           <Text style={styles.small}>
             Заморозка спасла твою серию: {streakInfo.used_freezes} {plural(streakInfo.used_freezes, 'день', 'дня', 'дней')}.
@@ -178,6 +182,8 @@ const styles = StyleSheet.create({
   dayDone: { backgroundColor: colors.orange },
   dayFrozen: { backgroundColor: '#4A90D9' },
   dayToday: { borderWidth: 2, borderColor: colors.orange, backgroundColor: colors.card },
+  hint: { fontSize: 13, color: colors.orangeText },
+  hintDone: { fontSize: 13, fontWeight: '700', color: colors.greenDark },
   kamiRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   bubble: { flex: 1, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: 12 },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },

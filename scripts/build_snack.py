@@ -25,7 +25,7 @@ MODULES = [
     ('src/lib/api.js', ['loadTopics', 'getStudent', 'createStudent', 'loadLearned', 'recordAnswer',
                         'loadStreak', 'loadWordsToday', 'loadShop', 'buyItem', 'equipColor',
                         'loadSchedule', 'saveScheduleDay', 'loadCustomWords', 'addCustomWord',
-                        'deleteCustomWord', 'recordCustomAnswer', 'explainTask']),
+                        'deleteCustomWord', 'recordCustomAnswer', 'explainTask', 'completeLesson']),
     ('src/screens/AuthScreen.js', ['AuthScreen']),
     ('src/screens/StudentSetupScreen.js', ['StudentSetupScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),

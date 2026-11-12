@@ -1,7 +1,7 @@
 // Точка входа.
 // Порядок: вход родителя → профиль ученика → основное приложение с вкладками.
 // Прогресс, серия, монеты, покупки и расписание хранятся в Supabase.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -20,7 +20,7 @@ import { KAMI_COLORS, customTopics } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipColor, loadSchedule, saveScheduleDay,
-  loadCustomWords, addCustomWord, deleteCustomWord, recordCustomAnswer,
+  loadCustomWords, addCustomWord, deleteCustomWord, recordCustomAnswer, completeLesson,
 } from './src/lib/api';
 
 const TABS = [
@@ -47,7 +47,8 @@ export default function App() {
   const [tab, setTab] = useState('home');
   const [lessonTopic, setLessonTopic] = useState(null);
   const [customWords, setCustomWords] = useState([]);
-  const [wordsFor, setWordsFor] = useState(null); // код предмета, для которого открыт экран «Мои слова»
+  const [wordsFor, setWordsFor] = useState(null);
+  const pendingAnswer = useRef(Promise.resolve()); // последний ответ, ещё не записанный в базу // код предмета, для которого открыт экран «Мои слова»
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -102,17 +103,24 @@ export default function App() {
   const onAnswer = useCallback(
     async (wordId, correct) => {
       if (correct) setLearned((prev) => ({ ...prev, [wordId]: true }));
-      const res = customIds.has(wordId)
-        ? await recordCustomAnswer(studentId, wordId, correct)
-        : await recordAnswer(studentId, wordId, correct);
+      const request = customIds.has(wordId)
+        ? recordCustomAnswer(studentId, wordId, correct)
+        : recordAnswer(studentId, wordId, correct);
+      pendingAnswer.current = request;
+      const res = await request;
       if (!res) return;
       setStudent((s) => ({ ...s, coins: res.coins }));
       setWordsToday(res.words_today);
       if (res.goal_bonus > 0) setGoalBanner(`Цель дня выполнена! +${res.goal_bonus} монет`);
-      if (correct) loadStreak(studentId).then(setStreakInfo);
     },
     [studentId, customIds]
   );
+
+  async function onCompleteLesson() {
+    await pendingAnswer.current; // сначала дождаться записи последнего ответа
+    await completeLesson(studentId);
+    setStreakInfo(await loadStreak(studentId));
+  }
 
   async function onAddWord(word) {
     const created = await addCustomWord(studentId, word);
@@ -183,6 +191,7 @@ export default function App() {
         topicId={lessonTopic}
         kamiColor={kamiColor}
         onAnswer={onAnswer}
+        onComplete={onCompleteLesson}
         onClose={() => setLessonTopic(null)}
       />
     );

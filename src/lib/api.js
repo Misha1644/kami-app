@@ -205,3 +205,10 @@ export async function explainTask(studentId, { mediaType, base64 }) {
   if (data.error) throw new Error(TASK_ERRORS[data.error] || TASK_ERRORS.failed);
   return data;
 }
+
+// Урок пройден до конца — именно это засчитывает день в серию.
+export async function completeLesson(studentId) {
+  const { data, error } = await supabase.rpc('complete_lesson', { p_student: studentId });
+  if (error) return null;
+  return data;
+}

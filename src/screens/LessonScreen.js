@@ -17,7 +17,7 @@ function shuffle(list) {
   return a;
 }
 
-export default function LessonScreen({ topics, topicId, kamiColor, onAnswer, onClose }) {
+export default function LessonScreen({ topics, topicId, kamiColor, onAnswer, onComplete, onClose }) {
   const topic = topics.find((t) => t.id === topicId);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('learn'); // learn → quiz → done
@@ -71,6 +71,7 @@ export default function LessonScreen({ topics, topicId, kamiColor, onAnswer, onC
       setPhase('learn');
     } else {
       setPhase('done');
+      onComplete?.(topic.id);
     }
   }
 
