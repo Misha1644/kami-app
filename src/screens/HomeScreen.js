@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ScrollView, View, Text, Pressable, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
+import FactCard from '../components/FactCard';
 import { greeting, kamiSays, kamiFact } from '../data/kami';
 import { Flame, Coin, Snowflake } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
@@ -174,6 +175,8 @@ export default function HomeScreen({
           <Text style={styles.bubbleHint}>{tapLine ? 'Нажми ещё — расскажу другое' : 'Нажми на меня!'}</Text>
         </Pressable>
       </View>
+
+      <FactCard kamiColor={kamiColor} />
 
       {!hasSchedule && <Button title="Заполнить расписание" variant="secondary" onPress={onOpenSchedule} />}
 

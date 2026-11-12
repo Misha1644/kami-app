@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { subjectByCode } from '../data/content';
+import { factOfDay } from '../data/facts';
 
 const KEY = 'kami.reminders.enabled';
 const HOUR = 19;
@@ -52,7 +53,7 @@ export async function rescheduleReminders(schedule) {
     d.setHours(HOUR, 0, 0, 0);
     if (d <= now) continue;
     await Notifications.scheduleNotificationAsync({
-      content: { title: 'Ками 🦎', body: textFor(d, schedule) },
+      content: { title: 'Ками 🦎', body: `${textFor(d, schedule)}\nФакт дня: ${factOfDay(d).t}` },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
     });
   }
