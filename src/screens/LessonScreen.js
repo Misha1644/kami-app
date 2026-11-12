@@ -9,6 +9,7 @@ import { Coin } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
 import { plural } from '../data/content';
+import { kamiSays } from '../data/kami';
 import { speak, checkTyped } from '../lib/speech';
 
 const KINDS = ['choose', 'listen', 'type'];
@@ -45,6 +46,10 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
   const [typedResult, setTypedResult] = useState(null); // 'exact' | 'accents' | 'wrong'
   const [mistakes, setMistakes] = useState(0);
   const [earned, setEarned] = useState(0);
+  // Реплики Ками: новые на каждое слово, но не меняются при перерисовке.
+  const praise = useMemo(() => kamiSays('correct'), [index, phase]);
+  const comfort = useMemo(() => kamiSays('wrong'), [index, phase]);
+  const ending = useMemo(() => ({ done: kamiSays('done'), perfect: kamiSays('perfect'), review: kamiSays('reviewDone') }), []);
 
   const word = words[index];
 
@@ -105,8 +110,9 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
   if (phase === 'done') {
     return (
       <View style={[styles.wrap, styles.center]}>
-        <Kami size={140} color={kamiColor} />
+        <Kami size={140} color={kamiColor} mood="excited" />
         <Text style={styles.h1}>{review ? 'Повторение готово!' : 'Тема готова!'}</Text>
+        <Text style={styles.mutedCenter}>{mistakes === 0 ? ending.perfect : review ? ending.review : ending.done}</Text>
         <Text style={styles.mutedCenter}>
           {review ? 'Слова закреплены.' : `${topic.subject}: ${topic.title}.`} Слов: {words.length}, ошибок: {mistakes}.
         </Text>
@@ -215,11 +221,10 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, onAns
       {phase === 'exercise' && answered && (
         <>
           <View style={styles.kamiRow}>
-            <Kami size={64} color={kamiColor} />
+            <Kami size={64} color={kamiColor} mood={correctNow ? 'excited' : 'worried'} />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.kamiText}>
-                {correctNow ? 'Верно! Так держать.' : `Почти! Правильно: ${word.es}. Вернёмся к нему в повторении.`}
-              </Text>
+              <Text style={styles.kamiText}>{correctNow ? praise : comfort}</Text>
+              {!correctNow && <Text style={styles.kamiText}>Правильно: {word.es}. Вернёмся к нему в повторении.</Text>}
               {!correctNow && <Text style={styles.small}>{word.ru}</Text>}
             </View>
             <SpeakButton text={word.es} />
@@ -263,6 +268,7 @@ function MatchRound({ words, kamiColor, onDone, onClose }) {
   const [selected, setSelected] = useState(null);
   const [matched, setMatched] = useState(new Set());
   const [wrong, setWrong] = useState(null);
+  const [matchLine] = useState(() => kamiSays('match'));
 
   function pickLeft(id) {
     if (matched.has(id)) return;
@@ -330,8 +336,8 @@ function MatchRound({ words, kamiColor, onDone, onClose }) {
         </View>
       </View>
       <View style={styles.kamiRow}>
-        <Kami size={56} color={kamiColor} />
-        <Text style={styles.kamiText}>Последнее задание темы!</Text>
+        <Kami size={56} color={kamiColor} mood={wrong ? 'worried' : 'happy'} />
+        <Text style={styles.kamiText}>{wrong ? '¡Uy! Не та пара — попробуй ещё.' : matchLine}</Text>
       </View>
     </ScrollView>
   );

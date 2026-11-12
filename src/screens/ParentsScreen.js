@@ -47,7 +47,7 @@ export default function ParentsScreen({
         <View style={{ flex: 1 }}>
           <Text style={styles.plusTitle}>{plan.plus ? 'Ками Плюс подключён' : 'Ками Плюс'}</Text>
           <Text style={styles.small}>
-            {plan.plus ? 'Все возможности открыты.' : '15 разборов фото в день, свои слова без лимита, отчёт о трудных словах.'}
+            {plan.plus ? 'Все возможности открыты.' : '15 разборов фото в день, эксклюзивный цвет Ками, отчёт о трудных словах.'}
           </Text>
         </View>
         <Text style={styles.plusArrow}>›</Text>

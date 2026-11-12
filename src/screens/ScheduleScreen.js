@@ -6,7 +6,7 @@ import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { SUBJECTS, WEEKDAYS, subjectByCode, nextSchoolDay, customCode, isCustom, CUSTOM_MAX } from '../data/content';
 
-export default function ScheduleScreen({ schedule, onSaveDay, onOpenWords }) {
+export default function ScheduleScreen({ schedule, onSaveDay }) {
   const [day, setDay] = useState(nextSchoolDay().weekday);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
@@ -74,14 +74,6 @@ export default function ScheduleScreen({ schedule, onSaveDay, onOpenWords }) {
                 <Text style={styles.subject}>{s.es}</Text>
                 <Text style={styles.small}>{s.ru}</Text>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Свои слова для ${s.es}`}
-                onPress={() => onOpenWords(code)}
-                style={styles.wordsButton}
-              >
-                <Text style={styles.wordsText}>Слова</Text>
-              </Pressable>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Убрать урок ${s.es}`}

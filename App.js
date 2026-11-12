@@ -13,17 +13,16 @@ import TaskScreen from './src/screens/TaskScreen';
 import ParentsScreen from './src/screens/ParentsScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ShopScreen from './src/screens/ShopScreen';
-import WordsScreen from './src/screens/WordsScreen';
 import PlusScreen from './src/screens/PlusScreen';
 import TopicsScreen from './src/screens/TopicsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from './src/theme';
 import { supabase } from './src/lib/supabase';
-import { KAMI_COLORS, customTopics } from './src/data/content';
+import { KAMI_COLORS } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipColor, loadSchedule, saveScheduleDay,
-  loadCustomWords, addCustomWord, deleteCustomWord, recordCustomAnswer, completeLesson, loadPlan,
+  completeLesson, loadPlan,
   updateGrade, loadDueWords,
 } from './src/lib/api';
 import { remindersSupported, remindersEnabled, rescheduleReminders, setRemindersEnabled } from './src/lib/reminders';
@@ -51,8 +50,7 @@ export default function App() {
   const [goalBanner, setGoalBanner] = useState('');
   const [tab, setTab] = useState('home');
   const [lessonTopic, setLessonTopic] = useState(null);
-  const [customWords, setCustomWords] = useState([]);
-  const [wordsFor, setWordsFor] = useState(null);
+
   const [plan, setPlan] = useState({ plus: false });
   const [showPlus, setShowPlus] = useState(false);
   const [dueWords, setDueWords] = useState([]);
@@ -96,13 +94,12 @@ export default function App() {
 
   // Всё, что относится к ученику. Вызывается при входе и по кнопке «Обновить».
   const loadStudentData = useCallback(async (id) => {
-    const [learnedStd, info, today, sch, shopData, words, due, current, remOn] = await Promise.all([
+    const [learnedStd, info, today, sch, shopData, due, current, remOn] = await Promise.all([
       loadLearned(id).catch(() => ({})),
       loadStreak(id),
       loadWordsToday(id),
       loadSchedule(id),
       loadShop(id).catch(() => null),
-      loadCustomWords(id),
       loadDueWords(id).catch(() => []),
       AsyncStorage.getItem(`kami.current.${id}`).catch(() => null),
       remindersEnabled(),
@@ -111,14 +108,12 @@ export default function App() {
     setCurrentTopics(current ? JSON.parse(current) : {});
     setReminders(remOn);
     if (remOn) rescheduleReminders(sch).catch(() => {});
-    const learnedOwn = Object.fromEntries(words.filter((w) => w.learned_at).map((w) => [w.id, true]));
-    setLearned({ ...learnedStd, ...learnedOwn });
+    setLearned(learnedStd);
     setStreakInfo(info);
     setStudent((s) => (s ? { ...s, streak_freezes: info.freezes } : s));
     setWordsToday(today);
     setSchedule(sch);
     if (shopData) setShop(shopData);
-    setCustomWords(words);
   }, []);
 
   useEffect(() => {
@@ -142,20 +137,17 @@ export default function App() {
     setRefreshing(false);
   }
 
-  // Обычные темы + «Мои слова» по каждому предмету + сессия повторения.
-  const allTopics = useMemo(() => [...topics, ...customTopics(customWords)], [topics, customWords]);
+  // Темы класса + сессия повторения.
+  const allTopics = topics;
   const lessonTopics = useMemo(
     () => [...allTopics, { id: 'review', subject: 'Повторение', title: 'повторение', titleRu: '', words: dueWords }],
     [allTopics, dueWords]
   );
-  const customIds = useMemo(() => new Set(customWords.map((w) => w.id)), [customWords]);
 
   const onAnswer = useCallback(
     async (wordId, correct) => {
       if (correct) setLearned((prev) => ({ ...prev, [wordId]: true }));
-      const request = customIds.has(wordId)
-        ? recordCustomAnswer(studentId, wordId, correct)
-        : recordAnswer(studentId, wordId, correct);
+      const request = recordAnswer(studentId, wordId, correct);
       pendingAnswer.current = request;
       const res = await request;
       if (!res) return;
@@ -163,7 +155,7 @@ export default function App() {
       setWordsToday(res.words_today);
       if (res.goal_bonus > 0) setGoalBanner(`Цель дня выполнена! +${res.goal_bonus} монет`);
     },
-    [studentId, customIds]
+    [studentId]
   );
 
   async function onCompleteLesson() {
@@ -187,16 +179,6 @@ export default function App() {
 
   async function onToggleReminders(on) {
     setReminders(await setRemindersEnabled(on, schedule));
-  }
-
-  async function onAddWord(word) {
-    const created = await addCustomWord(studentId, word);
-    setCustomWords((list) => [...list, created]);
-  }
-
-  async function onDeleteWord(id) {
-    await deleteCustomWord(id);
-    setCustomWords((list) => list.filter((w) => w.id !== id));
   }
 
   async function onBuy(itemId) {
@@ -229,8 +211,6 @@ export default function App() {
     setStreakInfo(EMPTY_STREAK);
     setSchedule(EMPTY_SCHEDULE);
     setShop(null);
-    setCustomWords([]);
-    setWordsFor(null);
     setPlan({ plus: false });
     setShowPlus(false);
     setDueWords([]);
@@ -289,18 +269,6 @@ export default function App() {
         onBack={() => setTopicsFor(null)}
       />
     );
-  } else if (wordsFor) {
-    screen = (
-      <WordsScreen
-        subjectCode={wordsFor}
-        words={allTopics.find((t) => t.id === `my-${wordsFor}`)?.words || []}
-        learned={learned}
-        onAdd={onAddWord}
-        onDelete={onDeleteWord}
-        onStudy={() => setLessonTopic(`my-${wordsFor}`)}
-        onBack={() => setWordsFor(null)}
-      />
-    );
   } else {
     showTabs = true;
     if (tab === 'task') {
@@ -309,12 +277,10 @@ export default function App() {
           student={student}
           kamiColor={kamiColor}
           schedule={schedule}
-          onAddWord={onAddWord}
-          onOpenWords={setWordsFor}
         />
       );
     } else if (tab === 'schedule') {
-      screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} onOpenWords={setWordsFor} />;
+      screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} />;
     } else if (tab === 'shop') {
       screen = (
         <ShopScreen
@@ -360,7 +326,6 @@ export default function App() {
           onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
           onOpenTask={() => setTab('task')}
           onOpenSchedule={() => setTab('schedule')}
-          onOpenWords={setWordsFor}
           refreshing={refreshing}
           onRefresh={refresh}
           currentTopics={currentTopics}

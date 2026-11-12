@@ -1,6 +1,8 @@
 // Главная: серия, монеты, цель дня и подготовка к следующему учебному дню по расписанию.
+import { useState } from 'react';
 import { ScrollView, View, Text, Pressable, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
+import { greeting, kamiSays, kamiFact } from '../data/kami';
 import { Flame, Coin, Snowflake } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
@@ -10,7 +12,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
-  onStartTopic, onOpenTask, onOpenSchedule, onOpenWords, refreshing, onRefresh,
+  onStartTopic, onOpenTask, onOpenSchedule, refreshing, onRefresh,
   currentTopics, onOpenTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
@@ -27,21 +29,33 @@ export default function HomeScreen({
 
   // Текущая тема предмета: выбранная учеником, иначе первая невыученная по программе.
   const currentFor = (code) => {
-    const list = topicsFor(code).filter((t) => !t.custom);
+    const list = topicsFor(code);
     return (
       list.find((t) => t.id === currentTopics?.[code]) ||
       list.find((t) => learnedCount(t, learned) < t.words.length) ||
       list[list.length - 1]
     );
   };
-  const customFor = (code) => topicsFor(code).find((t) => t.custom);
-  const shownTopics = shownCodes.flatMap((c) => [currentFor(c), customFor(c)].filter(Boolean));
+  const shownTopics = shownCodes.map(currentFor).filter(Boolean);
   const firstUnfinished = shownTopics.find((t) => learnedCount(t, learned) < t.words.length) || shownTopics[0];
 
+  // Основная реплика зависит от ситуации, а по нажатию Ками рассказывает факт о себе или Испании.
+  const [hello] = useState(() => greeting());
+  const [tapLine, setTapLine] = useState(null);
   let bubble;
-  if (!hasSchedule) bubble = 'Заполни расписание, и я буду готовить тебя к нужным урокам.';
-  else if (!subjects.length) bubble = `${next.label} уроков нет в расписании. Можно повторить слова!`;
+  let mood = hello.mood;
+  if (!hasSchedule) bubble = `${hello.text} Заполни расписание, и я буду готовить тебя к нужным урокам.`;
+  else if (!subjects.length) bubble = kamiSays('emptyDay');
   else bubble = `${next.label}: ${subjects.map((c) => subjectByCode(c).es).join(', ')}. Подготовимся?`;
+  if (hasSchedule && !streakInfo.today_done && streakInfo.streak > 0) mood = 'worried';
+  if (streakInfo.today_done) mood = 'excited';
+  const [riskLine] = useState(() => kamiSays('streakRisk'));
+  const [doneLine] = useState(() => kamiSays('streakDone'));
+  if (hasSchedule && streakInfo.streak > 0) {
+    bubble = `${streakInfo.today_done ? doneLine : riskLine} ${bubble}`;
+  } else if (hasSchedule) {
+    bubble = `${hello.text} ${bubble}`;
+  }
 
   return (
     <ScrollView
@@ -148,10 +162,17 @@ export default function HomeScreen({
       )}
 
       <View style={styles.kamiRow}>
-        <Kami size={88} color={kamiColor} />
-        <View style={styles.bubble}>
-          <Text style={styles.bubbleText}>{bubble}</Text>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Нажми на Ками — он что-нибудь расскажет"
+          onPress={() => setTapLine(kamiFact())}
+        >
+          <Kami size={88} color={kamiColor} mood={tapLine ? 'excited' : mood} />
+        </Pressable>
+        <Pressable style={styles.bubble} onPress={() => setTapLine(kamiFact())} accessibilityRole="button">
+          <Text style={styles.bubbleText}>{tapLine || bubble}</Text>
+          <Text style={styles.bubbleHint}>{tapLine ? 'Нажми ещё — расскажу другое' : 'Нажми на меня!'}</Text>
+        </Pressable>
       </View>
 
       {!hasSchedule && <Button title="Заполнить расписание" variant="secondary" onPress={onOpenSchedule} />}
@@ -163,22 +184,21 @@ export default function HomeScreen({
       {shownCodes.map((code) => {
         const subj = subjectByCode(code);
         const current = currentFor(code);
-        const own = customFor(code);
-        const count = topicsFor(code).filter((t) => !t.custom).length;
-        const blocks = [current, own].filter(Boolean);
+        const count = topicsFor(code).length;
+        const blocks = [current].filter(Boolean);
         return (
           <Card key={code} style={{ gap: 10 }}>
             <Text style={styles.subject}>{subj.es}</Text>
             {blocks.length === 0 && (
               <Text style={styles.small}>
-                {subj.custom ? 'Добавь слова с урока, и Ками поможет их выучить.' : 'Готовые слова по этому предмету скоро появятся. Пока можно добавить свои.'}
+                {subj.custom ? 'Свой предмет — готовых слов для него нет.' : 'Слова по этому предмету скоро появятся.'}
               </Text>
             )}
             {blocks.map((t) => {
               const done = learnedCount(t, learned);
               return (
                 <View key={t.id} style={{ gap: 6 }}>
-                  <Text style={styles.muted}>{t.custom ? 'Мои слова' : `Тема: ${t.title} · ${t.titleRu}`}</Text>
+                  <Text style={styles.muted}>Тема: {t.title} · {t.titleRu}</Text>
                   <ProgressBar value={done / t.words.length} />
                   <View style={styles.rowBetween}>
                     <Text style={styles.small}>{done} из {t.words.length} слов</Text>
@@ -189,16 +209,11 @@ export default function HomeScreen({
                 </View>
               );
             })}
-            <View style={styles.rowBetween}>
-              {count > 1 ? (
-                <Text style={styles.link} onPress={() => onOpenTopics(code)} accessibilityRole="button">
-                  Все темы ({count})
-                </Text>
-              ) : <View />}
-              <Text style={styles.link} onPress={() => onOpenWords(code)} accessibilityRole="button">
-                + Свои слова
+            {count > 1 && (
+              <Text style={styles.link} onPress={() => onOpenTopics(code)} accessibilityRole="button">
+                Все темы ({count})
               </Text>
-            </View>
+            )}
           </Card>
         );
       })}
@@ -239,6 +254,7 @@ const styles = StyleSheet.create({
   reviewButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   bubble: { flex: 1, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: 12 },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },
+  bubbleHint: { fontSize: 12, color: colors.muted, marginTop: 6 },
   h2: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subject: { fontSize: 16, fontWeight: '700', color: colors.text },

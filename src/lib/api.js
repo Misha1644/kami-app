@@ -252,16 +252,7 @@ export async function updateGrade(studentId, grade) {
 
 // Слова, которые пора повторить (умное повторение): обычные и свои. Не больше 15 за раз.
 export async function loadDueWords(studentId) {
-  const nowIso = new Date().toISOString();
-  const [std, own] = await Promise.all([
-    supabase.from('progress').select('word_id, due_at, words(id, es, ru, en, teacher)')
-      .eq('student_id', studentId).lte('due_at', nowIso).order('due_at').limit(15),
-    supabase.from('custom_words').select('id, es, translation, example, due_at')
-      .eq('student_id', studentId).lte('due_at', nowIso).order('due_at').limit(15),
-  ]);
-  const list = [
-    ...(std.data || []).filter((r) => r.words).map((r) => ({ ...r.words, due: r.due_at })),
-    ...(own.data || []).map((r) => ({ id: r.id, es: r.es, ru: r.translation, teacher: r.example, due: r.due_at })),
-  ];
-  return list.sort((a, b) => (a.due < b.due ? -1 : 1)).slice(0, 15);
+  const { data } = await supabase.from('progress').select('word_id, due_at, words(id, es, ru, en, teacher)')
+    .eq('student_id', studentId).lte('due_at', new Date().toISOString()).order('due_at').limit(15);
+  return (data || []).filter((r) => r.words).map((r) => r.words);
 }

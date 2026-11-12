@@ -15,6 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Порядок важен: модуль идёт после всех, от которых зависит.
 MODULES = [
     ('src/theme.js', ['colors', 'radius']),
+    ('src/data/kami.js', ['greeting', 'kamiSays', 'kamiFact']),
     ('src/data/content.js', ['GRADE', 'GRADES', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
                              'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural',
                              'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom', 'customTopics']),
@@ -37,7 +38,6 @@ MODULES = [
     ('src/screens/ParentsScreen.js', ['ParentsScreen']),
     ('src/screens/ScheduleScreen.js', ['ScheduleScreen']),
     ('src/screens/ShopScreen.js', ['ShopScreen']),
-    ('src/screens/WordsScreen.js', ['WordsScreen']),
     ('src/screens/PlusScreen.js', ['PlusScreen']),
     ('src/screens/TopicsScreen.js', ['TopicsScreen']),
 ]

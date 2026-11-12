@@ -1,15 +1,14 @@
 // Разбор задания по фото или файлу.
 // Ученик фотографирует задание или загружает фото/PDF → функция explain-task в Supabase
 // читает его и объясняет, что спрашивают. Приложение объясняет, но НЕ решает задание.
-// Ключевые слова можно сразу сохранить в «Мои слова» к нужному предмету.
 import { useState } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet, ActivityIndicator, Image, Platform } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, ActivityIndicator, Image, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import Kami from '../components/Kami';
+import { kamiSays } from '../data/kami';
 import { Button, Card } from '../components/ui';
 import { colors, radius } from '../theme';
-import { SUBJECTS, subjectByCode, isCustom } from '../data/content';
 import { explainTask } from '../lib/api';
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -35,21 +34,17 @@ function normalizeImageType(t) {
   return t;
 }
 
-export default function TaskScreen({ student, kamiColor, schedule, onAddWord, onOpenWords }) {
+export default function TaskScreen({ student, kamiColor }) {
   const [preview, setPreview] = useState(null); // { uri, isPdf, name }
   const [busy, setBusy] = useState(false);
+  const [taskLine] = useState(() => kamiSays('task'));
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const [left, setLeft] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [savedTo, setSavedTo] = useState(null);
-  const [choosing, setChoosing] = useState(false);
 
   async function send(file) {
     setError('');
     setResult(null);
-    setSavedTo(null);
-    setChoosing(false);
     setPreview(file);
     setBusy(true);
     try {
@@ -93,25 +88,6 @@ export default function TaskScreen({ student, kamiColor, schedule, onAddWord, on
     const isPdf = a.mimeType === 'application/pdf' || a.name?.toLowerCase().endsWith('.pdf');
     send({ uri: a.uri, mediaType: isPdf ? 'application/pdf' : normalizeImageType(a.mimeType), isPdf, name: a.name });
   }
-
-  async function saveWords(code) {
-    setChoosing(false);
-    setSaving(true);
-    setError('');
-    try {
-      for (const k of result.keywords.filter((k) => k.es && k.tr)) {
-        await onAddWord({ subjectCode: code, es: k.es.slice(0, 80), translation: k.tr.slice(0, 80), example: result.original.slice(0, 200) });
-      }
-      setSavedTo(code);
-    } catch (e) {
-      setError('Не удалось сохранить слова.');
-    }
-    setSaving(false);
-  }
-
-  // Предметы для сохранения слов: сначала из расписания (включая свои), потом остальные.
-  const fromSchedule = [...new Set(Object.values(schedule).flat())];
-  const subjectCodes = [...fromSchedule, ...SUBJECTS.map((s) => s.code).filter((c) => !fromSchedule.includes(c))];
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -189,40 +165,9 @@ export default function TaskScreen({ student, kamiColor, schedule, onAddWord, on
 
           <View style={styles.kamiBox}>
             <Kami size={64} color={kamiColor} />
-            <Text style={styles.kamiText}>Решаешь ты, я только объясняю, что спрашивают. Так ты правда научишься.</Text>
+            <Text style={styles.kamiText}>{taskLine}</Text>
           </View>
 
-          {result.keywords.length > 0 && !savedTo && !choosing && (
-            <Button
-              title={saving ? 'Сохраняем…' : 'Сохранить слова в «Мои слова»'}
-              onPress={() => setChoosing(true)}
-              disabled={saving}
-            />
-          )}
-          {choosing && (
-            <View style={{ gap: 8 }}>
-              <Text style={styles.label}>К какому предмету?</Text>
-              <View style={styles.chips}>
-                {subjectCodes.map((code) => (
-                  <Pressable
-                    key={code}
-                    accessibilityRole="button"
-                    onPress={() => saveWords(code)}
-                    style={[styles.subjectChip, isCustom(code) && styles.customChip]}
-                  >
-                    <Text style={styles.subjectChipText}>{subjectByCode(code).es}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={styles.link} onPress={() => setChoosing(false)} accessibilityRole="button">Отмена</Text>
-            </View>
-          )}
-          {savedTo && (
-            <Card style={{ gap: 6 }}>
-              <Text style={styles.ok}>Слова сохранены в «{subjectByCode(savedTo).es}».</Text>
-              <Text style={styles.link} onPress={() => onOpenWords(savedTo)} accessibilityRole="button">Открыть и выучить</Text>
-            </Card>
-          )}
           {left !== null && <Text style={styles.small}>Разборов на сегодня осталось: {left}</Text>}
         </>
       )}
