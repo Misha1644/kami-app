@@ -89,7 +89,7 @@ function ItemArt({ item, kamiColor }) {
   return <BgSwatch value={item.value} style={styles.bg} />;
 }
 
-export default function RewardReveal({ item, kamiColor, intro = 'flash', onEquip, onClose }) {
+export default function RewardReveal({ item, kamiColor, intro = 'flash', showPrice = false, onEquip, onClose }) {
   const [stage, setStage] = useState(intro === 'box' ? 'box' : 'reveal'); // box | reveal
   const [error, setError] = useState('');
 
@@ -210,6 +210,12 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', onEquip
               <Animated.View style={[styles.bottom, { opacity: drop }]}>
                 {!!(item.title_ru || item.title) && <Text style={styles.name}>{tr(item.title_ru || item.title)}</Text>}
                 {!!item.extra && <Text style={styles.extra}>{item.extra}</Text>}
+                {showPrice && item.price > 0 && (
+                  <View style={styles.price}>
+                    <Coin size={22} />
+                    <Text style={styles.priceText}>{tr('стоит {0}', String(item.price).replace(/\B(?=(\d{3})+(?!\d))/g, ' '))}</Text>
+                  </View>
+                )}
                 {!!error && <Text style={styles.error}>{error}</Text>}
                 <View style={styles.buttons}>
                   {onEquip && item.kind !== 'pack' && (
@@ -250,6 +256,8 @@ const styles = StyleSheet.create({
   name: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
   buttons: { alignSelf: 'stretch', gap: 10, maxWidth: 360, width: '100%' },
   error: { fontSize: 14, color: '#FDA29B' },
+  price: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
+  priceText: { fontSize: 17, fontWeight: '800', color: '#FDE68A' },
   extra: { fontSize: 16, fontWeight: '700', color: '#FDE68A', textAlign: 'center' },
   pack: { alignItems: 'center', gap: 6 },
   packRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },

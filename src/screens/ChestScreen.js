@@ -171,6 +171,7 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
         <RewardReveal
           item={reveal}
           intro="flash"
+          showPrice
           onEquip={async (id) => { await onEquip(id); setEquipped(true); }}
           onClose={() => setReveal(null)}
         />
