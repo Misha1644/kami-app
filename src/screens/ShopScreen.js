@@ -123,7 +123,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
             <Chest type="skin" size={80} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.itemTitle}>{chest.title_ru}</Text>
-              <Text style={styles.small}>Только вещи: аватары, цвета, фоны. 1% — легендарная (от 10 000). Повторов не бывает.</Text>
+              <Text style={styles.small}>Только вещи: аватары, цвета, фоны. Вещи дороже 500 — с шансом 0,005%. Повторов не бывает.</Text>
             </View>
           </View>
           <View style={styles.chestRow}>

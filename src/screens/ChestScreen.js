@@ -15,11 +15,11 @@ import { plural } from '../data/content';
 const INFO = {
   lesson: {
     title: 'Сундук за урок',
-    odds: 'Шансы: 99% — от 1 до 15 монет · 1% — вещь из магазина · 0,005% — легендарная вещь (от 10 000).',
+    odds: 'Шансы: 99% — от 1 до 15 монет · 1% — вещь до 500 монет · 0,005% — редкая вещь дороже 500.',
   },
   skin: {
     title: 'Сундук со скинами',
-    odds: 'Шансы: 99% — вещь из магазина · 1% — легендарная вещь (от 10 000). Вещей, которые уже есть, не бывает. Если всё уже собрано — вернём 600 монет.',
+    odds: 'Шансы: 99,995% — вещь до 500 монет · 0,005% — редкая вещь дороже 500. Вещей, которые уже есть, не бывает. Если все вещи до 500 уже собраны — вернём 600 монет.',
   },
 };
 
@@ -46,8 +46,8 @@ const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 // Лента: случайные плитки + выигрыш на позиции WIN_AT.
 function buildStrip(type, items, win) {
-  const regular = items.filter((i) => i.price < 10000);
-  const legendary = items.filter((i) => i.price >= 10000);
+  const regular = items.filter((i) => i.price <= 500);
+  const legendary = items.filter((i) => i.price > 500);
   const tiles = [];
   for (let i = 0; i < COUNT; i++) {
     if (i === WIN_AT) { tiles.push(win); continue; }
@@ -185,7 +185,7 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
       {/* Результат */}
       {phase === 'opened' && win && (
         <Animated.View style={[styles.reward, legendary && styles.rewardLegend, { transform: [{ scale: pop }] }]}>
-          {legendary && <Text style={styles.legend}>★ ЛЕГЕНДАРНОЕ ★</Text>}
+          {legendary && <Text style={styles.legend}>★ РЕДКОЕ — ШАНС 0,005% ★</Text>}
           <TileArt tile={win} big />
           {win.type === 'coins' ? (
             <Text style={styles.itemTitle}>{win.amount} {plural(win.amount, 'монета', 'монеты', 'монет')}</Text>
