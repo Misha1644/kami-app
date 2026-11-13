@@ -2,6 +2,7 @@
 import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import Kami from './Kami';
+import { Flame } from './icons';
 import Teacher from './Teacher';
 import { AnimalFace, ANIMALS } from './Animals';
 import { TEACHERS } from '../data/teachers';
@@ -39,6 +40,17 @@ export default function UserAvatar({ value = 'person', size = 40, kamiColor }) {
             <Circle cx={10} cy={21} r={2} fill="#1570EF" /><Circle cx={30} cy={21} r={2} fill="#12B76A" />
           </Svg>
         )}
+      </View>
+    );
+  }
+  // Ками-чемпион — эксклюзивный аватар за 300 дней серии: Ками в огненном круге.
+  if (value === 'kami-streak') {
+    return (
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#FFE8D1', borderWidth: Math.max(2, size * 0.06), borderColor: '#F97316', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <Kami size={size * 0.74} color={kamiColor} />
+        <View style={{ position: 'absolute', top: size * 0.02, right: size * 0.1 }}>
+          <Flame size={size * 0.34} color="#F97316" />
+        </View>
       </View>
     );
   }

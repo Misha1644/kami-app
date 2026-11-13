@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import Kami from './Kami';
+import Chest from './Chest';
+import { Coin } from './icons';
 import UserAvatar from './UserAvatar';
 import { BgSwatch } from './Background';
 import { Button } from './ui';
@@ -16,7 +18,8 @@ const RAYS = 14;
 const SPARKS = 12;
 
 // Цвет лучей по цене вещи — те же ступени, что у редкости в сундуке.
-function tint(price = 0) {
+function tint(price = 0, exclusive) {
+  if (exclusive) return { ray: '#FF8A3D', glow: '#FFE2C7', label: tr('ЭКСКЛЮЗИВ · ЗА СЕРИЮ') };
   if (price >= 10000) return { ray: '#FFD84D', glow: '#FFF3B0', label: tr('ЛЕГЕНДАРНОЕ!') };
   if (price >= 5000) return { ray: '#FF6B6B', glow: '#FFD1D1', label: tr('ТАЙНОЕ!') };
   if (price >= 600) return { ray: '#E066F0', glow: '#F6D6FB', label: tr('ЗАСЕКРЕЧЕННОЕ!') };
@@ -68,6 +71,19 @@ function GiftBox({ size = 130 }) {
 }
 
 function ItemArt({ item, kamiColor }) {
+  // Набор: монеты и/или сундуки (награда за серию без вещи).
+  if (item.kind === 'pack') {
+    return (
+      <View style={styles.pack}>
+        {!!item.coins && (
+          <View style={styles.packRow}><Coin size={72} /><Text style={styles.packText}>+{item.coins}</Text></View>
+        )}
+        {!!item.chests && (
+          <View style={styles.packRow}><Chest type="skin" size={item.coins ? 80 : 130} />{item.chests > 1 && <Text style={styles.packText}>×{item.chests}</Text>}</View>
+        )}
+      </View>
+    );
+  }
   if (item.kind === 'avatar') return <UserAvatar value={item.value} size={130} kamiColor={kamiColor} />;
   if (item.kind === 'color') return <Kami size={150} color={item.value} />;
   return <BgSwatch value={item.value} style={styles.bg} />;
@@ -87,8 +103,8 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', onEquip
   const drop = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
 
-  const t = tint(item?.price);
-  const legendary = (item?.price || 0) >= 10000;
+  const t = tint(item?.price, item?.exclusive);
+  const legendary = (item?.price || 0) >= 10000 || !!item?.exclusive;
 
   // Лучи крутятся и свечение «дышит» всё время, пока открыто окно.
   useEffect(() => {
@@ -159,7 +175,7 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', onEquip
             <>
               <Animated.View style={[styles.title, { opacity: drop, transform: [{ translateY: titleY }] }]}>
                 {!!t.label && <Text style={[styles.rarity, { color: t.ray }]}>{t.label}</Text>}
-                <Text style={styles.headline}>{tr(HEADLINE[item.kind] || 'НОВАЯ ВЕЩЬ!')}</Text>
+                <Text style={styles.headline}>{item.headline || tr(HEADLINE[item.kind] || 'НОВАЯ ВЕЩЬ!')}</Text>
               </Animated.View>
 
               <View style={styles.stage}>
@@ -192,10 +208,11 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', onEquip
               </View>
 
               <Animated.View style={[styles.bottom, { opacity: drop }]}>
-                <Text style={styles.name}>{tr(item.title_ru || item.title)}</Text>
+                {!!(item.title_ru || item.title) && <Text style={styles.name}>{tr(item.title_ru || item.title)}</Text>}
+                {!!item.extra && <Text style={styles.extra}>{item.extra}</Text>}
                 {!!error && <Text style={styles.error}>{error}</Text>}
                 <View style={styles.buttons}>
-                  {onEquip && (
+                  {onEquip && item.kind !== 'pack' && (
                     <Button
                       title={item.kind === 'color' ? tr('Надеть на Ками') : tr('Поставить')}
                       onPress={async () => {
@@ -233,5 +250,9 @@ const styles = StyleSheet.create({
   name: { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
   buttons: { alignSelf: 'stretch', gap: 10, maxWidth: 360, width: '100%' },
   error: { fontSize: 14, color: '#FDA29B' },
+  extra: { fontSize: 16, fontWeight: '700', color: '#FDE68A', textAlign: 'center' },
+  pack: { alignItems: 'center', gap: 6 },
+  packRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  packText: { fontSize: 40, fontWeight: '900', color: '#FDE68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 0 },
   flash: { backgroundColor: '#FFFFFF' },
 });

@@ -13,6 +13,8 @@ import TaskScreen from './src/screens/TaskScreen';
 import ProgressScreen from './src/screens/ProgressScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ChestScreen from './src/screens/ChestScreen';
+import StreakRewardsScreen from './src/screens/StreakRewardsScreen';
+import { DailyRewardModal } from './src/components/Rewards';
 import FriendsScreen from './src/screens/FriendsScreen';
 import ExamScreen from './src/screens/ExamScreen';
 import { todayTask, isDoneToday, markDoneToday } from './src/lib/exams';
@@ -35,7 +37,7 @@ import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipItem, openChest, myCheers, setFriendsEnabled, CHEERS,
   loadExams, createExam, deleteExam, saveExamScore, loadSchedule, saveScheduleDay, updateStudent, startTrial,
-  completeLesson, loadPlan,
+  completeLesson, loadPlan, loadRewards, claimDailyReward, claimStreakReward,
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
 import { remindersSupported, remindersEnabled, rescheduleReminders, setRemindersEnabled } from './src/lib/reminders';
@@ -73,6 +75,10 @@ export default function App() {
   const [showExams, setShowExams] = useState(false);
   const [examSession, setExamSession] = useState(null); // { exam, mode, words }
   const [newCheers, setNewCheers] = useState([]); // непрочитанные реакции от друзей
+  const [rewards, setRewards] = useState(null); // { daily: { claimed_today, day }, streak_claimed: [...] }
+  const [showDaily, setShowDaily] = useState(false);
+  const [showStreakRewards, setShowStreakRewards] = useState(false);
+  const dailyShownFor = useRef(null); // чтобы окно само открывалось один раз за день
   const [chestType, setChestType] = useState(null); // открыт экран сундука: 'lesson' | 'skin'
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
   const [showPlus, setShowPlus] = useState(false);
@@ -147,6 +153,15 @@ export default function App() {
       remindersEnabled(),
     ]);
     setDueWords(due);
+    loadRewards(id).then((r) => {
+      if (!r) return;
+      setRewards(r);
+      const key = `${id}:${new Date().toDateString()}`;
+      if (!r.daily.claimed_today && dailyShownFor.current !== key) {
+        dailyShownFor.current = key;
+        setShowDaily(true);
+      }
+    }).catch(() => {});
     myCheers(id).then((c) => setNewCheers(c.filter((x) => !x.seen))).catch(() => {});
     loadExams(id).then(async (list) => {
       setExams(list);
@@ -258,6 +273,24 @@ export default function App() {
     return res;
   }
 
+  // Ежедневная награда: сервер выдаёт монеты / заморозку / сундук.
+  async function onClaimDaily() {
+    const res = await claimDailyReward(studentId);
+    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, chests_lesson: res.chests_lesson }));
+    setStreakInfo((info) => ({ ...info, freezes: res.freezes }));
+    setRewards((r) => (r ? { ...r, daily: { claimed_today: true, day: res.day } } : r));
+    return res;
+  }
+
+  // Награда за серию.
+  async function onClaimStreak(days) {
+    const res = await claimStreakReward(studentId, days);
+    setStudent((s) => ({ ...s, coins: res.coins, chests_skin: res.chests_skin }));
+    setRewards((r) => (r ? { ...r, streak_claimed: [...r.streak_claimed, days] } : r));
+    if (res.item) setShop((sh) => (sh ? { ...sh, owned: new Set([...sh.owned, res.item.id]) } : sh));
+    return res;
+  }
+
   async function setCurrentTopic(code, topicId) {
     const next = { ...currentTopics, [code]: topicId };
     setCurrentTopics(next);
@@ -319,6 +352,9 @@ export default function App() {
     setPlan({ plus: false, trialUsed: false });
     setShowTask(false);
     setChestType(null);
+    setRewards(null);
+    setShowDaily(false);
+    setShowStreakRewards(false);
     setShowFriends(false);
     setNewCheers([]);
     setExams([]);
@@ -398,6 +434,19 @@ export default function App() {
         onOpen={onOpenChest}
         onEquip={onEquip}
         onClose={() => setChestType(null)}
+      />
+    );
+  } else if (showStreakRewards) {
+    screen = (
+      <StreakRewardsScreen
+        streak={streakInfo.streak}
+        claimed={rewards?.streak_claimed || []}
+        shopItems={shop?.items || []}
+        kamiColor={kamiColor}
+        onClaim={onClaimStreak}
+        onEquip={onEquip}
+        onOpenChest={student.chests_skin > 0 ? (t) => { setShowStreakRewards(false); setChestType(t); } : null}
+        onBack={() => setShowStreakRewards(false)}
       />
     );
   } else if (showExams) {
@@ -538,6 +587,9 @@ export default function App() {
           onOpenTopics={setTopicsFor}
           dueCount={dueWords.length}
           onStartReview={() => setLessonTopic('review')}
+          rewards={rewards}
+          onOpenStreakRewards={() => setShowStreakRewards(true)}
+          onOpenDaily={() => setShowDaily(true)}
         />
       );
     }
@@ -549,6 +601,14 @@ export default function App() {
         {!!bg.pattern && <PatternLayer pattern={bg.pattern} />}
         <StatusBar style="dark" />
         <View style={{ flex: 1 }}><ErrorBoundary>{screen}</ErrorBoundary></View>
+        {showDaily && showTabs && rewards && !rewards.daily.claimed_today && (
+          <DailyRewardModal
+            day={rewards.daily.day}
+            onClaim={onClaimDaily}
+            onOpenChest={setChestType}
+            onClose={() => setShowDaily(false)}
+          />
+        )}
         {showTabs && (
           <View style={styles.tabs}>
             {TABS.map((t) => {

@@ -4,6 +4,7 @@ import { ScrollView, View, Text, Pressable, RefreshControl, ActivityIndicator, S
 import Kami from '../components/Kami';
 import FactCard from '../components/FactCard';
 import Chest from '../components/Chest';
+import { milestones, claimableStreak, streakReward, rewardText } from '../components/Rewards';
 import UserAvatar from '../components/UserAvatar';
 import Teacher from '../components/Teacher';
 import { teacherFor, TEACHERS } from '../data/teachers';
@@ -20,6 +21,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
   onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, exams = [], examsDone = {}, onOpenExams, onStartExam, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
+  rewards, onOpenStreakRewards, onOpenDaily,
   currentTopics, onOpenTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
@@ -157,6 +159,44 @@ export default function HomeScreen({
           <ProgressBar value={wordsToday / goal} />
         </View>
       </Card>
+
+      {rewards && !rewards.daily.claimed_today && onOpenDaily && (
+        <Pressable accessibilityRole="button" onPress={onOpenDaily} style={styles.dailyCard}>
+          <Coin size={36} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.chestTitle}>{tr('Ежедневная награда ждёт!')}</Text>
+            <Text style={styles.small}>{tr('День {0} из 7 · нажми, чтобы забрать', rewards.daily.day)}</Text>
+          </View>
+          <Text style={styles.chestArrow}>›</Text>
+        </Pressable>
+      )}
+
+      {rewards && onOpenStreakRewards && (() => {
+        const ready = claimableStreak(streakInfo.streak, rewards.streak_claimed);
+        const next = milestones(streakInfo.streak).find((d) => d > streakInfo.streak);
+        const prev = [0, ...milestones(streakInfo.streak)].filter((d) => d <= streakInfo.streak).pop();
+        const r = next && streakReward(next);
+        return (
+          <Pressable accessibilityRole="button" onPress={onOpenStreakRewards} style={[styles.streakReward, ready.length > 0 && styles.streakRewardReady]}>
+            <Flame size={30} />
+            <View style={{ flex: 1, gap: 4 }}>
+              {ready.length > 0 ? (
+                <>
+                  <Text style={styles.chestTitle}>{tr('Награда за {0} {1} серии!', ready[0], plural(ready[0], tr('день'), tr('дня'), tr('дней')))}</Text>
+                  <Text style={styles.small}>{tr('Нажми, чтобы забрать')}</Text>
+                </>
+              ) : r ? (
+                <>
+                  <Text style={styles.chestTitle}>{tr('Награда за {0} {1}', next, plural(next, tr('день'), tr('дня'), tr('дней')))}</Text>
+                  <Text style={styles.small} numberOfLines={1}>{r.item ? tr('эксклюзивная вещь') + ' + ' : ''}{rewardText(r)}</Text>
+                  <ProgressBar value={(streakInfo.streak - prev) / (next - prev)} />
+                </>
+              ) : null}
+            </View>
+            <Text style={styles.chestArrow}>›</Text>
+          </Pressable>
+        );
+      })()}
 
       {dueCount > 0 && (
         <Card style={styles.review}>
@@ -325,6 +365,9 @@ const styles = StyleSheet.create({
   examCard: { gap: 10, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#7A5AF8', backgroundColor: '#F4F1FF' },
   examHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   examTitle: { fontSize: 16, fontWeight: '800', color: '#4A2DB3' },
+  dailyCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#F5C443', backgroundColor: '#FFFBEB' },
+  streakReward: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+  streakRewardReady: { borderWidth: 2, borderColor: '#F79009', backgroundColor: '#FFF4E5' },
   cheerCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.green, backgroundColor: colors.greenLight },
   cheerTitle: { fontSize: 16, fontWeight: '800', color: colors.greenDark },
   chestCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#D9A92B', backgroundColor: '#FFFBEB' },

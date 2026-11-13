@@ -106,7 +106,7 @@ export async function loadWordsToday(studentId) {
 // Магазин: товары и то, что уже куплено.
 export async function loadShop(studentId) {
   const [items, owned, today] = await Promise.all([
-    supabase.from('shop_items').select('id, kind, title_ru, price, value, sort, plus_only').order('sort'),
+    supabase.from('shop_items').select('id, kind, title_ru, price, value, sort, plus_only, exclusive').order('sort'),
     supabase.from('student_items').select('item_id').eq('student_id', studentId),
     supabase.rpc('shop_today'),
   ]);
@@ -261,6 +261,30 @@ export async function explainTask(studentId, { mediaType, base64 }) {
 export async function openChest(studentId, type) {
   const { data, error } = await supabase.rpc('open_chest', { p_student: studentId, p_type: type });
   if (error) throw new Error(error.message.includes('no chest') ? tr('Сундуков не осталось.') : tr('Не получилось открыть. Попробуй ещё раз.'));
+  return data;
+}
+
+// Награды: ежедневная (календарь 1–7) и за серию (10, 50, 100, 200, 300, …).
+// { daily: { claimed_today, day }, streak_claimed: [10, 50, …] }
+export async function loadRewards(studentId) {
+  const { data, error } = await supabase.rpc('rewards_status', { p_student: studentId });
+  if (error) return null;
+  return data;
+}
+
+export async function claimDailyReward(studentId) {
+  const { data, error } = await supabase.rpc('claim_daily_reward', { p_student: studentId });
+  if (error) throw new Error(error.message.includes('already') ? tr('Сегодняшняя награда уже получена.') : tr('Не получилось забрать награду. Попробуй ещё раз.'));
+  return data;
+}
+
+export async function claimStreakReward(studentId, days) {
+  const { data, error } = await supabase.rpc('claim_streak_reward', { p_student: studentId, p_days: days });
+  if (error) {
+    if (error.message.includes('already')) throw new Error(tr('Эта награда уже получена.'));
+    if (error.message.includes('too short')) throw new Error(tr('Серия пока короче.'));
+    throw new Error(tr('Не получилось забрать награду. Попробуй ещё раз.'));
+  }
   return data;
 }
 
