@@ -1,5 +1,5 @@
 // Профиль: аватар, фон, цвет Ками, учёба, звук, напоминания, подписка и раздел для взрослых.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import UserAvatar from '../components/UserAvatar';
@@ -9,7 +9,7 @@ import { Button, Card } from '../components/ui';
 import { Flame } from '../components/icons';
 import { colors, radius } from '../theme';
 import { GRADES } from '../data/content';
-import { deleteAccount } from '../lib/api';
+import { deleteAccount, loadWeeklyEmail, setWeeklyEmail } from '../lib/api';
 import { PLUS_ENABLED, SUPPORT_EMAIL } from '../config';
 
 const DEFAULTS = new Set(['color-green', 'avatar-person', 'bg-default']);
@@ -68,6 +68,10 @@ export default function ProfileScreen({
   const [adult, setAdult] = useState('closed'); // closed | gate | open
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [weeklyEmail, setWeekly] = useState(true);
+  useEffect(() => {
+    if (adult === 'open' && plan?.plus) loadWeeklyEmail().then(setWeekly).catch(() => {});
+  }, [adult, plan?.plus]);
 
   const items = shop?.items || [];
   const owns = (id) => DEFAULTS.has(id) || shop?.owned?.has(id);
@@ -268,6 +272,20 @@ export default function ProfileScreen({
       {adult === 'gate' && <ParentalGate onPass={() => setAdult('open')} onCancel={() => setAdult('closed')} />}
       {adult === 'open' && (
         <Card style={{ gap: 10 }}>
+          {PLUS_ENABLED && (
+            <SwitchRow
+              title="Отчёт на почту"
+              note={plan?.plus
+                ? 'Раз в неделю: сколько занимался, новые и трудные слова, ближайшие контрольные.'
+                : 'Еженедельный отчёт на почту родителя входит в Ками Плюс.'}
+              value={!!plan?.plus && weeklyEmail}
+              onChange={(v) => {
+                if (!plan?.plus) { onOpenPlus?.(); return; }
+                setWeekly(v);
+                act(async () => { try { await setWeeklyEmail(v); } catch (e) { setWeekly(!v); throw e; } });
+              }}
+            />
+          )}
           <SwitchRow
             title="Разрешить друзей"
             note="Добавление по коду и готовые реакции. Сообщений писать нельзя."

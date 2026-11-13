@@ -409,3 +409,14 @@ export async function saveExamScore(examId, score) {
   const { data } = await supabase.rpc('save_exam_score', { p_exam: examId, p_score: score });
   return data;
 }
+
+// ----- Еженедельный отчёт на почту (Плюс) -----
+export async function loadWeeklyEmail() {
+  const { data } = await supabase.from('report_prefs').select('weekly_email').maybeSingle();
+  return data ? !!data.weekly_email : true;
+}
+
+export async function setWeeklyEmail(on) {
+  const { error } = await supabase.rpc('set_weekly_email', { p_on: on });
+  if (error) throw new Error('Не получилось сохранить.');
+}

@@ -30,15 +30,16 @@
 
 • Supabase (база данных и вход), серверы в ЕС (Париж).
 • Anthropic (ИИ Claude, США) — только когда ребёнок сам отправляет фото или файл задания; Anthropic не использует эти данные для обучения моделей по своим условиям для API.
+• Resend (рассылка писем, США) — только если подключён Ками Плюс: раз в неделю отправляет родителю отчёт об успехах на его email. Отчёт можно отключить: «Профиль» → «Для взрослых» → «Отчёт на почту».
 • В браузере проверку произношения выполняет сервис распознавания речи самого браузера (например, Google в Chrome). В приложении на телефоне эта функция не отправляет голос.
 
 ### Зачем
 
-Только чтобы приложение работало: показывать уроки, считать прогресс, напоминать о занятиях и объяснять задания. Основание — договор (предоставление сервиса) и согласие родителя.
+Только чтобы приложение работало: показывать уроки, считать прогресс, напоминать о занятиях, объяснять задания и присылать родителю еженедельный отчёт (с Ками Плюс). Основание — договор (предоставление сервиса) и согласие родителя.
 
 ### Сколько храним
 
-Пока существует аккаунт. Удалить аккаунт можно в любой момент: «Родителям» → «Удалить аккаунт». Все данные ребёнка удаляются сразу; в резервных копиях Supabase они могут храниться ещё ограниченное время, после чего удаляются.
+Пока существует аккаунт. Удалить аккаунт можно в любой момент: «Профиль» → «Для взрослых» → «Удалить аккаунт». Все данные ребёнка удаляются сразу; в резервных копиях Supabase они могут храниться ещё ограниченное время, после чего удаляются.
 
 ### Ваши права
 
@@ -76,15 +77,16 @@ La cuenta solo la crea el padre, la madre o el tutor legal. En España, el conse
 
 • Supabase (base de datos e inicio de sesión), servidores en la UE (París).
 • Anthropic (IA Claude, EE. UU.), solo cuando el alumno envía una foto o un archivo de una tarea; según sus condiciones para la API, Anthropic no usa estos datos para entrenar modelos.
+• Resend (envío de correos, EE. UU.), solo con Kami Plus: una vez por semana envía al adulto un informe del progreso a su email. Se puede desactivar en «Профиль» (Perfil) → «Для взрослых» (Para adultos) → «Отчёт на почту» (Informe por email).
 • En el navegador, la comprobación de pronunciación la hace el servicio de reconocimiento de voz del propio navegador (por ejemplo, Google en Chrome). En la app del móvil esta función no envía la voz.
 
 ### Para qué
 
-Solo para que la aplicación funcione: mostrar lecciones, contar el progreso, recordar el estudio y explicar tareas. Base legal: ejecución del servicio y consentimiento del padre, madre o tutor.
+Solo para que la aplicación funcione: mostrar lecciones, contar el progreso, recordar el estudio, explicar tareas y enviar al adulto un informe semanal (con Kami Plus). Base legal: ejecución del servicio y consentimiento del padre, madre o tutor.
 
 ### Cuánto tiempo
 
-Mientras exista la cuenta. Puede borrarla en cualquier momento: «Родителям» (Familias) → «Удалить аккаунт» (Borrar cuenta). Todos los datos del alumno se borran al instante; en las copias de seguridad de Supabase pueden permanecer un tiempo limitado y después se eliminan.
+Mientras exista la cuenta. Puede borrarla en cualquier momento: «Профиль» (Perfil) → «Для взрослых» (Para adultos) → «Удалить аккаунт» (Borrar cuenta). Todos los datos del alumno se borran al instante; en las copias de seguridad de Supabase pueden permanecer un tiempo limitado y después se eliminan.
 
 ### Sus derechos
 
