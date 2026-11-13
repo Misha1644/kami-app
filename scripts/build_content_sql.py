@@ -11,6 +11,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'content'))
 from eso_topics import TOPICS, SUBJECT_NAMES  # noqa: E402
 from eso_topics_more import MORE_TOPICS  # noqa: E402
+from eso_topics_34 import TOPICS_34  # noqa: E402
 
 SUBJECT_NAMES = {**SUBJECT_NAMES, 'val': 'Valencià', 'ing': 'Inglés', 'ef': 'Educación Física',
                  'mus': 'Música', 'tec': 'Tecnología', 'pla': 'Plástica', 'tut': 'Tutoría'}
@@ -64,3 +65,4 @@ def main(topics=TOPICS, out_name='009_content_eso.sql', start=0, header=True):
 if __name__ == '__main__':
     main()
     main(MORE_TOPICS, '011_content_all_subjects.sql', start=len(TOPICS), header=False)
+    main(TOPICS_34, '022_content_eso34.sql', start=len(TOPICS) + len(MORE_TOPICS), header=False)

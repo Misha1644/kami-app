@@ -3,7 +3,7 @@
 // У каждого слова: испанский термин, перевод (ru, en) и фраза, как её скажет учитель.
 
 export const GRADE = '1º ESO';
-export const GRADES = ['1º ESO', '2º ESO'];
+export const GRADES = ['1º ESO', '2º ESO', '3º ESO', '4º ESO'];
 
 export const topics = [
   {
