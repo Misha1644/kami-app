@@ -3,7 +3,7 @@
 import { supabase } from './supabase';
 import { topics as localTopics } from '../data/content';
 
-const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg';
+const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg, chests_lesson, chests_skin';
 
 // Темы со словами. Если база недоступна — берём встроенный контент, чтобы приложение работало.
 // Язык озвучки слова: в Valencià слова валенсийские, остальное — испанский.
@@ -242,6 +242,13 @@ export async function explainTask(studentId, { mediaType, base64 }) {
 }
 
 // Урок пройден до конца — именно это засчитывает день в серию.
+// Открыть сундук: type = 'lesson' | 'skin'. Что выпало — решает сервер.
+export async function openChest(studentId, type) {
+  const { data, error } = await supabase.rpc('open_chest', { p_student: studentId, p_type: type });
+  if (error) throw new Error(error.message.includes('no chest') ? 'Сундуков не осталось.' : 'Не получилось открыть. Попробуй ещё раз.');
+  return data;
+}
+
 export async function completeLesson(studentId) {
   const { data, error } = await supabase.rpc('complete_lesson', { p_student: studentId });
   if (error) return null;

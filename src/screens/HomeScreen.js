@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ScrollView, View, Text, Pressable, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import FactCard from '../components/FactCard';
+import Chest from '../components/Chest';
 import Teacher from '../components/Teacher';
 import { teacherFor, TEACHERS } from '../data/teachers';
 import { greeting, kamiSays, kamiFact } from '../data/kami';
@@ -15,7 +16,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
-  onStartTopic, onOpenTask, onOpenSchedule, refreshing, onRefresh,
+  onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, refreshing, onRefresh,
   currentTopics, onOpenTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
@@ -180,6 +181,23 @@ export default function HomeScreen({
 
       <FactCard kamiColor={kamiColor} />
 
+      {(student.chests_lesson > 0 || student.chests_skin > 0) && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onOpenChest(student.chests_lesson > 0 ? 'lesson' : 'skin')}
+          style={styles.chestCard}
+        >
+          <Chest type={student.chests_lesson > 0 ? 'lesson' : 'skin'} size={56} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.chestTitle}>
+              {student.chests_lesson > 0 ? `Сундуки за уроки: ${student.chests_lesson}` : `Сундуки со скинами: ${student.chests_skin}`}
+            </Text>
+            <Text style={styles.small}>Нажми, чтобы открыть</Text>
+          </View>
+          <Text style={styles.chestArrow}>›</Text>
+        </Pressable>
+      )}
+
       {!hasSchedule && <Button title="Заполнить расписание" variant="secondary" onPress={onOpenSchedule} />}
 
       <Text style={styles.h2}>{hasSchedule ? `${next.label} в школе` : 'Темы'}</Text>
@@ -265,6 +283,9 @@ const styles = StyleSheet.create({
   reviewButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   bubble: { flex: 1, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: 12 },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },
+  chestCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#D9A92B', backgroundColor: '#FFFBEB' },
+  chestTitle: { fontSize: 16, fontWeight: '800', color: '#7A5200' },
+  chestArrow: { fontSize: 26, color: '#7A5200' },
   subjectRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bubbleHint: { fontSize: 12, color: colors.muted, marginTop: 6 },
   h2: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 4 },

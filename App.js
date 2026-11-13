@@ -12,6 +12,7 @@ import LessonScreen from './src/screens/LessonScreen';
 import TaskScreen from './src/screens/TaskScreen';
 import ProgressScreen from './src/screens/ProgressScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ChestScreen from './src/screens/ChestScreen';
 import { TabIcon } from './src/components/TabIcons';
 import UserAvatar from './src/components/UserAvatar';
 import { parseBg, PatternLayer } from './src/components/Background';
@@ -29,7 +30,7 @@ import { supabase } from './src/lib/supabase';
 import { KAMI_COLORS } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
-  loadShop, buyItem, equipItem, loadSchedule, saveScheduleDay, updateStudent, startTrial,
+  loadShop, buyItem, equipItem, openChest, loadSchedule, saveScheduleDay, updateStudent, startTrial,
   completeLesson, loadPlan,
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
@@ -61,6 +62,7 @@ export default function App() {
 
   const [plan, setPlan] = useState({ plus: false, trialUsed: false });
   const [showTask, setShowTask] = useState(false);
+  const [chestType, setChestType] = useState(null); // открыт экран сундука: 'lesson' | 'skin'
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
   const [showPlus, setShowPlus] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -187,9 +189,19 @@ export default function App() {
 
   async function onCompleteLesson() {
     await pendingAnswer.current; // сначала дождаться записи последнего ответа
-    await completeLesson(studentId);
+    const res = await completeLesson(studentId);
+    if (res?.chest) setStudent((s) => ({ ...s, chests_lesson: (s.chests_lesson || 0) + 1 }));
     setStreakInfo(await loadStreak(studentId));
     setDueWords(await loadDueWords(studentId).catch(() => []));
+    return res;
+  }
+
+  // Сундук: сервер решает, что выпало; обновляем монеты, запас сундуков и вещи.
+  async function onOpenChest(type) {
+    const res = await openChest(studentId, type);
+    setStudent((s) => ({ ...s, coins: res.coins, chests_lesson: res.chests_lesson, chests_skin: res.chests_skin }));
+    if (res.type === 'item') setShop((sh) => (sh ? { ...sh, owned: new Set([...sh.owned, res.item.id]) } : sh));
+    return res;
   }
 
   async function setCurrentTopic(code, topicId) {
@@ -210,7 +222,7 @@ export default function App() {
 
   async function onBuy(itemId) {
     const res = await buyItem(studentId, itemId);
-    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color, avatar: res.avatar, bg: res.bg }));
+    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color, avatar: res.avatar, bg: res.bg, chests_lesson: res.chests_lesson, chests_skin: res.chests_skin }));
     setStreakInfo((info) => ({ ...info, freezes: res.freezes }));
     setShop(await loadShop(studentId));
   }
@@ -252,6 +264,7 @@ export default function App() {
     setShop(null);
     setPlan({ plus: false, trialUsed: false });
     setShowTask(false);
+    setChestType(null);
     setShowPlus(false);
     setShowPrivacy(false);
     setDueWords([]);
@@ -298,6 +311,18 @@ export default function App() {
         onAnswer={onAnswer}
         onComplete={onCompleteLesson}
         onClose={() => setLessonTopic(null)}
+        onOpenChest={() => { setLessonTopic(null); setChestType('lesson'); }}
+      />
+    );
+  } else if (chestType) {
+    screen = (
+      <ChestScreen
+        key={chestType}
+        type={chestType}
+        left={chestType === 'lesson' ? student.chests_lesson : student.chests_skin}
+        onOpen={onOpenChest}
+        onEquip={onEquip}
+        onClose={() => setChestType(null)}
       />
     );
   } else if (showPrivacy) {
@@ -337,6 +362,7 @@ export default function App() {
           shop={shop}
           plan={plan}
           kamiColor={kamiColor}
+          onOpenChest={setChestType}
           onBuy={onBuy}
           onEquip={onEquip}
           onOpenPlus={openPlus}
@@ -397,6 +423,7 @@ export default function App() {
           schedule={schedule}
           onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
           onOpenTask={taskReady ? () => setShowTask(true) : null}
+          onOpenChest={setChestType}
           onOpenSchedule={() => setTab('schedule')}
           refreshing={refreshing}
           onRefresh={refresh}

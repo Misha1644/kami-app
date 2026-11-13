@@ -12,6 +12,7 @@ import { plural } from '../data/content';
 import { kamiSays } from '../data/kami';
 import { teacherFor, KAMI_TEACHER, pickLine } from '../data/teachers';
 import Teacher from '../components/Teacher';
+import Chest from '../components/Chest';
 import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey } from '../lib/speech';
 import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
 
@@ -57,7 +58,7 @@ function ListenButtons({ text, lang }) {
   );
 }
 
-export default function LessonScreen({ topics, topicId, review, kamiColor, prefs = {}, onAnswer, onComplete, onClose }) {
+export default function LessonScreen({ topics, topicId, review, kamiColor, prefs = {}, onAnswer, onComplete, onClose, onOpenChest }) {
   const topic = topics.find((t) => t.id === topicId);
   const words = topic.words;
   const [index, setIndex] = useState(0);
@@ -66,6 +67,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
   const [typed, setTyped] = useState('');
   const [typedResult, setTypedResult] = useState(null); // 'exact' | 'accents' | 'wrong'
   const [verdict, setVerdict] = useState(null); // null | 'right' | 'wrong' — ответ на текущее упражнение
+  const [gotChest, setGotChest] = useState(false); // за урок выдан сундук
   const [speakOff, setSpeakOff] = useState(prefs.speaking === false); // выключено в профиле или «не могу говорить сейчас»
   const [mistakes, setMistakes] = useState(0);
   const [earned, setEarned] = useState(0);
@@ -131,7 +133,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
 
   function finish() {
     setPhase('done');
-    onComplete?.(topic.id);
+    Promise.resolve(onComplete?.(topic.id)).then((res) => { if (res?.chest) setGotChest(true); }).catch(() => {});
   }
 
   function next() {
@@ -163,8 +165,18 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
           <Coin size={22} />
           <Text style={styles.earnedText}>+{earned} {plural(earned, 'монета', 'монеты', 'монет')}</Text>
         </View>
-        <View style={{ alignSelf: 'stretch' }}>
-          <Button title="На главную" onPress={onClose} />
+        {gotChest && (
+          <Pressable accessibilityRole="button" onPress={onOpenChest} style={styles.chestGift}>
+            <Chest type="lesson" size={64} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.chestTitle}>+1 сундук!</Text>
+              <Text style={styles.small}>Нажми, чтобы открыть</Text>
+            </View>
+          </Pressable>
+        )}
+        <View style={{ alignSelf: 'stretch', gap: 8 }}>
+          {gotChest && <Button title="Открыть сундук" onPress={onOpenChest} />}
+          <Button title="На главную" variant={gotChest ? 'secondary' : 'primary'} onPress={onClose} />
         </View>
       </View>
     );
@@ -625,6 +637,8 @@ const styles = StyleSheet.create({
   note: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
   small: { fontSize: 13, color: colors.muted },
   kamiRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  chestGift: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#D9A92B', backgroundColor: '#FFFBEB' },
+  chestTitle: { fontSize: 18, fontWeight: '800', color: '#7A5200' },
   capsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   helloRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   helloBubble: { flex: 1, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 2 },

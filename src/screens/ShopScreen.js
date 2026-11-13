@@ -4,12 +4,13 @@ import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'r
 import { PLUS_ENABLED } from '../config';
 import UserAvatar from '../components/UserAvatar';
 import { BgSwatch } from '../components/Background';
+import Chest from '../components/Chest';
 import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 
-export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEquip, onOpenPlus, refreshing, onRefresh }) {
+export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEquip, onOpenPlus, onOpenChest, refreshing, onRefresh }) {
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -19,6 +20,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   }
 
   const freeze = shop.items.find((i) => i.kind === 'freeze');
+  const chest = shop.items.find((i) => i.kind === 'chest');
   // Вещи «только с Плюсом» видны, если подписка включена (или Плюс уже есть).
   const visible = (kind) => shop.items.filter((i) => i.kind === kind && (PLUS_ENABLED || plan.plus || !i.plus_only));
   const DEFAULTS = ['color-green', 'avatar-person', 'bg-default'];
@@ -115,6 +117,35 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
       {!!message && <Text style={styles.ok}>{message}</Text>}
       {!!error && <Text style={styles.error}>{error}</Text>}
 
+      {chest && (
+        <Card style={styles.chestCard}>
+          <View style={styles.chestRow}>
+            <Chest type="skin" size={80} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.itemTitle}>{chest.title_ru}</Text>
+              <Text style={styles.small}>Только вещи: аватары, цвета, фоны. 1% — легендарная (от 10 000). Повторов не бывает.</Text>
+            </View>
+          </View>
+          <View style={styles.chestRow}>
+            <PriceButton
+              price={chest.price}
+              disabled={busy === chest.id || student.coins < chest.price}
+              onPress={() => run(chest.id, () => onBuy(chest.id), 'Сундук куплен!')}
+            />
+            {(student.chests_skin || 0) > 0 && (
+              <Pressable accessibilityRole="button" onPress={() => onOpenChest('skin')} style={styles.equip}>
+                <Text style={styles.equipText}>Открыть ({student.chests_skin})</Text>
+              </Pressable>
+            )}
+            {(student.chests_lesson || 0) > 0 && (
+              <Pressable accessibilityRole="button" onPress={() => onOpenChest('lesson')} style={styles.equip}>
+                <Text style={styles.equipText}>За уроки ({student.chests_lesson})</Text>
+              </Pressable>
+            )}
+          </View>
+        </Card>
+      )}
+
       {freeze && (
         <Card style={styles.freezeCard}>
           <View style={styles.freezeIcon}><Snowflake size={28} /></View>
@@ -169,6 +200,8 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorCard: { width: '48%', alignItems: 'center', gap: 8, padding: 12 },
   bgPreview: { width: 88, height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
+  chestCard: { gap: 10, borderColor: '#B07CE8', borderWidth: 2, backgroundColor: '#F7F2FD' },
+  chestRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   legendCard: { borderColor: '#F5C443', borderWidth: 2, backgroundColor: '#FFFBEB' },
   legend: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#B54708' },
   colorCardWorn: { borderColor: colors.green, borderWidth: 2 },
