@@ -98,14 +98,21 @@ export async function loadWordsToday(studentId) {
 
 // Магазин: товары и то, что уже куплено.
 export async function loadShop(studentId) {
-  const [items, owned] = await Promise.all([
+  const [items, owned, today] = await Promise.all([
     supabase.from('shop_items').select('id, kind, title_ru, price, value, sort, plus_only').order('sort'),
     supabase.from('student_items').select('item_id').eq('student_id', studentId),
+    supabase.rpc('shop_today'),
   ]);
   if (items.error) throw items.error;
+  // Витрина дня: { [id]: { tag: 'new' | 'back' | null, featured } }
+  const rotation = {};
+  for (const r of today.data?.items || []) rotation[r.id] = { tag: r.tag, featured: r.featured };
   return {
     items: items.data,
     owned: new Set((owned.data || []).map((r) => r.item_id)),
+    rotation,
+    rotationDay: today.data?.day || null,
+    nextAt: today.data?.next_at || null,
   };
 }
 
@@ -113,7 +120,8 @@ const SHOP_ERRORS = {
   'not enough coins': 'Не хватает монет. Учи слова — за каждое верное слово 1 монета.',
   'max freezes': 'Больше двух заморозок держать нельзя.',
   'already owned': 'Это уже куплено.',
-  'plus only': 'Этот цвет — только для Ками Плюс.',
+  'plus only': 'Эта вещь — только для Ками Плюс.',
+  'not in shop': 'Эта вещь сегодня не продаётся — загляни завтра, витрина обновляется каждый день!',
 };
 
 // Покупка. Возвращает { coins, freezes, kami_color } или бросает ошибку с понятным текстом.

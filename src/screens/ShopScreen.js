@@ -1,5 +1,5 @@
 // Магазин: монеты тратятся на заморозки серии, цвета Ками, аватары и фоны.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { PLUS_ENABLED } from '../config';
 import UserAvatar from '../components/UserAvatar';
@@ -22,9 +22,13 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   const freeze = shop.items.find((i) => i.kind === 'freeze');
   const chest = shop.items.find((i) => i.kind === 'chest');
   // Вещи «только с Плюсом» видны, если подписка включена (или Плюс уже есть).
+  // Витрина дня: продаются только сегодняшние вещи (+ вещи «с Плюсом», они всегда).
+  const rot = shop.rotation || {};
+  const inShop = (i) => (i.plus_only ? PLUS_ENABLED || plan.plus : !!rot[i.id] && !rot[i.id].featured);
   const visible = (kind) => shop.items
-    .filter((i) => i.kind === kind && (PLUS_ENABLED || plan.plus || !i.plus_only))
+    .filter((i) => i.kind === kind && inShop(i))
     .sort((a, b) => a.price - b.price || a.sort - b.sort);
+  const featured = shop.items.find((i) => rot[i.id]?.featured);
   const DEFAULTS = ['color-green', 'avatar-person', 'bg-default'];
   const worn = { color: student.kami_color, avatar: student.avatar, bg: student.bg };
   const WORN_TEXT = { color: 'Надет', avatar: 'Выбран', bg: 'Выбран' };
@@ -47,6 +51,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
             const isWorn = worn[kind] === item.id;
             return (
               <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn, item.price >= 5000 && styles.legendCard]}>
+                <Tag tag={rot[item.id]?.tag} />
                 {item.price >= 5000 && <Text style={styles.legend}>ЛЕГЕНДАРНОЕ</Text>}
                 {preview(item)}
                 <Text style={styles.itemTitle} numberOfLines={1}>{item.title_ru}</Text>
@@ -116,6 +121,42 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
       </View>
       <Text style={styles.muted}>1 монета за каждое верное слово, +10 за выполненную цель дня.</Text>
 
+      <View style={styles.vitrine}>
+        <Text style={styles.vitrineTitle}>🛍 Витрина дня</Text>
+        <Countdown to={shop.nextAt} onExpire={onRefresh} />
+      </View>
+
+      {featured && (() => {
+        const owned = shop.owned.has(featured.id);
+        const worn = [student.kami_color, student.avatar, student.bg].includes(featured.id);
+        return (
+          <Card style={styles.featured}>
+            <View style={styles.featuredHead}>
+              <Text style={styles.featuredLabel}>★ ВЕЩЬ ДНЯ</Text>
+              <Tag tag={rot[featured.id]?.tag} inline />
+            </View>
+            <View style={styles.featuredRow}>
+              {preview(featured)}
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={styles.featuredTitle}>{featured.title_ru}</Text>
+                <Text style={styles.small}>{{ avatar: 'Аватар', color: 'Цвет Ками', bg: 'Фон' }[featured.kind]} · только сегодня</Text>
+                {worn ? <Text style={styles.worn}>Надето</Text> : owned ? (
+                  <Pressable accessibilityRole="button" onPress={() => run(featured.id, () => onEquip(featured.id), 'Готово!')} style={styles.equip}>
+                    <Text style={styles.equipText}>Выбрать</Text>
+                  </Pressable>
+                ) : (
+                  <PriceButton
+                    price={featured.price}
+                    disabled={busy === featured.id || student.coins < featured.price}
+                    onPress={() => run(featured.id, () => onBuy(featured.id), 'Куплено!')}
+                  />
+                )}
+              </View>
+            </View>
+          </Card>
+        );
+      })()}
+
       {!!message && <Text style={styles.ok}>{message}</Text>}
       {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -170,6 +211,34 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   );
 }
 
+// Метка «НОВОЕ» / «ВЕРНУЛОСЬ».
+function Tag({ tag, inline }) {
+  if (!tag) return inline ? null : <View style={{ height: 18 }} />;
+  const isNew = tag === 'new';
+  return (
+    <View style={[styles.tag, isNew ? styles.tagNew : styles.tagBack]}>
+      <Text style={styles.tagText}>{isNew ? 'НОВОЕ' : 'ВЕРНУЛОСЬ'}</Text>
+    </View>
+  );
+}
+
+// Сколько осталось до обновления витрины.
+function Countdown({ to, onExpire }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const left = to ? new Date(to).getTime() - now : 0;
+  useEffect(() => {
+    if (to && left <= 0) onExpire?.();
+  }, [to, left <= 0]);
+  if (!to) return null;
+  const h = Math.max(0, Math.floor(left / 3600000));
+  const m = Math.max(0, Math.floor((left % 3600000) / 60000));
+  return <Text style={styles.countdown}>Обновится через {h} ч {m} мин</Text>;
+}
+
 function PriceButton({ price, onPress, disabled }) {
   return (
     <Pressable
@@ -204,6 +273,18 @@ const styles = StyleSheet.create({
   bgPreview: { width: 88, height: 64, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
   chestCard: { gap: 10, borderColor: '#B07CE8', borderWidth: 2, backgroundColor: '#F7F2FD' },
   chestRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  vitrine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  vitrineTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
+  countdown: { fontSize: 13, fontWeight: '700', color: colors.orangeText },
+  featured: { gap: 10, borderColor: '#F5C443', borderWidth: 2, backgroundColor: '#FFFBEB' },
+  featuredHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  featuredLabel: { fontSize: 13, fontWeight: '800', letterSpacing: 1, color: '#B54708' },
+  featuredRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  featuredTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
+  tag: { alignSelf: 'center', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  tagNew: { backgroundColor: '#F79009' },
+  tagBack: { backgroundColor: '#1570EF' },
+  tagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#FFFFFF' },
   legendCard: { borderColor: '#F5C443', borderWidth: 2, backgroundColor: '#FFFBEB' },
   legend: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#B54708' },
   colorCardWorn: { borderColor: colors.green, borderWidth: 2 },
