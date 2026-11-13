@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Chest from '../components/Chest';
+import RewardReveal from '../components/RewardReveal';
 import Kami from '../components/Kami';
 import UserAvatar from '../components/UserAvatar';
 import { BgSwatch } from '../components/Background';
@@ -97,9 +98,11 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
   const [error, setError] = useState('');
   const [equipped, setEquipped] = useState(false);
   const [width, setWidth] = useState(0);
+  const [reveal, setReveal] = useState(null); // выпавшая вещь — показываем большой анимацией
   const offset = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   const doneRef = useRef(false);
+  const winRef = useRef(null);
 
   // Пул вещей для ленты: всё, что можно выиграть (не подписка, не бесплатное).
   const pool = shopItems.filter((i) => ['avatar', 'color', 'bg'].includes(i.kind) && i.price > 0 && !i.plus_only);
@@ -113,6 +116,7 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
     if (doneRef.current) return;
     doneRef.current = true;
     setPhase('opened');
+    if (winRef.current) setReveal(winRef.current);
     pop.setValue(0);
     Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: false }).start();
   }
@@ -131,6 +135,7 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
     const full = res.item && (pool.find((i) => i.id === res.item.id) || { ...res.item, title_ru: res.item.title });
     const win = res.type === 'coins' ? { type: 'coins', amount: res.amount } : { type: 'item', item: full };
     setResult(res);
+    winRef.current = win.type === 'item' ? win.item : null;
     setStrip(buildStrip(type, pool, win));
     setPhase('spinning');
     doneRef.current = false;
@@ -162,6 +167,14 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
+      {reveal && (
+        <RewardReveal
+          item={reveal}
+          intro="flash"
+          onEquip={async (id) => { await onEquip(id); setEquipped(true); }}
+          onClose={() => setReveal(null)}
+        />
+      )}
       <View style={styles.header}>
         <Chest type={type} open={phase === 'opened'} size={72} />
         <View style={{ flex: 1 }}>

@@ -61,6 +61,7 @@ MODULES = [
     ('src/components/UserAvatar.js', ['UserAvatar', 'PersonIcon']),
     ('src/screens/ProgressScreen.js', ['ProgressScreen']),
     ('src/screens/ProfileScreen.js', ['ProfileScreen']),
+    ('src/components/RewardReveal.js', ['RewardReveal']),
     ('src/screens/ChestScreen.js', ['ChestScreen']),
     ('src/screens/FriendsScreen.js', ['FriendsScreen']),
     ('src/screens/ExamScreen.js', ['ExamScreen']),

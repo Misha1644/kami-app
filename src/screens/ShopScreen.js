@@ -5,6 +5,7 @@ import { PLUS_ENABLED } from '../config';
 import UserAvatar from '../components/UserAvatar';
 import { BgSwatch } from '../components/Background';
 import Chest from '../components/Chest';
+import RewardReveal from '../components/RewardReveal';
 import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
@@ -15,6 +16,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [reveal, setReveal] = useState(null); // купленная вещь — показываем большой анимацией
 
   if (!shop) {
     return <View style={styles.wrap}><Text style={styles.muted}>{tr('Загружаем магазин…')}</Text></View>;
@@ -75,7 +77,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
                   <Pressable
                     accessibilityRole="button"
                     disabled={busy === item.id}
-                    onPress={() => run(item.id, () => onBuy(item.id), tr('Получено!'))}
+                    onPress={() => run(item.id, () => onBuy(item.id), tr('Получено!'), item)}
                     style={styles.equip}
                   >
                     <Text style={styles.equipText}>{tr('Получить')}</Text>
@@ -84,7 +86,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
                   <PriceButton
                     price={item.price}
                     disabled={busy === item.id || student.coins < item.price}
-                    onPress={() => run(item.id, () => onBuy(item.id), tr('Куплено!'))}
+                    onPress={() => run(item.id, () => onBuy(item.id), tr('Куплено!'), item)}
                   />
                 )}
               </Card>
@@ -95,13 +97,14 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
     );
   }
 
-  async function run(id, action, okText) {
+  async function run(id, action, okText, revealItem) {
     setBusy(id);
     setError('');
     setMessage('');
     try {
       await action();
-      setMessage(okText);
+      if (revealItem) setReveal(revealItem);
+      else setMessage(okText);
     } catch (e) {
       setError(e.message);
     }
@@ -113,6 +116,15 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
       contentContainerStyle={styles.wrap}
       refreshControl={<RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
     >
+      {reveal && (
+        <RewardReveal
+          item={reveal}
+          kamiColor={kamiColor}
+          intro="box"
+          onEquip={onEquip}
+          onClose={() => setReveal(null)}
+        />
+      )}
       <View style={styles.header}>
         <Text style={styles.h1}>{tr('Магазин')}</Text>
         <View style={styles.balance}>
@@ -149,7 +161,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
                   <PriceButton
                     price={featured.price}
                     disabled={busy === featured.id || student.coins < featured.price}
-                    onPress={() => run(featured.id, () => onBuy(featured.id), tr('Куплено!'))}
+                    onPress={() => run(featured.id, () => onBuy(featured.id), tr('Куплено!'), featured)}
                   />
                 )}
               </View>
