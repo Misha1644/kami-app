@@ -278,7 +278,7 @@ export default function App() {
     const res = await claimDailyReward(studentId);
     setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, chests_lesson: res.chests_lesson }));
     setStreakInfo((info) => ({ ...info, freezes: res.freezes }));
-    setRewards((r) => (r ? { ...r, daily: { claimed_today: true, day: res.day } } : r));
+    setRewards((r) => (r ? { ...r, daily: { claimed_today: true, day: res.day, reset: false } } : r));
     return res;
   }
 
@@ -604,6 +604,7 @@ export default function App() {
         {showDaily && showTabs && rewards && !rewards.daily.claimed_today && (
           <DailyRewardModal
             day={rewards.daily.day}
+            reset={!!rewards.daily.reset}
             onClaim={onClaimDaily}
             onOpenChest={setChestType}
             onClose={() => setShowDaily(false)}

@@ -68,7 +68,7 @@ function DailyIcon({ r, big }) {
 }
 
 // Ежедневная награда: показывается при первом входе за день.
-export function DailyRewardModal({ day, onClaim, onOpenChest, onClose }) {
+export function DailyRewardModal({ day, reset, onClaim, onOpenChest, onClose }) {
   const [claimed, setClaimed] = useState(null); // ответ сервера
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -135,7 +135,11 @@ export function DailyRewardModal({ day, onClaim, onOpenChest, onClose }) {
       <Animated.View style={[styles.backdrop, { opacity: fade }]}>
         <View style={styles.card}>
           <Text style={styles.title}>{tr('Ежедневная награда')}</Text>
-          <Text style={styles.sub}>{tr('Заходи каждый день — 7-й день самый щедрый!')}</Text>
+          {reset && !claimed ? (
+            <Text style={styles.reset}>{tr('Ты пропустил день — календарь начался заново. Заходи каждый день, чтобы дойти до 7-го!')}</Text>
+          ) : (
+            <Text style={styles.sub}>{tr('Заходи каждый день — 7-й день самый щедрый! Пропустишь день — начнёшь с 1-го.')}</Text>
+          )}
           <View style={styles.grid}>{DAILY.map(tile)}</View>
 
           {claimed && (
@@ -171,6 +175,7 @@ const styles = StyleSheet.create({
   card: { width: '100%', maxWidth: 420, backgroundColor: colors.card, borderRadius: radius.lg, padding: 18, gap: 12, alignItems: 'center' },
   title: { fontSize: 24, fontWeight: '900', color: colors.text },
   sub: { fontSize: 14, color: colors.muted, textAlign: 'center' },
+  reset: { fontSize: 14, fontWeight: '700', color: colors.orangeText, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, alignSelf: 'stretch' },
   cell: { width: '30%' },
   cellBig: { width: '94%' },

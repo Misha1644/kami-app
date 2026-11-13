@@ -207,11 +207,11 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
           <View style={styles.freezeIcon}><Snowflake size={28} /></View>
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={styles.itemTitle}>{tr(freeze.title_ru)}</Text>
-            <Text style={styles.small}>{tr('Спасает серию, если пропустишь день. У тебя: {0} из 2.', student.streak_freezes)}</Text>
+            <Text style={styles.small}>{tr('Спасает серию, если пропустишь день. У тебя: {0} из 5. Каждый месяц 1-го числа снова 5.', student.streak_freezes)}</Text>
           </View>
           <PriceButton
             price={freeze.price}
-            disabled={busy === freeze.id || student.streak_freezes >= 2}
+            disabled={busy === freeze.id || student.streak_freezes >= 5}
             onPress={() => run(freeze.id, () => onBuy(freeze.id), tr('Заморозка куплена!'))}
           />
         </Card>
