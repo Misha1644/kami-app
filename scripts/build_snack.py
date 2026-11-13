@@ -15,6 +15,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Порядок важен: модуль идёт после всех, от которых зависит.
 MODULES = [
     ('src/theme.js', ['colors', 'radius']),
+    ('src/i18n_dict.js', ['DICT']),
+    ('src/i18n.js', ['UI_LANGS', 'uiLangFor', 'deviceLang', 'getLang', 'isRTL', 'setLang', 'tr']),
     ('src/config.js', ['PLUS_ENABLED', 'PAYMENTS_ENABLED', 'TRIAL_DAYS', 'SUPPORT_EMAIL', 'PRIVACY_UPDATED']),
     ('src/data/privacy.js', ['PRIVACY']),
     ('src/data/kami.js', ['greeting', 'kamiSays', 'kamiFact']),
@@ -48,7 +50,8 @@ MODULES = [
                         'langFor', 'taskHelpAvailable', 'deleteAccount', 'startTrial', 'equipItem',
                         'updateStudent', 'loadActivity', 'openChest',
                         'CHEERS', 'myFriendCode', 'addFriend', 'friendAction', 'listFriends', 'sendCheer',
-                        'myCheers', 'setFriendsEnabled', 'loadExams', 'createExam', 'deleteExam', 'saveExamScore']),
+                        'myCheers', 'setFriendsEnabled', 'loadExams', 'createExam', 'deleteExam', 'saveExamScore',
+                        'loadWeeklyEmail', 'setWeeklyEmail']),
     ('src/screens/PrivacyScreen.js', ['PrivacyScreen']),
     ('src/screens/AuthScreen.js', ['AuthScreen']),
     ('src/screens/StudentSetupScreen.js', ['StudentSetupScreen']),

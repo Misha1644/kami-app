@@ -1,4 +1,4 @@
-"""Собирает docs/privacy.md и docs/privacy.html из src/data/privacy.js (RU + ES)."""
+"""Собирает docs/privacy.md и docs/privacy.html из src/data/privacy.js (RU, ES, EN, AR)."""
 import html, os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,8 +13,8 @@ def sections(lang):
     return title, secs
 
 
-md = ['# Kami — политика конфиденциальности / Política de privacidad', '', f'Обновлено / Actualizada: {date}', '']
-for lang in ['ru', 'es']:
+md = ['# Kami — политика конфиденциальности / Política de privacidad / Privacy policy', '', f'Обновлено / Actualizada / Updated: {date}', '']
+for lang in ['ru', 'es', 'en', 'ar']:
     title, secs = sections(lang)
     md += [f'## {title}', '']
     for h, p in secs:
@@ -22,12 +22,16 @@ for lang in ['ru', 'es']:
 open(os.path.join(ROOT, 'docs/privacy.md'), 'w', encoding='utf-8').write('\n'.join(md))
 
 
+UPDATED = {'ru': 'Обновлено', 'es': 'Actualizada', 'en': 'Updated', 'ar': 'آخر تحديث'}
+
+
 def render(lang):
     title, secs = sections(lang)
-    out = [f'<section id="{lang}" lang="{lang}"><h1>{html.escape(title)}</h1>']
+    rtl = ' dir="rtl"' if lang == 'ar' else ''
+    out = [f'<section id="{lang}" lang="{lang}"{rtl}><h1>{html.escape(title)}</h1>']
     for h, p in secs:
         out.append(f'<h2>{html.escape(h)}</h2>' + ''.join(f'<p>{html.escape(line)}</p>' for line in p.split('\n')))
-    out.append(f'<p class="date">{"Обновлено" if lang == "ru" else "Actualizada"}: {date}</p></section>')
+    out.append(f'<p class="date">{UPDATED[lang]}: {date}</p></section>')
     return ''.join(out)
 
 
@@ -48,6 +52,6 @@ h1{font-size:26px;margin:0 0 8px} h2{font-size:17px;margin:22px 0 4px} p{margin:
 page = (f'<!DOCTYPE html>\n<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
         f'<title>Kami — política de privacidad</title><style>{CSS}</style></head><body><main>'
         f'<header>{KAMI}<div><div class="brand">Kami</div><div class="sub">Español para el instituto · Школьный испанский</div></div></header>'
-        f'<nav><a href="#es">Español</a><a href="#ru">Русский</a></nav>{render("es")}{render("ru")}</main></body></html>')
+        f'<nav><a href="#es">Español</a><a href="#en">English</a><a href="#ru">Русский</a><a href="#ar">العربية</a></nav>{render("es")}{render("en")}{render("ru")}{render("ar")}</main></body></html>')
 open(os.path.join(ROOT, 'docs/privacy.html'), 'w', encoding='utf-8').write(page)
 print('privacy docs written,', date)

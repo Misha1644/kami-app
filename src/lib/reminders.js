@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { subjectByCode } from '../data/content';
 import { factOfDay } from '../data/facts';
+import { tr } from '../i18n';
 
 const KEY = 'kami.reminders.enabled';
 const HOUR = 19;
@@ -37,9 +38,9 @@ function textFor(date, schedule) {
   const wd = next.getDay();
   const codes = wd >= 1 && wd <= 5 ? [...new Set(schedule[wd] || [])] : [];
   if (codes.length) {
-    return `Завтра: ${codes.map((c) => subjectByCode(c).es).join(', ')}. Пройди урок, чтобы серия не сгорела!`;
+    return tr('Завтра: {0}. Пройди урок, чтобы серия не сгорела!', codes.map((c) => subjectByCode(c).es).join(', '));
   }
-  return 'Ками ждёт тебя! Пройди один урок, чтобы серия не сгорела.';
+  return tr('Ками ждёт тебя! Пройди один урок, чтобы серия не сгорела.');
 }
 
 // Перепланировать напоминания (вызывается при запуске и после изменения расписания).
@@ -53,7 +54,7 @@ export async function rescheduleReminders(schedule) {
     d.setHours(HOUR, 0, 0, 0);
     if (d <= now) continue;
     await Notifications.scheduleNotificationAsync({
-      content: { title: 'Ками 🦎', body: `${textFor(d, schedule)}\nФакт дня: ${factOfDay(d).t}` },
+      content: { title: tr('Ками 🦎'), body: tr('{0}\nФакт дня: {1}', textFor(d, schedule), factOfDay(d).t) },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
     });
   }

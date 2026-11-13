@@ -1,11 +1,12 @@
 // Хамелеон Ками — талисман приложения: новенький в школе, с рюкзаком.
 // mood: happy | excited | worried | sleepy — меняет глаз, рот и щёки.
 import Svg, { Path, Ellipse, Rect, Circle, Line, Text as SvgText } from 'react-native-svg';
+import { tr } from '../i18n';
 
 export default function Kami({ size = 96, color = '#3DB37F', mood = 'happy' }) {
   const height = (size * 90) / 120;
   return (
-    <Svg width={size} height={height} viewBox="0 0 120 90" accessibilityLabel="Хамелеон Ками">
+    <Svg width={size} height={height} viewBox="0 0 120 90" accessibilityLabel={tr('Хамелеон Ками')}>
       <Path d="M34 58 C12 58 8 84 26 84 C38 84 38 70 28 70" fill="none" stroke={color} strokeWidth={9} strokeLinecap="round" />
       <Ellipse cx={62} cy={52} rx={30} ry={21} fill={color} />
       <Rect x={46} y={26} width={24} height={22} rx={6} fill="#E8833A" />

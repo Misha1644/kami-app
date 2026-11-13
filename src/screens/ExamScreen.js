@@ -8,6 +8,7 @@ import { subjectByCode } from '../data/content';
 import { teacherFor } from '../data/teachers';
 import { daysUntil, whenText, isoDay } from '../lib/exams';
 import { PLUS_ENABLED } from '../config';
+import { tr } from '../i18n';
 
 const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
@@ -47,7 +48,7 @@ export default function ExamScreen({ topics, exams, plan, kamiColor, onCreate, o
   }
 
   async function save() {
-    if (!subject || !picked.length || !date) return setError('Выбери предмет, хотя бы одну тему и дату.');
+    if (!subject || !picked.length || !date) return setError(tr('Выбери предмет, хотя бы одну тему и дату.'));
     setBusy(true);
     setError('');
     try {
@@ -68,18 +69,16 @@ export default function ExamScreen({ topics, exams, plan, kamiColor, onCreate, o
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
-        <Text style={styles.backText}>‹ Назад</Text>
+        <Text style={styles.backText}>{tr('‹ Назад')}</Text>
       </Pressable>
-      <Text style={styles.h1}>Контрольные</Text>
-      <Text style={styles.small}>
-        Отметь, когда контрольная и какие темы будут. Ками составит план: каждый день немного слов, а накануне — пробная контрольная с оценкой.
-      </Text>
+      <Text style={styles.h1}>{tr('Контрольные')}</Text>
+      <Text style={styles.small}>{tr('Отметь, когда контрольная и какие темы будут. Ками составит план: каждый день немного слов, а накануне — пробная контрольная с оценкой.')}</Text>
 
       {locked ? (
         <Pressable accessibilityRole="button" onPress={onOpenPlus} style={styles.locked}>
-          <Text style={styles.lockTitle}>🔒 Подготовка к контрольным — с Ками Плюс</Text>
-          <Text style={styles.small}>План на каждый день, пробная контрольная с оценкой от 0 до 10 и результаты для родителей.</Text>
-          <Text style={styles.lockCta}>{plan.trialUsed ? 'Открыть с Ками Плюс ›' : 'Попробовать 3 дня бесплатно ›'}</Text>
+          <Text style={styles.lockTitle}>{tr('🔒 Подготовка к контрольным — с Ками Плюс')}</Text>
+          <Text style={styles.small}>{tr('План на каждый день, пробная контрольная с оценкой от 0 до 10 и результаты для родителей.')}</Text>
+          <Text style={styles.lockCta}>{plan.trialUsed ? tr('Открыть с Ками Плюс ›') : tr('Попробовать 3 дня бесплатно ›')}</Text>
         </Pressable>
       ) : (
         <>
@@ -92,33 +91,30 @@ export default function ExamScreen({ topics, exams, plan, kamiColor, onCreate, o
                   <Teacher teacher={teacherFor(e.subject_code)} size={44} kamiColor={kamiColor} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.title}>{subj.es}</Text>
-                    <Text style={styles.small}>
-                      Контрольная {whenText(days)} · тем: {e.topic_ids.length}
-                      {e.best_score != null ? ` · пробная: ${String(e.best_score / 10).replace('.', ',')}` : ''}
-                    </Text>
+                    <Text style={styles.small}>{tr('Контрольная {0} · тем: {1}{2}', whenText(days), e.topic_ids.length, e.best_score != null ? tr(' · пробная: {0}', String(e.best_score / 10).replace('.', ',')) : '')}</Text>
                   </View>
                 </View>
-                <Button title={days === 1 ? 'Пробная контрольная' : days === 0 ? 'Быстрое повторение' : 'Подготовиться'} onPress={() => onStart(e)} />
+                <Button title={days === 1 ? tr('Пробная контрольная') : days === 0 ? tr('Быстрое повторение') : tr('Подготовиться')} onPress={() => onStart(e)} />
                 {confirm === e.id ? (
                   <View style={{ gap: 8 }}>
-                    <Text style={styles.body}>Удалить эту контрольную?</Text>
-                    <Button title="Удалить" variant="secondary" onPress={() => { setConfirm(null); onDelete(e.id); }} />
-                    <Text style={styles.link} onPress={() => setConfirm(null)}>Отмена</Text>
+                    <Text style={styles.body}>{tr('Удалить эту контрольную?')}</Text>
+                    <Button title={tr('Удалить')} variant="secondary" onPress={() => { setConfirm(null); onDelete(e.id); }} />
+                    <Text style={styles.link} onPress={() => setConfirm(null)}>{tr('Отмена')}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.link} onPress={() => setConfirm(e.id)}>Удалить</Text>
+                  <Text style={styles.link} onPress={() => setConfirm(e.id)}>{tr('Удалить')}</Text>
                 )}
               </Card>
             );
           })}
 
-          {!adding && <Button title="+ Новая контрольная" variant={upcoming.length ? 'secondary' : 'primary'} onPress={() => setAdding(true)} />}
+          {!adding && <Button title={tr('+ Новая контрольная')} variant={upcoming.length ? 'secondary' : 'primary'} onPress={() => setAdding(true)} />}
 
           {adding && (
             <Card style={{ gap: 14 }}>
-              <Text style={styles.title}>Новая контрольная</Text>
+              <Text style={styles.title}>{tr('Новая контрольная')}</Text>
               <View style={{ gap: 8 }}>
-                <Text style={styles.body}>Предмет</Text>
+                <Text style={styles.body}>{tr('Предмет')}</Text>
                 <View style={styles.chips}>
                   {subjects.map((c) => (
                     <Chip key={c} label={subjectByCode(c).es} active={subject === c} onPress={() => { setSubject(c); setPicked([]); }} />
@@ -127,7 +123,7 @@ export default function ExamScreen({ topics, exams, plan, kamiColor, onCreate, o
               </View>
               {!!subject && (
                 <View style={{ gap: 8 }}>
-                  <Text style={styles.body}>Какие темы будут?</Text>
+                  <Text style={styles.body}>{tr('Какие темы будут?')}</Text>
                   <View style={styles.chips}>
                     {subjectTopics.map((t) => (
                       <Chip
@@ -141,27 +137,27 @@ export default function ExamScreen({ topics, exams, plan, kamiColor, onCreate, o
                 </View>
               )}
               <View style={{ gap: 8 }}>
-                <Text style={styles.body}>Когда?</Text>
+                <Text style={styles.body}>{tr('Когда?')}</Text>
                 <View style={styles.chips}>
                   {dates.map((d) => {
                     const v = isoDay(d);
-                    return <Chip key={v} label={`${WD[d.getDay()]} ${d.getDate()}`} active={date === v} onPress={() => setDate(v)} />;
+                    return <Chip key={v} label={`${tr(WD[d.getDay()])} ${d.getDate()}`} active={date === v} onPress={() => setDate(v)} />;
                   })}
                 </View>
               </View>
               {!!error && <Text style={styles.error}>{error}</Text>}
-              <Button title={busy ? 'Сохраняем…' : 'Сохранить'} onPress={save} disabled={busy} />
-              {upcoming.length > 0 && <Text style={styles.link} onPress={() => setAdding(false)}>Отмена</Text>}
+              <Button title={busy ? tr('Сохраняем…') : tr('Сохранить')} onPress={save} disabled={busy} />
+              {upcoming.length > 0 && <Text style={styles.link} onPress={() => setAdding(false)}>{tr('Отмена')}</Text>}
             </Card>
           )}
 
           {past.length > 0 && (
             <>
-              <Text style={styles.h2}>Прошедшие</Text>
+              <Text style={styles.h2}>{tr('Прошедшие')}</Text>
               {past.map((e) => (
                 <Card key={e.id} style={styles.row}>
                   <Text style={[styles.body, { flex: 1 }]}>{subjectByCode(e.subject_code).es} · {e.exam_date.split('-').reverse().slice(0, 2).join('.')}</Text>
-                  <Text style={styles.small}>{e.best_score != null ? `пробная: ${String(e.best_score / 10).replace('.', ',')}` : 'без пробной'}</Text>
+                  <Text style={styles.small}>{e.best_score != null ? tr('пробная: {0}', String(e.best_score / 10).replace('.', ',')) : tr('без пробной')}</Text>
                 </Card>
               ))}
             </>

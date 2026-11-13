@@ -11,13 +11,10 @@ import { colors, radius } from '../theme';
 import { GRADES } from '../data/content';
 import { deleteAccount, loadWeeklyEmail, setWeeklyEmail } from '../lib/api';
 import { PLUS_ENABLED, SUPPORT_EMAIL } from '../config';
+import { tr, UI_LANGS, uiLangFor, setLang } from '../i18n';
 
 const DEFAULTS = new Set(['color-green', 'avatar-person', 'bg-default']);
 const GOALS = [5, 10, 15, 20, 30];
-const LANGS = [
-  { code: 'ru', label: 'Русский' },
-  { code: 'en', label: 'English' },
-];
 
 function Chips({ options, value, onChange }) {
   return (
@@ -69,6 +66,7 @@ export default function ProfileScreen({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [weeklyEmail, setWeekly] = useState(true);
+  const [restart, setRestart] = useState(false);
   useEffect(() => {
     if (adult === 'open' && plan?.plus) loadWeeklyEmail().then(setWeekly).catch(() => {});
   }, [adult, plan?.plus]);
@@ -92,7 +90,7 @@ export default function ProfileScreen({
     if (n <= 8) return null;
     return (
       <Text style={styles.showAll} accessibilityRole="button" onPress={() => setExpanded((e) => ({ ...e, [kind]: !e[kind] }))}>
-        {expanded[kind] ? 'Свернуть' : `Показать все (${n})`}
+        {expanded[kind] ? tr('Свернуть') : tr('Показать все ({0})', n)}
       </Text>
     );
   }
@@ -119,8 +117,8 @@ export default function ProfileScreen({
   const planLine = !plan.plus
     ? null
     : plan.source === 'trial'
-      ? `Пробный Плюс до ${new Date(plan.expiresAt).toLocaleDateString('ru-RU')}`
-      : 'Ками Плюс';
+      ? tr('Пробный Плюс до {0}', new Date(plan.expiresAt).toLocaleDateString('ru-RU'))
+      : tr('Ками Плюс');
 
   return (
     <ScrollView
@@ -134,7 +132,7 @@ export default function ProfileScreen({
         <View style={styles.headStats}>
           <Text style={styles.small}>{student.grade} · </Text>
           <Flame size={14} color={todayDone ? '#E8833A' : '#A3ABB5'} />
-          <Text style={styles.small}> {streak} · {learnedTotal} слов</Text>
+          <Text style={styles.small}>{' '}{tr('{0} · {1} слов', streak, learnedTotal)}</Text>
         </View>
         {!!planLine && <Text style={styles.plusBadge}>{planLine}</Text>}
       </View>
@@ -144,15 +142,15 @@ export default function ProfileScreen({
         <Pressable accessibilityRole="button" onPress={onOpenFriends} style={styles.friends}>
           <Text style={styles.friendsIcon}>👋</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.friendsTitle}>Друзья</Text>
-            <Text style={styles.small}>Добавляй одноклассников по коду и подбадривай их</Text>
+            <Text style={styles.friendsTitle}>{tr('Друзья')}</Text>
+            <Text style={styles.small}>{tr('Добавляй одноклассников по коду и подбадривай их')}</Text>
           </View>
           <Text style={styles.plusArrow}>›</Text>
         </Pressable>
       )}
 
       {/* Стиль */}
-      <Text style={styles.h2}>Аватар</Text>
+      <Text style={styles.h2}>{tr('Аватар')}</Text>
       <View style={styles.grid}>
         {limit(ownedOf('avatar'), 'avatar').map((i) => {
           const worn = student.avatar === i.id;
@@ -160,7 +158,7 @@ export default function ProfileScreen({
             <Pressable
               key={i.id}
               accessibilityRole="button"
-              accessibilityLabel={`Аватар ${i.title_ru}`}
+              accessibilityLabel={tr('Аватар {0}', tr(i.title_ru))}
               accessibilityState={{ selected: worn }}
               onPress={() => !worn && act(() => onEquip(i.id))}
               style={[styles.pick, worn && styles.pickActive]}
@@ -170,12 +168,12 @@ export default function ProfileScreen({
           );
         })}
         <Pressable accessibilityRole="button" onPress={onOpenShop} style={[styles.pick, styles.more]}>
-          <Text style={styles.moreText}>+ ещё{'\n'}в магазине</Text>
+          <Text style={styles.moreText}>{tr('+ ещё{0}в магазине', '\n')}</Text>
         </Pressable>
       </View>
       {moreButton('avatar')}
 
-      <Text style={styles.h2}>Фон</Text>
+      <Text style={styles.h2}>{tr('Фон')}</Text>
       <View style={styles.grid}>
         {limit(ownedOf('bg'), 'bg').map((i) => {
           const worn = student.bg === i.id;
@@ -183,23 +181,23 @@ export default function ProfileScreen({
             <Pressable
               key={i.id}
               accessibilityRole="button"
-              accessibilityLabel={`Фон ${i.title_ru}`}
+              accessibilityLabel={tr('Фон {0}', tr(i.title_ru))}
               accessibilityState={{ selected: worn }}
               onPress={() => !worn && act(() => onEquip(i.id))}
               style={[styles.swatchWrap, worn && styles.pickActive]}
             >
               <BgSwatch value={i.value} style={styles.swatch} />
-              <Text style={styles.swatchText} numberOfLines={1}>{i.title_ru}</Text>
+              <Text style={styles.swatchText} numberOfLines={1}>{tr(i.title_ru)}</Text>
             </Pressable>
           );
         })}
         <Pressable accessibilityRole="button" onPress={onOpenShop} style={[styles.swatchWrap, styles.more, { height: 60, justifyContent: 'center' }]}>
-          <Text style={styles.moreText}>+ ещё</Text>
+          <Text style={styles.moreText}>{tr('+ ещё')}</Text>
         </Pressable>
       </View>
       {moreButton('bg')}
 
-      <Text style={styles.h2}>Цвет Ками</Text>
+      <Text style={styles.h2}>{tr('Цвет Ками')}</Text>
       <View style={styles.grid}>
         {limit(ownedOf('color'), 'color').map((i) => {
           const worn = student.kami_color === i.id;
@@ -207,7 +205,7 @@ export default function ProfileScreen({
             <Pressable
               key={i.id}
               accessibilityRole="button"
-              accessibilityLabel={i.title_ru}
+              accessibilityLabel={tr(i.title_ru)}
               accessibilityState={{ selected: worn }}
               onPress={() => !worn && act(() => onEquip(i.id))}
               style={[styles.pick, worn && styles.pickActive]}
@@ -220,31 +218,39 @@ export default function ProfileScreen({
       {moreButton('color')}
 
       {/* Учёба */}
-      <Text style={styles.h2}>Учёба</Text>
+      <Text style={styles.h2}>{tr('Учёба')}</Text>
       <Card style={{ gap: 14 }}>
         <View style={{ gap: 8 }}>
-          <Text style={styles.body}>Класс</Text>
+          <Text style={styles.body}>{tr('Класс')}</Text>
           <Chips options={GRADES.map((g) => ({ value: g, label: g }))} value={student.grade} onChange={(g) => act(() => onChangeGrade(g))} />
         </View>
         <View style={{ gap: 8 }}>
-          <Text style={styles.body}>Цель дня — слов</Text>
+          <Text style={styles.body}>{tr('Цель дня — слов')}</Text>
           <Chips options={GOALS.map((g) => ({ value: g, label: String(g) }))} value={student.daily_goal} onChange={(g) => act(() => onUpdateStudent({ daily_goal: g }))} />
         </View>
         <View style={{ gap: 8 }}>
-          <Text style={styles.body}>Язык переводов</Text>
-          <Chips options={LANGS.map((l) => ({ value: l.code, label: l.label }))} value={student.native_lang === 'en' ? 'en' : 'ru'} onChange={(l) => act(() => onUpdateStudent({ native_lang: l }))} />
-          <Text style={styles.small}>На каком языке показывать переводы слов.</Text>
+          <Text style={styles.body}>{tr('Язык')}</Text>
+          <Chips
+            options={UI_LANGS.map((l) => ({ value: l.code, label: l.label }))}
+            value={uiLangFor(student.native_lang)}
+            onChange={(l) => act(async () => {
+              await onUpdateStudent({ native_lang: l });
+              setRestart(setLang(l));
+            })}
+          />
+          <Text style={styles.small}>{tr('Язык приложения, переводов слов и объяснений заданий.')}</Text>
+          {restart && <Text style={styles.small}>{tr('Закрой и снова открой приложение, чтобы экран перевернулся справа налево.')}</Text>}
         </View>
       </Card>
 
       {/* Звук */}
-      <Text style={styles.h2}>Звук и упражнения</Text>
+      <Text style={styles.h2}>{tr('Звук и упражнения')}</Text>
       <Card style={{ gap: 14 }}>
-        <SwitchRow title="Озвучивать новые слова" note="Ками сам произносит слово на карточке" value={prefs.autoplay} onChange={(v) => onSavePrefs({ ...prefs, autoplay: v })} />
-        <SwitchRow title="Медленный голос" note="Для начала так проще расслышать" value={prefs.slowVoice} onChange={(v) => onSavePrefs({ ...prefs, slowVoice: v })} />
-        <SwitchRow title="Упражнения «Скажи вслух»" note="Выключи, если занимаешься там, где нельзя говорить" value={prefs.speaking} onChange={(v) => onSavePrefs({ ...prefs, speaking: v })} />
+        <SwitchRow title={tr('Озвучивать новые слова')} note={tr('Ками сам произносит слово на карточке')} value={prefs.autoplay} onChange={(v) => onSavePrefs({ ...prefs, autoplay: v })} />
+        <SwitchRow title={tr('Медленный голос')} note={tr('Для начала так проще расслышать')} value={prefs.slowVoice} onChange={(v) => onSavePrefs({ ...prefs, slowVoice: v })} />
+        <SwitchRow title={tr('Упражнения «Скажи вслух»')} note={tr('Выключи, если занимаешься там, где нельзя говорить')} value={prefs.speaking} onChange={(v) => onSavePrefs({ ...prefs, speaking: v })} />
         {remindersSupported && (
-          <SwitchRow title="Напоминание в 19:00" note="С уроками на завтра и фактом дня" value={reminders} onChange={onToggleReminders} />
+          <SwitchRow title={tr('Напоминание в 19:00')} note={tr('С уроками на завтра и фактом дня')} value={reminders} onChange={onToggleReminders} />
         )}
       </Card>
 
@@ -252,9 +258,9 @@ export default function ProfileScreen({
       {PLUS_ENABLED && (
         <Pressable accessibilityRole="button" onPress={onOpenPlus} style={[styles.plus, plan.plus && styles.plusActive]}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.plusTitle}>{plan.plus ? planLine : 'Ками Плюс'}</Text>
+            <Text style={styles.plusTitle}>{plan.plus ? planLine : tr('Ками Плюс')}</Text>
             <Text style={styles.small}>
-              {plan.plus ? 'Отчёты и разбор заданий открыты.' : plan.trialUsed ? 'Отчёты об успехах и разбор заданий по фото.' : 'Попробуй 3 дня бесплатно: отчёты и разбор заданий по фото.'}
+              {plan.plus ? tr('Отчёты и разбор заданий открыты.') : plan.trialUsed ? tr('Отчёты об успехах и разбор заданий по фото.') : tr('Попробуй 3 дня бесплатно: отчёты и разбор заданий по фото.')}
             </Text>
           </View>
           <Text style={styles.plusArrow}>›</Text>
@@ -262,11 +268,11 @@ export default function ProfileScreen({
       )}
 
       {/* Для взрослых */}
-      <Text style={styles.h2}>Для взрослых</Text>
+      <Text style={styles.h2}>{tr('Для взрослых')}</Text>
       {adult === 'closed' && (
         <Card style={{ gap: 8 }}>
-          <Text style={styles.small}>Выход из аккаунта, удаление аккаунта и политика конфиденциальности.</Text>
-          <Button title="Открыть" variant="secondary" onPress={() => setAdult('gate')} />
+          <Text style={styles.small}>{tr('Выход из аккаунта, удаление аккаунта и политика конфиденциальности.')}</Text>
+          <Button title={tr('Открыть')} variant="secondary" onPress={() => setAdult('gate')} />
         </Card>
       )}
       {adult === 'gate' && <ParentalGate onPass={() => setAdult('open')} onCancel={() => setAdult('closed')} />}
@@ -274,10 +280,10 @@ export default function ProfileScreen({
         <Card style={{ gap: 10 }}>
           {PLUS_ENABLED && (
             <SwitchRow
-              title="Отчёт на почту"
+              title={tr('Отчёт на почту')}
               note={plan?.plus
-                ? 'Раз в неделю: сколько занимался, новые и трудные слова, ближайшие контрольные.'
-                : 'Еженедельный отчёт на почту родителя входит в Ками Плюс.'}
+                ? tr('Раз в неделю: сколько занимался, новые и трудные слова, ближайшие контрольные.')
+                : tr('Еженедельный отчёт на почту родителя входит в Ками Плюс.')}
               value={!!plan?.plus && weeklyEmail}
               onChange={(v) => {
                 if (!plan?.plus) { onOpenPlus?.(); return; }
@@ -287,26 +293,24 @@ export default function ProfileScreen({
             />
           )}
           <SwitchRow
-            title="Разрешить друзей"
-            note="Добавление по коду и готовые реакции. Сообщений писать нельзя."
+            title={tr('Разрешить друзей')}
+            note={tr('Добавление по коду и готовые реакции. Сообщений писать нельзя.')}
             value={!!student.friends_enabled}
             onChange={(v) => act(() => onToggleFriends(v))}
           />
-          <Button title="Выйти из аккаунта" variant="secondary" onPress={onSignOut} />
-          <Text style={styles.link} accessibilityRole="link" onPress={onOpenPrivacy}>Политика конфиденциальности</Text>
-          {!!SUPPORT_EMAIL && <Text style={styles.small}>Поддержка: {SUPPORT_EMAIL}</Text>}
+          <Button title={tr('Выйти из аккаунта')} variant="secondary" onPress={onSignOut} />
+          <Text style={styles.link} accessibilityRole="link" onPress={onOpenPrivacy}>{tr('Политика конфиденциальности')}</Text>
+          {!!SUPPORT_EMAIL && <Text style={styles.small}>{tr('Поддержка: {0}', SUPPORT_EMAIL)}</Text>}
           {!confirmDelete ? (
-            <Text style={styles.danger} accessibilityRole="button" onPress={() => setConfirmDelete(true)}>Удалить аккаунт</Text>
+            <Text style={styles.danger} accessibilityRole="button" onPress={() => setConfirmDelete(true)}>{tr('Удалить аккаунт')}</Text>
           ) : (
             <View style={{ gap: 10 }}>
-              <Text style={styles.body}>
-                Удалить аккаунт и все данные ребёнка: прогресс, серию, монеты, покупки, расписание? Это нельзя отменить.
-              </Text>
-              <Button title={deleting ? 'Удаляем…' : 'Да, удалить навсегда'} onPress={onDelete} disabled={deleting} />
-              <Button title="Отмена" variant="secondary" onPress={() => setConfirmDelete(false)} disabled={deleting} />
+              <Text style={styles.body}>{tr('Удалить аккаунт и все данные ребёнка: прогресс, серию, монеты, покупки, расписание? Это нельзя отменить.')}</Text>
+              <Button title={deleting ? tr('Удаляем…') : tr('Да, удалить навсегда')} onPress={onDelete} disabled={deleting} />
+              <Button title={tr('Отмена')} variant="secondary" onPress={() => setConfirmDelete(false)} disabled={deleting} />
             </View>
           )}
-          <Text style={styles.link} onPress={() => { setAdult('closed'); setConfirmDelete(false); }}>Закрыть</Text>
+          <Text style={styles.link} onPress={() => { setAdult('closed'); setConfirmDelete(false); }}>{tr('Закрыть')}</Text>
         </Card>
       )}
     </ScrollView>

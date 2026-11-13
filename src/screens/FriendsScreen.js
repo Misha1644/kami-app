@@ -13,14 +13,15 @@ import { plural } from '../data/content';
 import {
   CHEERS, myFriendCode, addFriend, friendAction, listFriends, sendCheer, myCheers,
 } from '../lib/api';
+import { tr } from '../i18n';
 
 function timeAgo(iso) {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (min < 60) return `${Math.max(1, min)} мин назад`;
+  if (min < 60) return tr('{0} мин назад', Math.max(1, min));
   const h = Math.round(min / 60);
-  if (h < 24) return `${h} ч назад`;
+  if (h < 24) return tr('{0} ч назад', h);
   const d = Math.round(h / 24);
-  return `${d} ${plural(d, 'день', 'дня', 'дней')} назад`;
+  return tr('{0} {1} назад', d, plural(d, tr('день'), tr('дня'), tr('дней')));
 }
 
 export default function FriendsScreen({ student, onBack }) {
@@ -64,12 +65,12 @@ export default function FriendsScreen({ student, onBack }) {
 
   async function submitCode() {
     const c = input.replace(/\s/g, '').toUpperCase();
-    if (c.length !== 6) return setError('Код — 6 букв и цифр.');
+    if (c.length !== 6) return setError(tr('Код — 6 букв и цифр.'));
     await act(async () => {
       const res = await addFriend(student.id, c);
       setInput('');
       setAdding('closed');
-      setMessage(res.status === 'accepted' ? 'Теперь вы друзья! 🎉' : 'Заявка отправлена. Друг должен её принять.');
+      setMessage(res.status === 'accepted' ? tr('Теперь вы друзья! 🎉') : tr('Заявка отправлена. Друг должен её принять.'));
     });
   }
 
@@ -83,28 +84,28 @@ export default function FriendsScreen({ student, onBack }) {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.green} />}
     >
       <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
-        <Text style={styles.backText}>‹ Назад</Text>
+        <Text style={styles.backText}>{tr('‹ Назад')}</Text>
       </Pressable>
-      <Text style={styles.h1}>Друзья</Text>
+      <Text style={styles.h1}>{tr('Друзья')}</Text>
 
       {/* Мой код */}
       <Card style={styles.codeCard}>
-        <Text style={styles.small}>Твой код друга</Text>
-        <Text style={styles.code} selectable accessibilityLabel={`Код: ${code.split('').join(' ')}`}>{code || '······'}</Text>
-        <Text style={styles.small}>Скажи его другу из класса лично. Не выкладывай код в интернет.</Text>
+        <Text style={styles.small}>{tr('Твой код друга')}</Text>
+        <Text style={styles.code} selectable accessibilityLabel={tr('Код: {0}', code.split('').join(' '))}>{code || '······'}</Text>
+        <Text style={styles.small}>{tr('Скажи его другу из класса лично. Не выкладывай код в интернет.')}</Text>
       </Card>
 
       {!!message && <Text style={styles.ok}>{message}</Text>}
       {!!error && <Text style={styles.error}>{error}</Text>}
 
       {/* Добавить друга */}
-      {adding === 'closed' && <Button title="+ Добавить друга по коду" onPress={() => { setError(''); setAdding('gate'); }} />}
+      {adding === 'closed' && <Button title={tr('+ Добавить друга по коду')} onPress={() => { setError(''); setAdding('gate'); }} />}
       {adding === 'gate' && (
-        <ParentalGate title="Добавить друга — вместе со взрослым" onPass={() => setAdding('form')} onCancel={() => setAdding('closed')} />
+        <ParentalGate title={tr('Добавить друга — вместе со взрослым')} onPass={() => setAdding('form')} onCancel={() => setAdding('closed')} />
       )}
       {adding === 'form' && (
         <Card style={{ gap: 10 }}>
-          <Text style={styles.body}>Введи код друга</Text>
+          <Text style={styles.body}>{tr('Введи код друга')}</Text>
           <TextInput
             style={styles.input}
             value={input}
@@ -114,25 +115,25 @@ export default function FriendsScreen({ student, onBack }) {
             maxLength={8}
             placeholder="ABC234"
             placeholderTextColor="#8A928E"
-            accessibilityLabel="Код друга"
+            accessibilityLabel={tr('Код друга')}
           />
-          <Button title="Отправить заявку" onPress={submitCode} disabled={!input.trim()} />
-          <Button title="Отмена" variant="secondary" onPress={() => setAdding('closed')} />
+          <Button title={tr('Отправить заявку')} onPress={submitCode} disabled={!input.trim()} />
+          <Button title={tr('Отмена')} variant="secondary" onPress={() => setAdding('closed')} />
         </Card>
       )}
 
       {/* Входящие заявки */}
       {incoming.length > 0 && (
         <>
-          <Text style={styles.h2}>Хотят дружить</Text>
+          <Text style={styles.h2}>{tr('Хотят дружить')}</Text>
           {incoming.map((f) => (
             <Card key={f.id} style={styles.row}>
               <UserAvatar value={f.avatar} size={44} kamiColor={f.kami_color} />
               <Text style={[styles.name, { flex: 1 }]}>{f.nickname}</Text>
-              <Pressable accessibilityRole="button" onPress={() => act(() => friendAction(student.id, f.id, 'accept'), 'Теперь вы друзья! 🎉')} style={styles.accept}>
-                <Text style={styles.acceptText}>Принять</Text>
+              <Pressable accessibilityRole="button" onPress={() => act(() => friendAction(student.id, f.id, 'accept'), tr('Теперь вы друзья! 🎉'))} style={styles.accept}>
+                <Text style={styles.acceptText}>{tr('Принять')}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Отклонить ${f.nickname}`} onPress={() => act(() => friendAction(student.id, f.id, 'decline'))} style={styles.decline}>
+              <Pressable accessibilityRole="button" accessibilityLabel={tr('Отклонить {0}', f.nickname)} onPress={() => act(() => friendAction(student.id, f.id, 'decline'))} style={styles.decline}>
                 <Text style={styles.declineText}>✕</Text>
               </Pressable>
             </Card>
@@ -143,7 +144,7 @@ export default function FriendsScreen({ student, onBack }) {
       {/* Реакции от друзей */}
       {cheers.length > 0 && (
         <>
-          <Text style={styles.h2}>Тебе прислали</Text>
+          <Text style={styles.h2}>{tr('Тебе прислали')}</Text>
           <Card style={{ gap: 10 }}>
             {cheers.slice(0, 8).map((c) => (
               <View key={c.id} style={styles.cheerRow}>
@@ -159,10 +160,10 @@ export default function FriendsScreen({ student, onBack }) {
       )}
 
       {/* Друзья */}
-      <Text style={styles.h2}>Мои друзья {friends.length > 0 ? `(${friends.length})` : ''}</Text>
-      {list === null && <Text style={styles.small}>Загружаем…</Text>}
+      <Text style={styles.h2}>{tr('Мои друзья {0}', friends.length > 0 ? `(${friends.length})` : '')}</Text>
+      {list === null && <Text style={styles.small}>{tr('Загружаем…')}</Text>}
       {list !== null && friends.length === 0 && (
-        <Text style={styles.small}>Пока никого. Обменяйтесь кодами с одноклассниками — и подбадривайте друг друга!</Text>
+        <Text style={styles.small}>{tr('Пока никого. Обменяйтесь кодами с одноклассниками — и подбадривайте друг друга!')}</Text>
       )}
       {friends.map((f) => (
         <Card key={f.id} style={{ gap: 10 }}>
@@ -171,7 +172,7 @@ export default function FriendsScreen({ student, onBack }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{f.nickname}</Text>
               <Text style={styles.small}>
-                {f.active_today ? '✅ Занимался сегодня' : 'Сегодня ещё не занимался'} · {f.learned} {plural(f.learned, 'слово', 'слова', 'слов')}
+                {f.active_today ? tr('✅ Занимался сегодня') : tr('Сегодня ещё не занимался')} · {f.learned} {plural(f.learned, tr('слово'), tr('слова'), tr('слов'))}
               </Text>
             </View>
             <Text style={styles.chev}>{open === f.id ? '˄' : '˅'}</Text>
@@ -183,7 +184,7 @@ export default function FriendsScreen({ student, onBack }) {
                   <Pressable
                     key={key}
                     accessibilityRole="button"
-                    onPress={() => act(() => sendCheer(student.id, f.id, key), `Отправлено: ${label}`)}
+                    onPress={() => act(() => sendCheer(student.id, f.id, key), tr('Отправлено: {0}', label))}
                     style={styles.cheer}
                   >
                     <Text style={styles.cheerText}>{label}</Text>
@@ -194,16 +195,16 @@ export default function FriendsScreen({ student, onBack }) {
                 <View style={{ gap: 8 }}>
                   <Text style={styles.body}>
                     {confirm.action === 'block'
-                      ? `Заблокировать ${f.nickname}? Он(а) больше не сможет добавить тебя и присылать реакции.`
-                      : `Удалить ${f.nickname} из друзей?`}
+                      ? tr('Заблокировать {0}? Он(а) больше не сможет добавить тебя и присылать реакции.', f.nickname)
+                      : tr('Удалить {0} из друзей?', f.nickname)}
                   </Text>
-                  <Button title="Да" onPress={() => { const a = confirm.action; setConfirm(null); act(() => friendAction(student.id, f.id, a), a === 'block' ? 'Заблокирован.' : 'Удалён из друзей.'); }} />
-                  <Button title="Отмена" variant="secondary" onPress={() => setConfirm(null)} />
+                  <Button title={tr('Да')} onPress={() => { const a = confirm.action; setConfirm(null); act(() => friendAction(student.id, f.id, a), a === 'block' ? tr('Заблокирован.') : tr('Удалён из друзей.')); }} />
+                  <Button title={tr('Отмена')} variant="secondary" onPress={() => setConfirm(null)} />
                 </View>
               ) : (
                 <View style={styles.manage}>
-                  <Text style={styles.link} onPress={() => setConfirm({ id: f.id, action: 'remove' })}>Удалить</Text>
-                  <Text style={styles.danger} onPress={() => setConfirm({ id: f.id, action: 'block' })}>Заблокировать</Text>
+                  <Text style={styles.link} onPress={() => setConfirm({ id: f.id, action: 'remove' })}>{tr('Удалить')}</Text>
+                  <Text style={styles.danger} onPress={() => setConfirm({ id: f.id, action: 'block' })}>{tr('Заблокировать')}</Text>
                 </View>
               )}
             </>
@@ -214,20 +215,18 @@ export default function FriendsScreen({ student, onBack }) {
       {/* Исходящие */}
       {outgoing.length > 0 && (
         <>
-          <Text style={styles.h2}>Ждут подтверждения</Text>
+          <Text style={styles.h2}>{tr('Ждут подтверждения')}</Text>
           {outgoing.map((f) => (
             <Card key={f.id} style={styles.row}>
               <UserAvatar value={f.avatar} size={40} kamiColor={f.kami_color} />
               <Text style={[styles.body, { flex: 1 }]}>{f.nickname}</Text>
-              <Text style={styles.link} onPress={() => act(() => friendAction(student.id, f.id, 'remove'))}>Отменить</Text>
+              <Text style={styles.link} onPress={() => act(() => friendAction(student.id, f.id, 'remove'))}>{tr('Отменить')}</Text>
             </Card>
           ))}
         </>
       )}
 
-      <Text style={styles.safety}>
-        В Kami нельзя писать сообщения — только отправлять реакции. Если кто-то ведёт себя странно, заблокируй его и расскажи взрослому.
-      </Text>
+      <Text style={styles.safety}>{tr('В Kami нельзя писать сообщения — только отправлять реакции. Если кто-то ведёт себя странно, заблокируй его и расскажи взрослому.')}</Text>
     </ScrollView>
   );
 }

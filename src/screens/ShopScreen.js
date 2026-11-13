@@ -9,6 +9,7 @@ import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
+import { tr } from '../i18n';
 
 export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEquip, onOpenPlus, onOpenChest, refreshing, onRefresh }) {
   const [busy, setBusy] = useState(null);
@@ -16,7 +17,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   const [error, setError] = useState('');
 
   if (!shop) {
-    return <View style={styles.wrap}><Text style={styles.muted}>Загружаем магазин…</Text></View>;
+    return <View style={styles.wrap}><Text style={styles.muted}>{tr('Загружаем магазин…')}</Text></View>;
   }
 
   const freeze = shop.items.find((i) => i.kind === 'freeze');
@@ -31,8 +32,8 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   const featured = shop.items.find((i) => rot[i.id]?.featured);
   const DEFAULTS = ['color-green', 'avatar-person', 'bg-default'];
   const worn = { color: student.kami_color, avatar: student.avatar, bg: student.bg };
-  const WORN_TEXT = { color: 'Надет', avatar: 'Выбран', bg: 'Выбран' };
-  const OK_TEXT = { color: 'Ками переоделся!', avatar: 'Новый аватар!', bg: 'Новый фон!' };
+  const WORN_TEXT = { color: tr('Надет'), avatar: tr('Выбран'), bg: tr('Выбран') };
+  const OK_TEXT = { color: tr('Ками переоделся!'), avatar: tr('Новый аватар!'), bg: tr('Новый фон!') };
 
   function preview(item) {
     if (item.kind === 'avatar') return <UserAvatar value={item.value} size={72} kamiColor={kamiColor} />;
@@ -52,14 +53,14 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
             return (
               <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn, item.price >= 5000 && styles.legendCard]}>
                 <Tag tag={rot[item.id]?.tag} />
-                {item.price >= 5000 && <Text style={styles.legend}>ЛЕГЕНДАРНОЕ</Text>}
+                {item.price >= 5000 && <Text style={styles.legend}>{tr('ЛЕГЕНДАРНОЕ')}</Text>}
                 {preview(item)}
-                <Text style={styles.itemTitle} numberOfLines={1}>{item.title_ru}</Text>
+                <Text style={styles.itemTitle} numberOfLines={1}>{tr(item.title_ru)}</Text>
                 {isWorn ? (
                   <Text style={styles.worn}>{WORN_TEXT[kind]}</Text>
                 ) : locked ? (
                   <Pressable accessibilityRole="button" onPress={onOpenPlus} style={styles.plusLock}>
-                    <Text style={styles.plusLockText}>Только с Плюсом</Text>
+                    <Text style={styles.plusLockText}>{tr('Только с Плюсом')}</Text>
                   </Pressable>
                 ) : owned ? (
                   <Pressable
@@ -68,22 +69,22 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
                     onPress={() => run(item.id, () => onEquip(item.id), OK_TEXT[kind])}
                     style={styles.equip}
                   >
-                    <Text style={styles.equipText}>{kind === 'color' ? 'Надеть' : 'Выбрать'}</Text>
+                    <Text style={styles.equipText}>{kind === 'color' ? tr('Надеть') : tr('Выбрать')}</Text>
                   </Pressable>
                 ) : item.price === 0 ? (
                   <Pressable
                     accessibilityRole="button"
                     disabled={busy === item.id}
-                    onPress={() => run(item.id, () => onBuy(item.id), 'Получено!')}
+                    onPress={() => run(item.id, () => onBuy(item.id), tr('Получено!'))}
                     style={styles.equip}
                   >
-                    <Text style={styles.equipText}>Получить</Text>
+                    <Text style={styles.equipText}>{tr('Получить')}</Text>
                   </Pressable>
                 ) : (
                   <PriceButton
                     price={item.price}
                     disabled={busy === item.id || student.coins < item.price}
-                    onPress={() => run(item.id, () => onBuy(item.id), 'Куплено!')}
+                    onPress={() => run(item.id, () => onBuy(item.id), tr('Куплено!'))}
                   />
                 )}
               </Card>
@@ -113,16 +114,16 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
       refreshControl={<RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
     >
       <View style={styles.header}>
-        <Text style={styles.h1}>Магазин</Text>
+        <Text style={styles.h1}>{tr('Магазин')}</Text>
         <View style={styles.balance}>
           <Coin size={20} />
           <Text style={styles.balanceText}>{student.coins}</Text>
         </View>
       </View>
-      <Text style={styles.muted}>1 монета за каждое верное слово, +10 за выполненную цель дня.</Text>
+      <Text style={styles.muted}>{tr('1 монета за каждое верное слово, +10 за выполненную цель дня.')}</Text>
 
       <View style={styles.vitrine}>
-        <Text style={styles.vitrineTitle}>🛍 Витрина дня</Text>
+        <Text style={styles.vitrineTitle}>{tr('🛍 Витрина дня')}</Text>
         <Countdown to={shop.nextAt} onExpire={onRefresh} />
       </View>
 
@@ -132,23 +133,23 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
         return (
           <Card style={styles.featured}>
             <View style={styles.featuredHead}>
-              <Text style={styles.featuredLabel}>★ ВЕЩЬ ДНЯ</Text>
+              <Text style={styles.featuredLabel}>{tr('★ ВЕЩЬ ДНЯ')}</Text>
               <Tag tag={rot[featured.id]?.tag} inline />
             </View>
             <View style={styles.featuredRow}>
               {preview(featured)}
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={styles.featuredTitle}>{featured.title_ru}</Text>
-                <Text style={styles.small}>{{ avatar: 'Аватар', color: 'Цвет Ками', bg: 'Фон' }[featured.kind]} · только сегодня</Text>
-                {worn ? <Text style={styles.worn}>Надето</Text> : owned ? (
-                  <Pressable accessibilityRole="button" onPress={() => run(featured.id, () => onEquip(featured.id), 'Готово!')} style={styles.equip}>
-                    <Text style={styles.equipText}>Выбрать</Text>
+                <Text style={styles.featuredTitle}>{tr(featured.title_ru)}</Text>
+                <Text style={styles.small}>{tr('{0} · только сегодня', { avatar: tr('Аватар'), color: tr('Цвет Ками'), bg: tr('Фон') }[featured.kind])}</Text>
+                {worn ? <Text style={styles.worn}>{tr('Надето')}</Text> : owned ? (
+                  <Pressable accessibilityRole="button" onPress={() => run(featured.id, () => onEquip(featured.id), tr('Готово!'))} style={styles.equip}>
+                    <Text style={styles.equipText}>{tr('Выбрать')}</Text>
                   </Pressable>
                 ) : (
                   <PriceButton
                     price={featured.price}
                     disabled={busy === featured.id || student.coins < featured.price}
-                    onPress={() => run(featured.id, () => onBuy(featured.id), 'Куплено!')}
+                    onPress={() => run(featured.id, () => onBuy(featured.id), tr('Куплено!'))}
                   />
                 )}
               </View>
@@ -165,24 +166,24 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
           <View style={styles.chestRow}>
             <Chest type="skin" size={80} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.itemTitle}>{chest.title_ru}</Text>
-              <Text style={styles.small}>Только вещи: аватары, цвета, фоны. Вещи дороже 500 — с шансом 0,005%. Повторов не бывает.</Text>
+              <Text style={styles.itemTitle}>{tr(chest.title_ru)}</Text>
+              <Text style={styles.small}>{tr('Только вещи: аватары, цвета, фоны. Вещи дороже 500 — с шансом 0,005%. Повторов не бывает.')}</Text>
             </View>
           </View>
           <View style={styles.chestRow}>
             <PriceButton
               price={chest.price}
               disabled={busy === chest.id || student.coins < chest.price}
-              onPress={() => run(chest.id, () => onBuy(chest.id), 'Сундук куплен!')}
+              onPress={() => run(chest.id, () => onBuy(chest.id), tr('Сундук куплен!'))}
             />
             {(student.chests_skin || 0) > 0 && (
               <Pressable accessibilityRole="button" onPress={() => onOpenChest('skin')} style={styles.equip}>
-                <Text style={styles.equipText}>Открыть ({student.chests_skin})</Text>
+                <Text style={styles.equipText}>{tr('Открыть ({0})', student.chests_skin)}</Text>
               </Pressable>
             )}
             {(student.chests_lesson || 0) > 0 && (
               <Pressable accessibilityRole="button" onPress={() => onOpenChest('lesson')} style={styles.equip}>
-                <Text style={styles.equipText}>За уроки ({student.chests_lesson})</Text>
+                <Text style={styles.equipText}>{tr('За уроки ({0})', student.chests_lesson)}</Text>
               </Pressable>
             )}
           </View>
@@ -193,20 +194,20 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
         <Card style={styles.freezeCard}>
           <View style={styles.freezeIcon}><Snowflake size={28} /></View>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.itemTitle}>{freeze.title_ru}</Text>
-            <Text style={styles.small}>Спасает серию, если пропустишь день. У тебя: {student.streak_freezes} из 2.</Text>
+            <Text style={styles.itemTitle}>{tr(freeze.title_ru)}</Text>
+            <Text style={styles.small}>{tr('Спасает серию, если пропустишь день. У тебя: {0} из 2.', student.streak_freezes)}</Text>
           </View>
           <PriceButton
             price={freeze.price}
             disabled={busy === freeze.id || student.streak_freezes >= 2}
-            onPress={() => run(freeze.id, () => onBuy(freeze.id), 'Заморозка куплена!')}
+            onPress={() => run(freeze.id, () => onBuy(freeze.id), tr('Заморозка куплена!'))}
           />
         </Card>
       )}
 
-      {section('avatar', 'Аватары')}
-      {section('color', 'Цвет Ками')}
-      {section('bg', 'Фоны')}
+      {section('avatar', tr('Аватары'))}
+      {section('color', tr('Цвет Ками'))}
+      {section('bg', tr('Фоны'))}
     </ScrollView>
   );
 }
@@ -217,7 +218,7 @@ function Tag({ tag, inline }) {
   const isNew = tag === 'new';
   return (
     <View style={[styles.tag, isNew ? styles.tagNew : styles.tagBack]}>
-      <Text style={styles.tagText}>{isNew ? 'НОВОЕ' : 'ВЕРНУЛОСЬ'}</Text>
+      <Text style={styles.tagText}>{isNew ? tr('НОВОЕ') : tr('ВЕРНУЛОСЬ')}</Text>
     </View>
   );
 }
@@ -236,14 +237,14 @@ function Countdown({ to, onExpire }) {
   if (!to) return null;
   const h = Math.max(0, Math.floor(left / 3600000));
   const m = Math.max(0, Math.floor((left % 3600000) / 60000));
-  return <Text style={styles.countdown}>Обновится через {h} ч {m} мин</Text>;
+  return <Text style={styles.countdown}>{tr('Обновится через {0} ч {1} мин', h, m)}</Text>;
 }
 
 function PriceButton({ price, onPress, disabled }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Купить за ${price} монет`}
+      accessibilityLabel={tr('Купить за {0} монет', price)}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [styles.price, disabled && { opacity: 0.5 }, pressed && { transform: [{ scale: 0.97 }] }]}

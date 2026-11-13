@@ -13,6 +13,7 @@ import { Flame, Coin, Snowflake } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
 import { learnedCount, nextSchoolDay, subjectByCode, plural } from '../data/content';
+import { tr } from '../i18n';
 
 const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
@@ -50,9 +51,9 @@ export default function HomeScreen({
   const [tapLine, setTapLine] = useState(null);
   let bubble;
   let mood = hello.mood;
-  if (!hasSchedule) bubble = `${hello.text} Заполни расписание, и я буду готовить тебя к нужным урокам.`;
+  if (!hasSchedule) bubble = tr('{0} Заполни расписание, и я буду готовить тебя к нужным урокам.', hello.text);
   else if (!subjects.length) bubble = kamiSays('emptyDay');
-  else bubble = `${next.label}: ${subjects.map((c) => subjectByCode(c).es).join(', ')}. Подготовимся?`;
+  else bubble = tr('{0}: {1}. Подготовимся?', next.label, subjects.map((c) => subjectByCode(c).es).join(', '));
   if (hasSchedule && !streakInfo.today_done && streakInfo.streak > 0) mood = 'worried';
   if (streakInfo.today_done) mood = 'excited';
   const [riskLine] = useState(() => kamiSays('streakRisk'));
@@ -73,7 +74,7 @@ export default function HomeScreen({
         <View style={styles.chips}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Обновить"
+            accessibilityLabel={tr('Обновить')}
             onPress={onRefresh}
             disabled={refreshing}
             style={styles.refresh}
@@ -83,7 +84,7 @@ export default function HomeScreen({
           {/* Огонёк серый, пока сегодня не пройден урок; загорается после урока. */}
           <View
             style={[styles.chip, { backgroundColor: streakInfo.today_done ? colors.orangeLight : '#EEF0F2' }]}
-            accessibilityLabel={streakInfo.today_done ? `Серия ${streakInfo.streak} дней, сегодня урок пройден` : `Серия ${streakInfo.streak} дней, сегодня урока ещё не было`}
+            accessibilityLabel={streakInfo.today_done ? tr('Серия {0} дней, сегодня урок пройден', streakInfo.streak) : tr('Серия {0} дней, сегодня урока ещё не было', streakInfo.streak)}
           >
             <Flame size={16} color={streakInfo.today_done ? '#E8833A' : '#A3ABB5'} />
             <Text style={[styles.chipText, { color: streakInfo.today_done ? colors.orangeText : '#6B7480' }]}>{streakInfo.streak}</Text>
@@ -105,8 +106,8 @@ export default function HomeScreen({
         <View style={styles.rowBetween}>
           <Text style={styles.cardTitle}>
             {streakInfo.streak > 0
-              ? `${streakInfo.streak} ${plural(streakInfo.streak, 'день', 'дня', 'дней')} подряд`
-              : 'Начни серию сегодня'}
+              ? tr('{0} {1} подряд', streakInfo.streak, plural(streakInfo.streak, tr('день'), tr('дня'), tr('дней')))
+              : tr('Начни серию сегодня')}
           </Text>
           {streakInfo.freezes > 0 && (
             <View style={styles.freezeChip}>
@@ -122,7 +123,7 @@ export default function HomeScreen({
             return (
               <View key={d.day} style={styles.dayCol}>
                 <Text style={[styles.dayLetter, isToday && { color: colors.text, fontWeight: '700' }]}>
-                  {DAY_LETTERS[date.getDay()]}
+                  {tr(DAY_LETTERS[date.getDay()])}
                 </Text>
                 <View
                   style={[
@@ -140,19 +141,17 @@ export default function HomeScreen({
           })}
         </View>
         {!streakInfo.today_done && (
-          <Text style={styles.hint}>Пройди сегодня хотя бы один урок до конца, чтобы продлить серию.</Text>
+          <Text style={styles.hint}>{tr('Пройди сегодня хотя бы один урок до конца, чтобы продлить серию.')}</Text>
         )}
-        {streakInfo.today_done && <Text style={styles.hintDone}>Серия на сегодня продлена!</Text>}
+        {streakInfo.today_done && <Text style={styles.hintDone}>{tr('Серия на сегодня продлена!')}</Text>}
         {!!streakInfo.used_freezes && (
-          <Text style={styles.small}>
-            Заморозка спасла твою серию: {streakInfo.used_freezes} {plural(streakInfo.used_freezes, 'день', 'дня', 'дней')}.
-          </Text>
+          <Text style={styles.small}>{tr('Заморозка спасла твою серию: {0} {1}.', streakInfo.used_freezes, plural(streakInfo.used_freezes, tr('день'), tr('дня'), tr('дней')))}</Text>
         )}
         <View style={{ gap: 6 }}>
           <View style={styles.rowBetween}>
-            <Text style={styles.muted}>Цель дня</Text>
+            <Text style={styles.muted}>{tr('Цель дня')}</Text>
             <Text style={[styles.muted, goalDone && { color: colors.green, fontWeight: '700' }]}>
-              {goalDone ? 'выполнена' : `${wordsToday} из ${goal} слов`}
+              {goalDone ? tr('выполнена') : tr('{0} из {1} слов', wordsToday, goal)}
             </Text>
           </View>
           <ProgressBar value={wordsToday / goal} />
@@ -162,11 +161,11 @@ export default function HomeScreen({
       {dueCount > 0 && (
         <Card style={styles.review}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.reviewTitle}>Повторение: {dueCount} {plural(dueCount, 'слово', 'слова', 'слов')}</Text>
-            <Text style={styles.small}>Слова, которые пора освежить, чтобы не забылись.</Text>
+            <Text style={styles.reviewTitle}>{tr('Повторение: {0} {1}', dueCount, plural(dueCount, tr('слово'), tr('слова'), tr('слов')))}</Text>
+            <Text style={styles.small}>{tr('Слова, которые пора освежить, чтобы не забылись.')}</Text>
           </View>
           <Pressable accessibilityRole="button" onPress={onStartReview} style={styles.reviewButton}>
-            <Text style={styles.reviewButtonText}>Повторить</Text>
+            <Text style={styles.reviewButtonText}>{tr('Повторить')}</Text>
           </Pressable>
         </Card>
       )}
@@ -174,14 +173,14 @@ export default function HomeScreen({
       <View style={styles.kamiRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Нажми на Ками — он что-нибудь расскажет"
+          accessibilityLabel={tr('Нажми на Ками — он что-нибудь расскажет')}
           onPress={() => setTapLine(kamiFact())}
         >
           <Kami size={88} color={kamiColor} mood={tapLine ? 'excited' : mood} />
         </Pressable>
         <Pressable style={styles.bubble} onPress={() => setTapLine(kamiFact())} accessibilityRole="button">
           <Text style={styles.bubbleText}>{tapLine || bubble}</Text>
-          <Text style={styles.bubbleHint}>{tapLine ? 'Нажми ещё — расскажу другое' : 'Нажми на меня!'}</Text>
+          <Text style={styles.bubbleHint}>{tapLine ? tr('Нажми ещё — расскажу другое') : tr('Нажми на меня!')}</Text>
         </Pressable>
       </View>
 
@@ -192,7 +191,7 @@ export default function HomeScreen({
         if (!next) return null;
         const days = daysUntil(next.exam_date);
         const done = examsDone[next.id];
-        const task = days === 0 ? 'Быстрое повторение' : days === 1 ? 'Пробная контрольная' : 'Подготовка: 10 слов';
+        const task = days === 0 ? tr('Быстрое повторение') : days === 1 ? tr('Пробная контрольная') : tr('Подготовка: 10 слов');
         return (
           <View style={styles.examCard}>
             <View style={styles.examHead}>
@@ -200,17 +199,17 @@ export default function HomeScreen({
               <View style={{ flex: 1 }}>
                 <Text style={styles.examTitle}>📝 {subjectByCode(next.subject_code).es} — {whenText(days)}</Text>
                 <Text style={styles.small}>
-                  {days === 0 ? '¡Suerte! Ты готовился — всё получится.' : done ? 'На сегодня готово ✓ Завтра продолжим.' : `Сегодня: ${task.toLowerCase()}`}
+                  {days === 0 ? tr('¡Suerte! Ты готовился — всё получится.') : done ? tr('На сегодня готово ✓ Завтра продолжим.') : tr('Сегодня: {0}', task.toLowerCase())}
                 </Text>
               </View>
             </View>
             {!done && <Button title={task} onPress={() => onStartExam(next)} />}
-            <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">Все контрольные</Text>
+            <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">{tr('Все контрольные')}</Text>
           </View>
         );
       })()}
       {!exams.some((e) => daysUntil(e.exam_date) >= 0) && (
-        <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">📝 Скоро контрольная? Подготовимся вместе</Text>
+        <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">{tr('📝 Скоро контрольная? Подготовимся вместе')}</Text>
       )}
 
       {newCheers.length > 0 && (
@@ -218,9 +217,7 @@ export default function HomeScreen({
           <UserAvatar value={newCheers[0].avatar} size={44} />
           <View style={{ flex: 1 }}>
             <Text style={styles.cheerTitle}>{newCheers[0].from}: {cheerLabels[newCheers[0].cheer]}</Text>
-            <Text style={styles.small}>
-              {newCheers.length > 1 ? `И ещё ${newCheers.length - 1} от друзей · ` : ''}Нажми, чтобы ответить
-            </Text>
+            <Text style={styles.small}>{tr('{0}Нажми, чтобы ответить', newCheers.length > 1 ? tr('И ещё {0} от друзей · ', newCheers.length - 1) : '')}</Text>
           </View>
         </Pressable>
       )}
@@ -234,19 +231,19 @@ export default function HomeScreen({
           <Chest type={student.chests_lesson > 0 ? 'lesson' : 'skin'} size={56} />
           <View style={{ flex: 1 }}>
             <Text style={styles.chestTitle}>
-              {student.chests_lesson > 0 ? `Сундуки за уроки: ${student.chests_lesson}` : `Сундуки со скинами: ${student.chests_skin}`}
+              {student.chests_lesson > 0 ? tr('Сундуки за уроки: {0}', student.chests_lesson) : tr('Сундуки со скинами: {0}', student.chests_skin)}
             </Text>
-            <Text style={styles.small}>Нажми, чтобы открыть</Text>
+            <Text style={styles.small}>{tr('Нажми, чтобы открыть')}</Text>
           </View>
           <Text style={styles.chestArrow}>›</Text>
         </Pressable>
       )}
 
-      {!hasSchedule && <Button title="Заполнить расписание" variant="secondary" onPress={onOpenSchedule} />}
+      {!hasSchedule && <Button title={tr('Заполнить расписание')} variant="secondary" onPress={onOpenSchedule} />}
 
-      <Text style={styles.h2}>{hasSchedule ? `${next.label} в школе` : 'Темы'}</Text>
+      <Text style={styles.h2}>{hasSchedule ? tr('{0} в школе', next.label) : tr('Темы')}</Text>
       {hasSchedule && subjects.length === 0 && (
-        <Text style={styles.muted}>В расписании на этот день пусто.</Text>
+        <Text style={styles.muted}>{tr('В расписании на этот день пусто.')}</Text>
       )}
       {shownCodes.map((code) => {
         const subj = subjectByCode(code);
@@ -259,40 +256,38 @@ export default function HomeScreen({
               <Teacher teacher={teacherFor(code)} size={36} kamiColor={kamiColor} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.subject}>{subj.es}</Text>
-                {!!TEACHERS[code] && <Text style={styles.small}>Ведёт {TEACHERS[code].name}</Text>}
+                {!!TEACHERS[code] && <Text style={styles.small}>{tr('Ведёт {0}', TEACHERS[code].name)}</Text>}
               </View>
             </View>
             {blocks.length === 0 && (
               <Text style={styles.small}>
-                {subj.custom ? 'Свой предмет — готовых слов для него нет.' : 'Слова по этому предмету скоро появятся.'}
+                {subj.custom ? tr('Свой предмет — готовых слов для него нет.') : tr('Слова по этому предмету скоро появятся.')}
               </Text>
             )}
             {blocks.map((t) => {
               const done = learnedCount(t, learned);
               return (
                 <View key={t.id} style={{ gap: 6 }}>
-                  <Text style={styles.muted}>Тема: {t.title} · {t.titleRu}</Text>
+                  <Text style={styles.muted}>{tr('Тема: {0} · {1}', t.title, t.titleRu)}</Text>
                   <ProgressBar value={done / t.words.length} />
                   <View style={styles.rowBetween}>
-                    <Text style={styles.small}>{done} из {t.words.length} слов</Text>
+                    <Text style={styles.small}>{tr('{0} из {1} слов', done, t.words.length)}</Text>
                     <Text style={styles.link} onPress={() => onStartTopic(t.id)} accessibilityRole="button">
-                      {done === t.words.length ? 'Повторить' : 'Учить'}
+                      {done === t.words.length ? tr('Повторить') : tr('Учить')}
                     </Text>
                   </View>
                 </View>
               );
             })}
             {count > 1 && (
-              <Text style={styles.link} onPress={() => onOpenTopics(code)} accessibilityRole="button">
-                Все темы ({count})
-              </Text>
+              <Text style={styles.link} onPress={() => onOpenTopics(code)} accessibilityRole="button">{tr('Все темы ({0})', count)}</Text>
             )}
           </Card>
         );
       })}
 
-      {firstUnfinished && <Button title="Начать подготовку" onPress={() => onStartTopic(firstUnfinished.id)} />}
-      {!!onOpenTask && <Button title="Разобрать задание" variant="secondary" onPress={onOpenTask} />}
+      {firstUnfinished && <Button title={tr('Начать подготовку')} onPress={() => onStartTopic(firstUnfinished.id)} />}
+      {!!onOpenTask && <Button title={tr('Разобрать задание')} variant="secondary" onPress={onOpenTask} />}
     </ScrollView>
   );
 }

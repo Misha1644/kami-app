@@ -4,6 +4,7 @@
 //   в день контрольной — быстрое повторение и «¡Suerte!».
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dayKey } from '../data/facts';
+import { tr } from '../i18n';
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -15,10 +16,10 @@ export function daysUntil(dateStr, today = new Date()) {
 }
 
 export function whenText(days) {
-  if (days === 0) return 'сегодня';
-  if (days === 1) return 'завтра';
-  if (days < 5) return `через ${days} дня`;
-  return `через ${days} дней`;
+  if (days === 0) return tr('сегодня');
+  if (days === 1) return tr('завтра');
+  if (days < 5) return tr('через {0} дня', days);
+  return tr('через {0} дней', days);
 }
 
 // Все слова контрольной из выбранных тем.

@@ -5,6 +5,7 @@ import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from 'react-
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { SUBJECTS, WEEKDAYS, subjectByCode, nextSchoolDay, customCode, isCustom, CUSTOM_MAX } from '../data/content';
+import { tr } from '../i18n';
 
 export default function ScheduleScreen({ schedule, onSaveDay }) {
   const [day, setDay] = useState(nextSchoolDay().weekday);
@@ -26,7 +27,7 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
 
   function addCustom() {
     const name = customName.trim();
-    if (!name) return setError('Напиши название предмета.');
+    if (!name) return setError(tr('Напиши название предмета.'));
     addLesson(customCode(name));
   }
 
@@ -35,14 +36,14 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
     try {
       await onSaveDay(day, codes);
     } catch (e) {
-      setError('Не удалось сохранить. Проверь интернет и попробуй ещё раз.');
+      setError(tr('Не удалось сохранить. Проверь интернет и попробуй ещё раз.'));
     }
   }
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
-      <Text style={styles.h1}>Расписание</Text>
-      <Text style={styles.muted}>Внеси уроки — и Ками будет готовить тебя к завтрашним предметам.</Text>
+      <Text style={styles.h1}>{tr('Расписание')}</Text>
+      <Text style={styles.muted}>{tr('Внеси уроки — и Ками будет готовить тебя к завтрашним предметам.')}</Text>
 
       <View style={styles.days} accessibilityRole="tablist">
         {WEEKDAYS.map((label, i) => {
@@ -64,7 +65,7 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
       </View>
 
       <Card style={{ paddingVertical: 4 }}>
-        {lessons.length === 0 && <Text style={[styles.muted, { paddingVertical: 14 }]}>Уроков пока нет.</Text>}
+        {lessons.length === 0 && <Text style={[styles.muted, { paddingVertical: 14 }]}>{tr('Уроков пока нет.')}</Text>}
         {lessons.map((code, i) => {
           const s = subjectByCode(code);
           return (
@@ -72,11 +73,11 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
               <Text style={styles.num}>{i + 1}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.subject}>{s.es}</Text>
-                <Text style={styles.small}>{s.ru}</Text>
+                <Text style={styles.small}>{tr(s.ru)}</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Убрать урок ${s.es}`}
+                accessibilityLabel={tr('Убрать урок {0}', s.es)}
                 onPress={() => update(lessons.filter((_, j) => j !== i))}
                 style={styles.remove}
               >
@@ -89,13 +90,13 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
 
       {lessons.length < 8 && !adding && (
         <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={styles.addButton}>
-          <Text style={styles.addText}>+ Добавить урок</Text>
+          <Text style={styles.addText}>{tr('+ Добавить урок')}</Text>
         </Pressable>
       )}
 
       {adding && (
         <View style={{ gap: 8 }}>
-          <Text style={styles.label}>Какой предмет {lessons.length + 1}-м уроком?</Text>
+          <Text style={styles.label}>{tr('Какой предмет {0}-м уроком?', lessons.length + 1)}</Text>
           <View style={styles.grid}>
             {SUBJECTS.map((s) => (
               <Pressable
@@ -123,27 +124,27 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
                 onPress={() => { setTyping(true); setError(''); }}
                 style={[styles.subjectChip, styles.newChip]}
               >
-                <Text style={styles.newChipText}>+ Свой предмет</Text>
+                <Text style={styles.newChipText}>{tr('+ Свой предмет')}</Text>
               </Pressable>
             )}
           </View>
 
           {typing && (
             <View style={{ gap: 8 }}>
-              <Text style={styles.label}>Название предмета</Text>
+              <Text style={styles.label}>{tr('Название предмета')}</Text>
               <TextInput
                 style={styles.input}
                 value={customName}
                 onChangeText={(t) => { setCustomName(t); setError(''); }}
                 maxLength={CUSTOM_MAX}
-                placeholder="Например, Robótica"
+                placeholder={tr('Например, Robótica')}
                 placeholderTextColor="#8A928E"
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={addCustom}
               />
               <Pressable accessibilityRole="button" onPress={addCustom} style={styles.saveButton}>
-                <Text style={styles.saveText}>Добавить</Text>
+                <Text style={styles.saveText}>{tr('Добавить')}</Text>
               </Pressable>
             </View>
           )}
@@ -151,9 +152,7 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
             style={styles.link}
             onPress={() => { setAdding(false); setTyping(false); setCustomName(''); }}
             accessibilityRole="button"
-          >
-            Отмена
-          </Text>
+          >{tr('Отмена')}</Text>
         </View>
       )}
 

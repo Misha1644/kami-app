@@ -11,6 +11,7 @@ import { PLUS_ENABLED } from '../config';
 import Teacher from '../components/Teacher';
 import { teacherFor } from '../data/teachers';
 import { daysUntil, whenText } from '../lib/exams';
+import { tr } from '../i18n';
 
 const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
@@ -21,7 +22,7 @@ function Locked({ title, text, plan, onOpenPlus }) {
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.lockTitle}>{title}</Text>
         <Text style={styles.small}>{text}</Text>
-        <Text style={styles.lockCta}>{plan.trialUsed ? 'Открыть с Ками Плюс ›' : 'Попробовать 3 дня бесплатно ›'}</Text>
+        <Text style={styles.lockCta}>{plan.trialUsed ? tr('Открыть с Ками Плюс ›') : tr('Попробовать 3 дня бесплатно ›')}</Text>
       </View>
     </Pressable>
   );
@@ -31,7 +32,7 @@ export default function ProgressScreen({
   topics, exams = [], student, learned, streakInfo, wordsToday, plan, kamiColor, onOpenPlus, refreshing, onRefresh,
 }) {
   const open = plan.plus || !PLUS_ENABLED;
-  const en = student.native_lang === 'en';
+  const en = !['ru', 'uk'].includes(student.native_lang);
   const [hard, setHard] = useState(null);
   const [activity, setActivity] = useState(null);
 
@@ -64,7 +65,7 @@ export default function ProgressScreen({
     d.setDate(d.getDate() - i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const row = activity?.find((a) => a.day === key);
-    days.push({ key, wd: WD[d.getDay()], words: row?.words || 0, lessons: row?.lessons || 0 });
+    days.push({ key, wd: tr(WD[d.getDay()]), words: row?.words || 0, lessons: row?.lessons || 0 });
   }
   const maxWords = Math.max(goal, ...days.map((d) => d.words));
   const activeDays = days.filter((d) => d.lessons > 0).length;
@@ -76,7 +77,7 @@ export default function ProgressScreen({
       refreshControl={<RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
     >
       <View>
-        <Text style={styles.h1}>Успехи</Text>
+        <Text style={styles.h1}>{tr('Успехи')}</Text>
         <Text style={styles.small}>{student.nickname} · {student.grade}</Text>
       </View>
 
@@ -86,15 +87,15 @@ export default function ProgressScreen({
             <Flame size={20} color={streakInfo.today_done ? '#E8833A' : '#A3ABB5'} />
             <Text style={styles.statValue}>{streakInfo.streak}</Text>
           </View>
-          <Text style={styles.small}>{streakInfo.today_done ? 'дней подряд' : 'сегодня ещё нет урока'}</Text>
+          <Text style={styles.small}>{streakInfo.today_done ? tr('дней подряд') : tr('сегодня ещё нет урока')}</Text>
         </Card>
-        <Card style={styles.stat}><Text style={styles.statValue}>{totalLearned}</Text><Text style={styles.small}>слов выучено</Text></Card>
-        <Card style={styles.stat}><Text style={styles.statValue}>{Math.min(wordsToday, goal)}/{goal}</Text><Text style={styles.small}>цель на сегодня</Text></Card>
+        <Card style={styles.stat}><Text style={styles.statValue}>{totalLearned}</Text><Text style={styles.small}>{tr('слов выучено')}</Text></Card>
+        <Card style={styles.stat}><Text style={styles.statValue}>{Math.min(wordsToday, goal)}/{goal}</Text><Text style={styles.small}>{tr('цель на сегодня')}</Text></Card>
       </View>
 
       {exams.length > 0 && (
         <>
-          <Text style={styles.h2}>Контрольные</Text>
+          <Text style={styles.h2}>{tr('Контрольные')}</Text>
           <Card style={{ gap: 10 }}>
             {exams.map((e) => (
               <View key={e.id} style={styles.rowBetween}>
@@ -102,7 +103,7 @@ export default function ProgressScreen({
                   {subjectByCode(e.subject_code).es} · {daysUntil(e.exam_date) >= 0 ? whenText(daysUntil(e.exam_date)) : e.exam_date.split('-').reverse().slice(0, 2).join('.')}
                 </Text>
                 <Text style={styles.small}>
-                  {e.best_score != null ? `пробная: ${String(e.best_score / 10).replace('.', ',')}` : 'пробной ещё не было'}
+                  {e.best_score != null ? tr('пробная: {0}', String(e.best_score / 10).replace('.', ',')) : tr('пробной ещё не было')}
                 </Text>
               </View>
             ))}
@@ -110,7 +111,7 @@ export default function ProgressScreen({
         </>
       )}
 
-      <Text style={styles.h2}>Последние 2 недели</Text>
+      <Text style={styles.h2}>{tr('Последние 2 недели')}</Text>
       {open ? (
         <Card style={{ gap: 10 }}>
           <View style={styles.chart}>
@@ -123,15 +124,13 @@ export default function ProgressScreen({
               </View>
             ))}
           </View>
-          <Text style={styles.small}>
-            Занимался {activeDays} из 14 дней · за эту неделю {weekWords} слов. Зелёный столбик — цель дня выполнена.
-          </Text>
+          <Text style={styles.small}>{tr('Занимался {0} из 14 дней · за эту неделю {1} слов. Зелёный столбик — цель дня выполнена.', activeDays, weekWords)}</Text>
         </Card>
       ) : (
-        <Locked plan={plan} onOpenPlus={onOpenPlus} title="Активность по дням" text="Сколько слов и уроков было в каждый из последних 14 дней." />
+        <Locked plan={plan} onOpenPlus={onOpenPlus} title={tr('Активность по дням')} text={tr('Сколько слов и уроков было в каждый из последних 14 дней.')} />
       )}
 
-      <Text style={styles.h2}>Предметы</Text>
+      <Text style={styles.h2}>{tr('Предметы')}</Text>
       {open ? (
         <Card style={{ gap: 12 }}>
           {subjects.map(([code, s]) => (
@@ -143,32 +142,32 @@ export default function ProgressScreen({
                   <Text style={styles.small}>{s.done}/{s.total}</Text>
                 </View>
                 <ProgressBar value={s.done / s.total} />
-                <Text style={styles.small}>Тем готово: {s.ready} из {s.topics}</Text>
+                <Text style={styles.small}>{tr('Тем готово: {0} из {1}', s.ready, s.topics)}</Text>
               </View>
             </View>
           ))}
         </Card>
       ) : (
-        <Locked plan={plan} onOpenPlus={onOpenPlus} title="Готовность по предметам" text="Сколько слов выучено по каждому предмету и какие темы готовы к уроку." />
+        <Locked plan={plan} onOpenPlus={onOpenPlus} title={tr('Готовность по предметам')} text={tr('Сколько слов выучено по каждому предмету и какие темы готовы к уроку.')} />
       )}
 
-      <Text style={styles.h2}>Трудные слова</Text>
+      <Text style={styles.h2}>{tr('Трудные слова')}</Text>
       {open ? (
         <Card style={{ paddingVertical: 4 }}>
-          {hard === null && <Text style={[styles.small, { paddingVertical: 12 }]}>Загружаем…</Text>}
-          {hard?.length === 0 && <Text style={[styles.small, { paddingVertical: 12 }]}>Ошибок пока нет — отлично!</Text>}
+          {hard === null && <Text style={[styles.small, { paddingVertical: 12 }]}>{tr('Загружаем…')}</Text>}
+          {hard?.length === 0 && <Text style={[styles.small, { paddingVertical: 12 }]}>{tr('Ошибок пока нет — отлично!')}</Text>}
           {hard?.map((w, i) => (
             <View key={`${w.es}-${i}`} style={[styles.rowBetween, styles.hardRow, i < hard.length - 1 && styles.rowBorder]}>
               <View style={{ flexShrink: 1 }}>
                 <Text style={[styles.body, { fontWeight: '700' }]}>{w.es}</Text>
-                <Text style={styles.small}>{en ? (w.en || w.ru) : w.ru}</Text>
+                <Text style={styles.small}>{en ? ((student.native_lang === 'ar' && w.ar) || w.en || w.ru) : w.ru}</Text>
               </View>
-              <Text style={styles.mistakes}>ошибок: {w.wrong}</Text>
+              <Text style={styles.mistakes}>{tr('ошибок: {0}', w.wrong)}</Text>
             </View>
           ))}
         </Card>
       ) : (
-        <Locked plan={plan} onOpenPlus={onOpenPlus} title="Трудные слова" text="Слова, в которых чаще всего ошибки, — чтобы повторить их вместе." />
+        <Locked plan={plan} onOpenPlus={onOpenPlus} title={tr('Трудные слова')} text={tr('Слова, в которых чаще всего ошибки, — чтобы повторить их вместе.')} />
       )}
     </ScrollView>
   );

@@ -10,6 +10,7 @@ import Kami from '../components/Kami';
 import { Button, Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { KAMI_COLORS } from '../data/content';
+import { tr } from '../i18n';
 
 const PLANS = [
   { id: 'year', title: 'Год', price: '39,99 €', note: '3,33 € в месяц · выгоднее на 33%' },
@@ -38,7 +39,7 @@ export default function PlusScreen({ plan, onBack, onStartTrial }) {
     setNote('');
     try {
       await onStartTrial();
-      setNote(`Готово! Ками Плюс открыт на ${TRIAL_DAYS} дня.`);
+      setNote(tr('Готово! Ками Плюс открыт на {0} дня.', TRIAL_DAYS));
     } catch (e) {
       setNote(e.message);
     }
@@ -48,26 +49,26 @@ export default function PlusScreen({ plan, onBack, onStartTrial }) {
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
-        <Text style={styles.backText}>‹ Назад</Text>
+        <Text style={styles.backText}>{tr('‹ Назад')}</Text>
       </Pressable>
 
       <View style={styles.hero}>
         <Kami size={130} color={KAMI_COLORS['color-plus']} />
-        <Text style={styles.h1}>Ками Плюс</Text>
-        <Text style={styles.muted}>Больше помощи с заданиями и подробные отчёты для родителей.</Text>
+        <Text style={styles.h1}>{tr('Ками Плюс')}</Text>
+        <Text style={styles.muted}>{tr('Больше помощи с заданиями и подробные отчёты для родителей.')}</Text>
       </View>
 
       {plan.plus && (
         <Card style={styles.active}>
-          <Text style={styles.activeTitle}>Ками Плюс подключён</Text>
+          <Text style={styles.activeTitle}>{tr('Ками Плюс подключён')}</Text>
           <Text style={styles.small}>
             {plan.source === 'comp'
-              ? 'Бессрочно — подарок от разработчика.'
+              ? tr('Бессрочно — подарок от разработчика.')
               : plan.source === 'trial'
-                ? `Пробный период до ${new Date(plan.expiresAt).toLocaleDateString('ru-RU')}. Потом отчёты закроются, а уроки останутся бесплатными.`
+                ? tr('Пробный период до {0}. Потом отчёты закроются, а уроки останутся бесплатными.', new Date(plan.expiresAt).toLocaleDateString('ru-RU'))
               : plan.expiresAt
-                ? `Действует до ${new Date(plan.expiresAt).toLocaleDateString('ru-RU')}.`
-                : 'Подписка активна.'}
+                ? tr('Действует до {0}.', new Date(plan.expiresAt).toLocaleDateString('ru-RU'))
+                : tr('Подписка активна.')}
           </Text>
         </Card>
       )}
@@ -75,23 +76,23 @@ export default function PlusScreen({ plan, onBack, onStartTrial }) {
       <Card style={{ paddingVertical: 4 }}>
         <View style={[styles.row, styles.rowBorder]}>
           <Text style={[styles.cell, { flex: 2 }]} />
-          <Text style={[styles.cellHead]}>Бесплатно</Text>
-          <Text style={[styles.cellHead, { color: '#6B3FB8' }]}>Плюс</Text>
+          <Text style={[styles.cellHead]}>{tr('Бесплатно')}</Text>
+          <Text style={[styles.cellHead, { color: '#6B3FB8' }]}>{tr('Плюс')}</Text>
         </View>
         {BENEFITS.map((b, i) => (
           <View key={b.title} style={[styles.row, i < BENEFITS.length - 1 && styles.rowBorder]}>
-            <Text style={[styles.cell, { flex: 2, fontWeight: '700' }]}>{b.title}</Text>
+            <Text style={[styles.cell, { flex: 2, fontWeight: '700' }]}>{tr(b.title)}</Text>
             <Text style={styles.cell}>{b.free}</Text>
-            <Text style={[styles.cell, { color: '#6B3FB8', fontWeight: '700' }]}>{b.plus}</Text>
+            <Text style={[styles.cell, { color: '#6B3FB8', fontWeight: '700' }]}>{tr(b.plus)}</Text>
           </View>
         ))}
       </Card>
 
       {!plan.plus && !plan.trialUsed && (
         <Card style={styles.trial}>
-          <Text style={styles.activeTitle}>{TRIAL_DAYS} дня бесплатно</Text>
-          <Text style={styles.small}>Все возможности Плюса без оплаты и без привязки карты. После пробного периода ничего не списывается.</Text>
-          <Button title={busy ? 'Подождите…' : `Попробовать ${TRIAL_DAYS} дня бесплатно`} onPress={trial} disabled={busy} />
+          <Text style={styles.activeTitle}>{tr('{0} дня бесплатно', TRIAL_DAYS)}</Text>
+          <Text style={styles.small}>{tr('Все возможности Плюса без оплаты и без привязки карты. После пробного периода ничего не списывается.')}</Text>
+          <Button title={busy ? tr('Подождите…') : tr('Попробовать {0} дня бесплатно', TRIAL_DAYS)} onPress={trial} disabled={busy} />
         </Card>
       )}
 
@@ -109,8 +110,8 @@ export default function PlusScreen({ plan, onBack, onStartTrial }) {
                   style={[styles.plan, active && styles.planActive]}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.planTitle}>{p.title}</Text>
-                    <Text style={styles.small}>{p.note}</Text>
+                    <Text style={styles.planTitle}>{tr(p.title)}</Text>
+                    <Text style={styles.small}>{tr(p.note)}</Text>
                   </View>
                   <Text style={styles.planPrice}>{p.price}</Text>
                 </Pressable>
@@ -119,22 +120,22 @@ export default function PlusScreen({ plan, onBack, onStartTrial }) {
           </View>
           {gate ? (
             <ParentalGate
-              title="Подписку оформляет взрослый"
+              title={tr('Подписку оформляет взрослый')}
               onCancel={() => setGate(false)}
               onPass={() => {
                 setGate(false);
-                setNote('Оплата заработает в версии приложения из App Store и Google Play.');
+                setNote(tr('Оплата заработает в версии приложения из App Store и Google Play.'));
               }}
             />
           ) : (
             <Button
-              title={PAYMENTS_ENABLED ? 'Оформить Ками Плюс' : 'Оформить (скоро)'}
+              title={PAYMENTS_ENABLED ? tr('Оформить Ками Плюс') : tr('Оформить (скоро)')}
               variant={plan.trialUsed ? undefined : 'secondary'}
               onPress={() => setGate(true)}
             />
           )}
           {!!note && <Text style={styles.note}>{note}</Text>}
-          <Text style={styles.small}>При первом оформлении подписки ребёнку — 500 монет в подарок (один раз, пробный период не считается). Подписку оформляет и оплачивает только взрослый.</Text>
+          <Text style={styles.small}>{tr('При первом оформлении подписки ребёнку — 500 монет в подарок (один раз, пробный период не считается). Подписку оформляет и оплачивает только взрослый.')}</Text>
         </>
       )}
     </ScrollView>

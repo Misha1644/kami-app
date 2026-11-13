@@ -6,18 +6,19 @@ import { speak } from '../lib/speech';
 import { Card, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
 import { learnedCount, subjectByCode } from '../data/content';
+import { tr } from '../i18n';
 
 export default function TopicsScreen({ subjectCode, topics, learned, currentId, onSetCurrent, onStudy, onBack }) {
   const subj = subjectByCode(subjectCode);
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
-        <Text style={styles.backText}>‹ Назад</Text>
+        <Text style={styles.backText}>{tr('‹ Назад')}</Text>
       </Pressable>
       <View>
-        <Text style={styles.small}>Темы предмета</Text>
+        <Text style={styles.small}>{tr('Темы предмета')}</Text>
         <Text style={styles.h1}>{subj.es}</Text>
-        <Text style={styles.small}>Отметь тему, которую сейчас проходите в классе, — Ками покажет её на главной.</Text>
+        <Text style={styles.small}>{tr('Отметь тему, которую сейчас проходите в классе, — Ками покажет её на главной.')}</Text>
       </View>
 
       {!!TEACHERS[subjectCode] && (() => {
@@ -27,26 +28,26 @@ export default function TopicsScreen({ subjectCode, topics, learned, currentId, 
             <View style={styles.teacherHead}>
               <Teacher teacher={t} size={72} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.small}>Учитель предмета</Text>
+                <Text style={styles.small}>{tr('Учитель предмета')}</Text>
                 <Text style={styles.title}>{t.name}</Text>
-                <Text style={styles.small}>{t.who}</Text>
+                <Text style={styles.small}>{tr(t.who)}</Text>
               </View>
             </View>
-            <Text style={styles.about}>{t.about}</Text>
+            <Text style={styles.about}>{tr(t.about)}</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Послушать: ${t.motto[0]}`}
+              accessibilityLabel={tr('Послушать: {0}', t.motto[0])}
               onPress={() => speak(t.motto[0], { lang: subjectCode === 'val' ? 'ca-ES' : 'es-ES' })}
               style={[styles.motto, { borderColor: t.color }]}
             >
               <Text style={styles.mottoEs}>🔊 «{t.motto[0]}»</Text>
-              <Text style={styles.small}>{t.motto[1]}</Text>
+              <Text style={styles.small}>{tr(t.motto[1])}</Text>
             </Pressable>
           </Card>
         );
       })()}
 
-      {topics.length === 0 && <Text style={styles.small}>Для этого класса тем по предмету пока нет.</Text>}
+      {topics.length === 0 && <Text style={styles.small}>{tr('Для этого класса тем по предмету пока нет.')}</Text>}
 
       {topics.map((t, i) => {
         const done = learnedCount(t, learned);
@@ -59,19 +60,17 @@ export default function TopicsScreen({ subjectCode, topics, learned, currentId, 
                 <Text style={styles.title}>{t.title}</Text>
                 <Text style={styles.small}>{t.titleRu}</Text>
               </View>
-              {current && <Text style={styles.badge}>сейчас в классе</Text>}
+              {current && <Text style={styles.badge}>{tr('сейчас в классе')}</Text>}
             </View>
             <ProgressBar value={done / t.words.length} />
             <View style={styles.rowBetween}>
-              <Text style={styles.small}>{done} из {t.words.length} слов</Text>
+              <Text style={styles.small}>{tr('{0} из {1} слов', done, t.words.length)}</Text>
               <View style={{ flexDirection: 'row', gap: 16 }}>
                 {!current && (
-                  <Text style={styles.linkMuted} onPress={() => onSetCurrent(t.id)} accessibilityRole="button">
-                    Проходим сейчас
-                  </Text>
+                  <Text style={styles.linkMuted} onPress={() => onSetCurrent(t.id)} accessibilityRole="button">{tr('Проходим сейчас')}</Text>
                 )}
                 <Text style={styles.link} onPress={() => onStudy(t.id)} accessibilityRole="button">
-                  {done === t.words.length ? 'Повторить' : 'Учить'}
+                  {done === t.words.length ? tr('Повторить') : tr('Учить')}
                 </Text>
               </View>
             </View>

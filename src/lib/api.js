@@ -2,6 +2,7 @@
 // Монеты, серия и покупки меняются только через функции в базе (rpc) — так их нельзя накрутить.
 import { supabase } from './supabase';
 import { topics as localTopics } from '../data/content';
+import { tr } from '../i18n';
 
 const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg, chests_lesson, chests_skin, friends_enabled';
 
@@ -14,7 +15,7 @@ export const langFor = (subjectCode) => (subjectCode === 'val' ? 'ca-ES' : 'es-E
 export async function loadTopics(grade = '1º ESO') {
   const { data, error } = await supabase
     .from('topics')
-    .select('id, grade, subject, subject_code, title, title_ru, sort, words(id, es, ru, en, teacher, sort)')
+    .select('id, grade, subject, subject_code, title, title_ru, title_en, title_ar, sort, words(id, es, ru, en, ar, teacher, sort)')
     .order('sort')
     .order('sort', { referencedTable: 'words' });
   if (error || !data?.length) return grade === '1º ESO' ? localTopics : [];
@@ -27,6 +28,8 @@ export async function loadTopics(grade = '1º ESO') {
     subjectCode: t.subject_code,
     title: t.title,
     titleRu: t.title_ru,
+    titleEn: t.title_en,
+    titleAr: t.title_ar,
     words: (t.words || []).map((w) => ({ ...w, lang: langFor(t.subject_code) })),
   }));
 }
@@ -127,14 +130,14 @@ const SHOP_ERRORS = {
 // Покупка. Возвращает { coins, freezes, kami_color } или бросает ошибку с понятным текстом.
 export async function buyItem(studentId, itemId) {
   const { data, error } = await supabase.rpc('buy_item', { p_student: studentId, p_item: itemId });
-  if (error) throw new Error(SHOP_ERRORS[error.message] || error.message);
+  if (error) throw new Error(tr(SHOP_ERRORS[error.message] || error.message));
   return data;
 }
 
 // Надеть купленную вещь: цвет Ками, аватар или фон.
 export async function equipItem(studentId, itemId) {
   const { error } = await supabase.rpc('equip_item', { p_student: studentId, p_item: itemId });
-  if (error) throw new Error('Не получилось. Попробуй ещё раз.');
+  if (error) throw new Error(tr('Не получилось. Попробуй ещё раз.'));
 }
 export const equipColor = equipItem;
 
@@ -143,7 +146,7 @@ export async function updateStudent(studentId, fields) {
   const allowed = {};
   for (const k of ['daily_goal', 'native_lang', 'nickname']) if (k in fields) allowed[k] = fields[k];
   const { error } = await supabase.from('students').update(allowed).eq('id', studentId);
-  if (error) throw new Error('Не получилось сохранить. Попробуй ещё раз.');
+  if (error) throw new Error(tr('Не получилось сохранить. Попробуй ещё раз.'));
 }
 
 // Активность по дням за последние N дней: [{ day, words, lessons }].
@@ -205,7 +208,7 @@ export async function addCustomWord(studentId, { subjectCode, es, translation, e
     .single();
   if (error) {
     if (error.message?.includes('free words limit')) {
-      throw new Error('В бесплатной версии можно добавить до 50 своих слов. С Ками Плюс — без лимита.');
+      throw new Error(tr('В бесплатной версии можно добавить до 50 своих слов. С Ками Плюс — без лимита.'));
     }
     throw error;
   }
@@ -244,8 +247,8 @@ export async function explainTask(studentId, { mediaType, base64 }) {
   const { data, error } = await supabase.functions.invoke('explain-task', {
     body: { studentId, mediaType, data: base64 },
   });
-  if (error) throw new Error(TASK_ERRORS.failed);
-  if (data.error) throw new Error(TASK_ERRORS[data.error] || TASK_ERRORS.failed);
+  if (error) throw new Error(tr(TASK_ERRORS.failed));
+  if (data.error) throw new Error(tr(TASK_ERRORS[data.error] || TASK_ERRORS.failed));
   return data;
 }
 
@@ -253,7 +256,7 @@ export async function explainTask(studentId, { mediaType, base64 }) {
 // Открыть сундук: type = 'lesson' | 'skin'. Что выпало — решает сервер.
 export async function openChest(studentId, type) {
   const { data, error } = await supabase.rpc('open_chest', { p_student: studentId, p_type: type });
-  if (error) throw new Error(error.message.includes('no chest') ? 'Сундуков не осталось.' : 'Не получилось открыть. Попробуй ещё раз.');
+  if (error) throw new Error(error.message.includes('no chest') ? tr('Сундуков не осталось.') : tr('Не получилось открыть. Попробуй ещё раз.'));
   return data;
 }
 
@@ -277,9 +280,9 @@ export async function loadPlan() {
 export async function startTrial() {
   const { error } = await supabase.rpc('start_trial');
   if (error) {
-    if (error.message.includes('trial used')) throw new Error('Пробный период уже был на этом аккаунте.');
-    if (error.message.includes('already plus')) throw new Error('Ками Плюс уже подключён.');
-    throw new Error('Не получилось включить пробный период. Попробуйте позже.');
+    if (error.message.includes('trial used')) throw new Error(tr('Пробный период уже был на этом аккаунте.'));
+    if (error.message.includes('already plus')) throw new Error(tr('Ками Плюс уже подключён.'));
+    throw new Error(tr('Не получилось включить пробный период. Попробуйте позже.'));
   }
   return loadPlan();
 }
@@ -287,13 +290,13 @@ export async function startTrial() {
 // Трудные слова для отчёта родителям: где больше всего ошибок.
 export async function loadHardWords(studentId) {
   const [std, own] = await Promise.all([
-    supabase.from('progress').select('wrong_count, correct_count, words(es, ru, en)')
+    supabase.from('progress').select('wrong_count, correct_count, words(es, ru, en, ar)')
       .eq('student_id', studentId).gt('wrong_count', 0).order('wrong_count', { ascending: false }).limit(5),
     supabase.from('custom_words').select('wrong_count, correct_count, es, translation')
       .eq('student_id', studentId).gt('wrong_count', 0).order('wrong_count', { ascending: false }).limit(5),
   ]);
   const list = [
-    ...(std.data || []).map((r) => ({ es: r.words?.es, ru: r.words?.ru, en: r.words?.en, wrong: r.wrong_count, right: r.correct_count })),
+    ...(std.data || []).map((r) => ({ es: r.words?.es, ru: r.words?.ru, en: r.words?.en, ar: r.words?.ar, wrong: r.wrong_count, right: r.correct_count })),
     ...(own.data || []).map((r) => ({ es: r.es, ru: r.translation, wrong: r.wrong_count, right: r.correct_count })),
   ];
   return list.filter((w) => w.es).sort((a, b) => b.wrong - a.wrong).slice(0, 5);
@@ -307,10 +310,10 @@ export async function updateGrade(studentId, grade) {
 
 // Слова, которые пора повторить (умное повторение): обычные и свои. Не больше 15 за раз.
 export async function loadDueWords(studentId) {
-  const { data } = await supabase.from('progress').select('word_id, due_at, words(id, es, ru, en, teacher, topics(subject_code))')
+  const { data } = await supabase.from('progress').select('word_id, due_at, words(id, es, ru, en, ar, teacher, topics(subject_code))')
     .eq('student_id', studentId).lte('due_at', new Date().toISOString()).order('due_at').limit(15);
   return (data || []).filter((r) => r.words).map(({ words: w }) => ({
-    id: w.id, es: w.es, ru: w.ru, en: w.en, teacher: w.teacher, lang: langFor(w.topics?.subject_code),
+    id: w.id, es: w.es, ru: w.ru, en: w.en, ar: w.ar, teacher: w.teacher, lang: langFor(w.topics?.subject_code),
   }));
 }
 
@@ -327,7 +330,7 @@ export async function taskHelpAvailable() {
 // Удаление аккаунта родителя вместе со всеми данными детей.
 export async function deleteAccount() {
   const { data, error } = await supabase.functions.invoke('delete-account', { body: {} });
-  if (error || !data?.ok) throw new Error('Не получилось удалить аккаунт. Попробуйте позже.');
+  if (error || !data?.ok) throw new Error(tr('Не получилось удалить аккаунт. Попробуйте позже.'));
   await supabase.auth.signOut();
 }
 
@@ -351,7 +354,7 @@ const FRIEND_ERRORS = {
   'friends disabled': 'Друзья выключены в настройках для взрослых.',
   'not friends': 'Вы больше не друзья.',
 };
-const friendError = (e) => new Error(FRIEND_ERRORS[e?.message] || 'Не получилось. Попробуй ещё раз.');
+const friendError = (e) => new Error(tr(FRIEND_ERRORS[e?.message]) || tr('Не получилось. Попробуй ещё раз.'));
 
 export async function myFriendCode(studentId) {
   const { data, error } = await supabase.rpc('my_friend_code', { p_student: studentId });
@@ -383,7 +386,7 @@ export async function myCheers(studentId, markSeen = false) {
 }
 export async function setFriendsEnabled(studentId, on) {
   const { error } = await supabase.from('students').update({ friends_enabled: on }).eq('id', studentId);
-  if (error) throw new Error('Не получилось сохранить.');
+  if (error) throw new Error(tr('Не получилось сохранить.'));
 }
 
 // ----- Контрольные -----
@@ -398,12 +401,12 @@ export async function createExam(studentId, subjectCode, topicIds, examDate) {
   const { data, error } = await supabase.from('exams')
     .insert({ student_id: studentId, subject_code: subjectCode, topic_ids: topicIds, exam_date: examDate })
     .select('id, subject_code, topic_ids, exam_date, best_score').single();
-  if (error) throw new Error('Не получилось сохранить контрольную. Попробуй ещё раз.');
+  if (error) throw new Error(tr('Не получилось сохранить контрольную. Попробуй ещё раз.'));
   return data;
 }
 export async function deleteExam(examId) {
   const { error } = await supabase.from('exams').delete().eq('id', examId);
-  if (error) throw new Error('Не получилось удалить.');
+  if (error) throw new Error(tr('Не получилось удалить.'));
 }
 export async function saveExamScore(examId, score) {
   const { data } = await supabase.rpc('save_exam_score', { p_exam: examId, p_score: score });
@@ -418,5 +421,5 @@ export async function loadWeeklyEmail() {
 
 export async function setWeeklyEmail(on) {
   const { error } = await supabase.rpc('set_weekly_email', { p_on: on });
-  if (error) throw new Error('Не получилось сохранить.');
+  if (error) throw new Error(tr('Не получилось сохранить.'));
 }

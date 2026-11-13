@@ -11,6 +11,7 @@ import { kamiSays } from '../data/kami';
 import { Button, Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { explainTask } from '../lib/api';
+import { tr } from '../i18n';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -51,7 +52,7 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
     setBusy(true);
     try {
       const base64 = file.base64 || (await uriToBase64(file.uri));
-      if (base64.length * 0.75 > MAX_BYTES) throw new Error('Файл слишком большой. Нужно до 5 МБ.');
+      if (base64.length * 0.75 > MAX_BYTES) throw new Error(tr('Файл слишком большой. Нужно до 5 МБ.'));
       const res = await explainTask(student.id, { mediaType: file.mediaType, base64 });
       setResult(res.result);
       setLeft(res.left);
@@ -64,7 +65,7 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
   async function takePhoto() {
     if (Platform.OS !== 'web') {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) return setError('Разреши доступ к камере в настройках телефона.');
+      if (!perm.granted) return setError(tr('Разреши доступ к камере в настройках телефона.'));
     }
     const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.6, base64: true });
     if (r.canceled) return;
@@ -86,7 +87,7 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
     });
     if (r.canceled) return;
     const a = r.assets[0];
-    if (a.size && a.size > MAX_BYTES) return setError('Файл слишком большой. Нужно до 5 МБ.');
+    if (a.size && a.size > MAX_BYTES) return setError(tr('Файл слишком большой. Нужно до 5 МБ.'));
     const isPdf = a.mimeType === 'application/pdf' || a.name?.toLowerCase().endsWith('.pdf');
     send({ uri: a.uri, mediaType: isPdf ? 'application/pdf' : normalizeImageType(a.mimeType), isPdf, name: a.name });
   }
@@ -95,35 +96,35 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
     <ScrollView contentContainerStyle={styles.wrap}>
       {!!onBack && (
         <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
-          <Text style={styles.backText}>‹ Назад</Text>
+          <Text style={styles.backText}>{tr('‹ Назад')}</Text>
         </Pressable>
       )}
-      <Text style={styles.h1}>Разбор задания</Text>
-      <Text style={styles.muted}>Сфотографируй задание или загрузи файл — Ками объяснит, что от тебя хотят.</Text>
+      <Text style={styles.h1}>{tr('Разбор задания')}</Text>
+      <Text style={styles.muted}>{tr('Сфотографируй задание или загрузи файл — Ками объяснит, что от тебя хотят.')}</Text>
 
       {locked ? (
         <Pressable accessibilityRole="button" onPress={onOpenPlus} style={styles.locked}>
-          <Text style={styles.lockTitle}>🔒 Разбор заданий — с Ками Плюс</Text>
-          <Text style={styles.muted}>До 15 разборов в день: Ками прочитает задание и объяснит, что нужно сделать.</Text>
-          <Text style={styles.lockCta}>{plan?.trialUsed ? 'Открыть с Ками Плюс ›' : 'Попробовать 3 дня бесплатно ›'}</Text>
+          <Text style={styles.lockTitle}>{tr('🔒 Разбор заданий — с Ками Плюс')}</Text>
+          <Text style={styles.muted}>{tr('До 15 разборов в день: Ками прочитает задание и объяснит, что нужно сделать.')}</Text>
+          <Text style={styles.lockCta}>{plan?.trialUsed ? tr('Открыть с Ками Плюс ›') : tr('Попробовать 3 дня бесплатно ›')}</Text>
         </Pressable>
       ) : (
       <>
 
       <View style={{ gap: 10 }}>
-        <Button title="Сфотографировать" onPress={takePhoto} disabled={busy} />
+        <Button title={tr('Сфотографировать')} onPress={takePhoto} disabled={busy} />
         <View style={styles.row}>
-          <View style={{ flex: 1 }}><Button title="Фото из галереи" variant="secondary" onPress={pickPhoto} disabled={busy} /></View>
-          <View style={{ flex: 1 }}><Button title="Файл или PDF" variant="secondary" onPress={pickFile} disabled={busy} /></View>
+          <View style={{ flex: 1 }}><Button title={tr('Фото из галереи')} variant="secondary" onPress={pickPhoto} disabled={busy} /></View>
+          <View style={{ flex: 1 }}><Button title={tr('Файл или PDF')} variant="secondary" onPress={pickFile} disabled={busy} /></View>
         </View>
       </View>
 
       {preview && (
         <View style={styles.paper}>
           {preview.isPdf ? (
-            <Text style={styles.paperText}>PDF: {preview.name || 'файл'}</Text>
+            <Text style={styles.paperText}>PDF: {preview.name || tr('файл')}</Text>
           ) : (
-            <Image source={{ uri: preview.uri }} style={styles.image} resizeMode="contain" accessibilityLabel="Фото задания" />
+            <Image source={{ uri: preview.uri }} style={styles.image} resizeMode="contain" accessibilityLabel={tr('Фото задания')} />
           )}
         </View>
       )}
@@ -131,7 +132,7 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
       {busy && (
         <View style={styles.loading}>
           <ActivityIndicator color={colors.green} />
-          <Text style={styles.muted}>Ками читает задание…</Text>
+          <Text style={styles.muted}>{tr('Ками читает задание…')}</Text>
         </View>
       )}
 
@@ -139,7 +140,7 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
 
       {result && result.not_a_task && (
         <Card style={{ gap: 6 }}>
-          <Text style={styles.label}>Похоже, это не задание</Text>
+          <Text style={styles.label}>{tr('Похоже, это не задание')}</Text>
           <Text style={styles.body}>{result.meaning}</Text>
         </Card>
       )}
@@ -148,19 +149,19 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
         <>
           {!!result.original && (
             <View style={styles.paperNote}>
-              <Text style={styles.label}>Текст задания</Text>
+              <Text style={styles.label}>{tr('Текст задания')}</Text>
               <Text style={styles.paperText}>{result.original}</Text>
             </View>
           )}
 
           <Card style={{ gap: 6 }}>
-            <Text style={styles.label}>Что от тебя хотят</Text>
+            <Text style={styles.label}>{tr('Что от тебя хотят')}</Text>
             <Text style={styles.body}>{result.meaning}</Text>
           </Card>
 
           {result.keywords.length > 0 && (
             <View style={{ gap: 8 }}>
-              <Text style={styles.label}>Ключевые слова</Text>
+              <Text style={styles.label}>{tr('Ключевые слова')}</Text>
               <View style={styles.chips}>
                 {result.keywords.map((k) => (
                   <View key={k.es} style={styles.chip}>
@@ -173,7 +174,7 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
 
           {!!result.phrase_es && (
             <Card style={{ gap: 6 }}>
-              <Text style={styles.label}>Как начать ответ</Text>
+              <Text style={styles.label}>{tr('Как начать ответ')}</Text>
               <Text style={[styles.body, { fontStyle: 'italic' }]}>«{result.phrase_es}»</Text>
               <Text style={styles.muted}>{result.phrase_tr}</Text>
             </Card>
@@ -184,7 +185,7 @@ export default function TaskScreen({ student, kamiColor, plan, onOpenPlus, onBac
             <Text style={styles.kamiText}>{taskLine}</Text>
           </View>
 
-          {left !== null && <Text style={styles.small}>Разборов на сегодня осталось: {left}</Text>}
+          {left !== null && <Text style={styles.small}>{tr('Разборов на сегодня осталось: {0}', left)}</Text>}
         </>
       )}
       </>

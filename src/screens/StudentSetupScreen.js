@@ -7,6 +7,7 @@ import { Button } from '../components/ui';
 import { colors, radius } from '../theme';
 import { createStudent } from '../lib/api';
 import { GRADES } from '../data/content';
+import { tr, uiLangFor } from '../i18n';
 
 const LANGS = [
   { code: 'ru', label: 'Русский' },
@@ -15,15 +16,17 @@ const LANGS = [
   { code: 'ar', label: 'العربية' },
 ];
 
-export default function StudentSetupScreen({ onCreated }) {
+export default function StudentSetupScreen({ onCreated, lang: uiLang = 'ru', onLang }) {
   const [nickname, setNickname] = useState('');
-  const [lang, setLang] = useState('ru');
+  const [lang, setLangState] = useState(uiLang);
+  // Выбор языка сразу переключает и интерфейс.
+  const setLang = (code) => { setLangState(code); onLang?.(uiLangFor(code)); };
   const [grade, setGrade] = useState(GRADES[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   async function save() {
-    if (!nickname.trim()) return setError('Введите имя или псевдоним.');
+    if (!nickname.trim()) return setError(tr('Введите имя или псевдоним.'));
     setBusy(true);
     setError('');
     try {
@@ -37,23 +40,23 @@ export default function StudentSetupScreen({ onCreated }) {
   return (
     <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
       <View style={{ alignItems: 'center' }}><Kami size={120} /></View>
-      <Text style={styles.h1}>Кто будет учиться?</Text>
-      <Text style={styles.muted}>Достаточно имени или псевдонима. Фамилия и фото не нужны.</Text>
+      <Text style={styles.h1}>{tr('Кто будет учиться?')}</Text>
+      <Text style={styles.muted}>{tr('Достаточно имени или псевдонима. Фамилия и фото не нужны.')}</Text>
 
       <View style={{ gap: 6 }}>
-        <Text style={styles.label}>Имя ученика</Text>
+        <Text style={styles.label}>{tr('Имя ученика')}</Text>
         <TextInput
           style={styles.input}
           value={nickname}
           onChangeText={setNickname}
           maxLength={30}
-          placeholder="Например, Алекс"
+          placeholder={tr('Например, Алекс')}
           placeholderTextColor="#8A928E"
         />
       </View>
 
       <View style={{ gap: 8 }}>
-        <Text style={styles.label}>Родной язык (для переводов)</Text>
+        <Text style={styles.label}>{tr('Родной язык')}</Text>
         <View style={styles.chips}>
           {LANGS.map((l) => {
             const active = l.code === lang;
@@ -70,11 +73,11 @@ export default function StudentSetupScreen({ onCreated }) {
             );
           })}
         </View>
-        <Text style={styles.small}>Пока переводы есть на русском и английском, остальные языки скоро.</Text>
+        <Text style={styles.small}>{tr('На этом языке будут приложение и переводы слов. Для украинского пока русский.')}</Text>
       </View>
 
       <View style={{ gap: 8 }}>
-        <Text style={styles.label}>Класс</Text>
+        <Text style={styles.label}>{tr('Класс')}</Text>
         <View style={styles.chips}>
           {GRADES.map((g) => {
             const active = g === grade;
@@ -93,7 +96,7 @@ export default function StudentSetupScreen({ onCreated }) {
         </View>
       </View>
       {!!error && <Text style={styles.error}>{error}</Text>}
-      <Button title={busy ? 'Сохраняем…' : 'Начать'} onPress={save} disabled={busy} />
+      <Button title={busy ? tr('Сохраняем…') : tr('Начать')} onPress={save} disabled={busy} />
     </ScrollView>
   );
 }

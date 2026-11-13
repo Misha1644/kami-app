@@ -7,6 +7,7 @@ import Kami from './Kami';
 import { colors, radius } from '../theme';
 import { factOfDay, dayKey } from '../data/facts';
 import { speak } from '../lib/speech';
+import { tr } from '../i18n';
 
 export default function FactCard({ kamiColor }) {
   const [today] = useState(() => new Date());
@@ -26,36 +27,36 @@ export default function FactCard({ kamiColor }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={open ? `Факт дня: ${fact.t}` : `Открыть факт дня: ${fact.t}`}
+      accessibilityLabel={open ? tr('Факт дня: {0}', tr(fact.t)) : tr('Открыть факт дня: {0}', tr(fact.t))}
       onPress={open ? undefined : reveal}
       style={[styles.card, !open && styles.closed]}
     >
       <View style={styles.head}>
-        <Text style={styles.label}>ФАКТ ДНЯ ОТ КАМИ</Text>
-        {!open && <Text style={styles.badge}>новый</Text>}
+        <Text style={styles.label}>{tr('ФАКТ ДНЯ ОТ КАМИ')}</Text>
+        {!open && <Text style={styles.badge}>{tr('новый')}</Text>}
       </View>
       <View style={styles.row}>
         <Kami size={52} color={kamiColor} mood={open ? 'excited' : 'happy'} />
-        <Text style={styles.title}>{fact.t}</Text>
+        <Text style={styles.title}>{tr(fact.t)}</Text>
       </View>
       {open ? (
         <>
-          <Text style={styles.text}>{fact.x}</Text>
+          <Text style={styles.text}>{tr(fact.x)}</Text>
           {!!fact.w && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Послушать: ${fact.w[0]}`}
+              accessibilityLabel={tr('Послушать: {0}', fact.w[0])}
               onPress={() => speak(fact.w[0])}
               style={styles.word}
             >
               <Text style={styles.wordEs}>🔊 {fact.w[0]}</Text>
-              <Text style={styles.wordRu}>{fact.w[1]}</Text>
+              <Text style={styles.wordRu}>{tr(fact.w[1])}</Text>
             </Pressable>
           )}
-          <Text style={styles.small}>Завтра Ками расскажет новый факт.</Text>
+          <Text style={styles.small}>{tr('Завтра Ками расскажет новый факт.')}</Text>
         </>
       ) : (
-        <Text style={styles.open}>Нажми, чтобы узнать →</Text>
+        <Text style={styles.open}>{tr('Нажми, чтобы узнать →')}</Text>
       )}
     </Pressable>
   );

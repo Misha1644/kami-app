@@ -1,6 +1,6 @@
-# Kami — политика конфиденциальности / Política de privacidad
+# Kami — политика конфиденциальности / Política de privacidad / Privacy policy
 
-Обновлено / Actualizada: 13.11.2026
+Обновлено / Actualizada / Updated: 13.11.2026
 
 ## Политика конфиденциальности
 
@@ -95,3 +95,97 @@ Puede acceder a sus datos, rectificarlos, suprimirlos, limitar su tratamiento u 
 ### Cambios
 
 Si la política cambia, lo indicaremos en la aplicación. La fecha de actualización figura abajo.
+
+## Privacy policy
+
+### Who we are
+
+The app «Kami — school Spanish» helps foreign children understand their lessons at a Spanish school. Data controller: [name and surname or company name], [address]. Contact: [support email].
+
+### Who creates the account
+
+Only a parent or legal guardian creates the account. In Spain, consent to process the data of a child under 14 is given by the parent (art. 7 LOPDGDD). By signing up, the parent confirms they are an adult and gives this consent.
+
+### What data we store
+
+• The parent\'s email and password (the password is only stored encrypted).
+• The child\'s profile: first name or nickname, school year, native language. We recommend a nickname rather than a full name.
+• Learning: learned words, mistakes, study days, streak, coins and Kami colours bought with coins, the lesson timetable.
+• The number of homework explanations per day (only the date, no content).
+• Friends (unless turned off): friend code, list of friends and requests, ready-made reactions sent. Friends only see the first name or nickname, avatar, Kami colour, number of learned words and whether the child studied today.
+
+### What we do NOT store
+
+• Photos and files of homework: they are sent for processing and deleted straight away; we do not keep them.
+• Voice recordings: they stay on the phone and are not sent anywhere.
+• We show no ads, sell no data, use no tracking or analytics, and users cannot message each other: friends only exchange ready-made reactions from a list. A child cannot be found by name — only by a code they shared themselves. An adult can turn friends off in the profile.
+
+### Who processes the data
+
+• Supabase (database and sign-in), servers in the EU (Paris).
+• Anthropic (Claude AI, USA) — only when the child sends a photo or file of a task; under its API terms Anthropic does not use this data to train models.
+• Resend (email delivery, USA) — only with Kami Plus: once a week it sends the parent a progress report to their email. The report can be turned off: «Profile» → «For adults» → «Email report».
+• In a web browser, pronunciation checking is done by the browser\'s own speech recognition service (for example, Google in Chrome). In the phone app this feature does not send the voice anywhere.
+
+### Why
+
+Only so that the app works: to show lessons, track progress, send study reminders, explain tasks and send the parent a weekly report (with Kami Plus). Legal basis: the contract (providing the service) and the parent\'s consent.
+
+### How long
+
+As long as the account exists. You can delete the account at any time: «Profile» → «For adults» → «Delete account». All of the child\'s data is deleted immediately; Supabase backups may keep it for a limited time, after which it is deleted.
+
+### Your rights
+
+You can get a copy of your data, correct it, delete it, restrict or object to its processing by writing to [support email]. If you think your rights have been violated, you can complain to the Spanish Data Protection Agency (AEPD, www.aepd.es).
+
+### Changes
+
+If the policy changes, we will show it in the app. The update date is shown below.
+
+## سياسة الخصوصية
+
+### من نحن
+
+يساعد تطبيق «Kami — الإسبانية للمدرسة» الأطفال الأجانب على فهم دروسهم في المدرسة الإسبانية. المسؤول عن معالجة البيانات: [الاسم واللقب أو اسم الشركة]، [العنوان]. للتواصل: [بريد الدعم].
+
+### من ينشئ الحساب
+
+ينشئ الحساب الوالد أو الوصي القانوني فقط. في إسبانيا، يعطي الوالد الموافقة على معالجة بيانات الطفل الذي يقل عمره عن 14 سنة (المادة 7 من قانون LOPDGDD). عند التسجيل يؤكد الوالد أنه بالغ ويعطي هذه الموافقة.
+
+### البيانات التي نحفظها
+
+• البريد الإلكتروني وكلمة مرور الوالد (تُحفظ كلمة المرور مشفّرة فقط).
+• ملف الطفل: الاسم أو اللقب، الصف الدراسي، اللغة الأم. ننصح باستخدام لقب بدل الاسم الكامل.
+• التعلّم: الكلمات المحفوظة، الأخطاء، أيام الدراسة، السلسلة، العملات وألوان كامي المشتراة بالعملات، جدول الحصص.
+• عدد شروحات الواجبات في اليوم (التاريخ فقط، دون المحتوى).
+• الأصدقاء (إن لم تكن الميزة مطفأة): رمز الصديق، قائمة الأصدقاء والطلبات، التفاعلات الجاهزة المرسلة. يرى الأصدقاء الاسم أو اللقب والصورة الرمزية ولون كامي وعدد الكلمات المحفوظة وهل درس الطفل اليوم فقط.
+
+### ما لا نحفظه
+
+• صور وملفات الواجبات: تُرسل للمعالجة وتُحذف فورًا، ولا نحتفظ بها.
+• تسجيلات الصوت: تبقى على الهاتف ولا تُرسل إلى أي مكان.
+• لا نعرض إعلانات ولا نبيع البيانات ولا نستخدم التتبع أو التحليلات، ولا يستطيع المستخدمون مراسلة بعضهم: يتبادل الأصدقاء تفاعلات جاهزة من قائمة فقط. لا يمكن العثور على الطفل باسمه — فقط بالرمز الذي شاركه بنفسه. يمكن للبالغ إطفاء الأصدقاء من الملف الشخصي.
+
+### من يعالج البيانات
+
+• Supabase (قاعدة البيانات وتسجيل الدخول)، خوادم في الاتحاد الأوروبي (باريس).
+• Anthropic (ذكاء Claude الاصطناعي، الولايات المتحدة) — فقط عندما يرسل الطفل بنفسه صورة أو ملف واجب؛ ووفق شروط واجهتها البرمجية لا تستخدم Anthropic هذه البيانات لتدريب النماذج.
+• Resend (إرسال البريد، الولايات المتحدة) — فقط مع كامي بلس: يرسل مرة في الأسبوع تقريرًا عن التقدم إلى بريد الوالد. يمكن إيقاف التقرير: «الملف الشخصي» ← «للكبار» ← «تقرير بالبريد».
+• في المتصفح، يتحقق من النطق خدمة التعرّف على الكلام الخاصة بالمتصفح (مثل Google في Chrome). في تطبيق الهاتف لا ترسل هذه الميزة الصوت.
+
+### لماذا
+
+فقط ليعمل التطبيق: عرض الدروس، حساب التقدم، التذكير بالدراسة، شرح الواجبات وإرسال تقرير أسبوعي للوالد (مع كامي بلس). الأساس القانوني: العقد (تقديم الخدمة) وموافقة الوالد.
+
+### مدة الحفظ
+
+ما دام الحساب موجودًا. يمكن حذف الحساب في أي وقت: «الملف الشخصي» ← «للكبار» ← «حذف الحساب». تُحذف كل بيانات الطفل فورًا؛ وقد تبقى في نسخ Supabase الاحتياطية لمدة محدودة ثم تُحذف.
+
+### حقوقك
+
+يمكنك الحصول على نسخة من البيانات أو تصحيحها أو حذفها أو تقييد معالجتها أو الاعتراض عليها بالكتابة إلى [بريد الدعم]. إذا رأيت أن حقوقك انتُهكت، يمكنك تقديم شكوى إلى الوكالة الإسبانية لحماية البيانات (AEPD، www.aepd.es).
+
+### التغييرات
+
+إذا تغيّرت السياسة سنُظهر ذلك في التطبيق. تاريخ التحديث مذكور أدناه.

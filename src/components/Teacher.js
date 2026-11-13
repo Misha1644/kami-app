@@ -1,4 +1,5 @@
 // Аватар учителя-персонажа (круглый портрет). mood: happy | worried — меняет рот.
+import { tr } from '../i18n';
 import Svg, { Circle, Ellipse, Path, Rect, Line, G } from 'react-native-svg';
 import Kami from './Kami';
 
@@ -244,7 +245,7 @@ export default function Teacher({ teacher, size = 64, mood = 'happy', kamiColor 
   }
   const face = FACES[teacher.avatar];
   return (
-    <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityLabel={`${teacher.name}, ${teacher.who}`}>
+    <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityLabel={`${tr(teacher.name)}, ${tr(teacher.who)}`}>
       <Circle cx={50} cy={50} r={50} fill={`${teacher.color}22`} />
       <G>{face ? face(teacher.color, mood) : null}</G>
     </Svg>

@@ -12,6 +12,7 @@ import {
   setAudioModeAsync,
   createAudioPlayer,
 } from 'expo-audio';
+import { tr } from '../i18n';
 
 function webRecognition() {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
@@ -60,7 +61,7 @@ export function useVoiceRecorder() {
     try {
       const perm = await AudioModule.requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        setError('Нужен доступ к микрофону. Разреши его в настройках телефона.');
+        setError(tr('Нужен доступ к микрофону. Разреши его в настройках телефона.'));
         return;
       }
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
@@ -69,7 +70,7 @@ export function useVoiceRecorder() {
       setUri(null);
       setRecording(true);
     } catch (e) {
-      setError('Не получилось включить микрофон.');
+      setError(tr('Не получилось включить микрофон.'));
     }
   }
 
@@ -78,7 +79,7 @@ export function useVoiceRecorder() {
       await recorder.stop();
       setUri(recorder.uri);
     } catch (e) {
-      setError('Запись не сохранилась, попробуй ещё раз.');
+      setError(tr('Запись не сохранилась, попробуй ещё раз.'));
     }
     setRecording(false);
     // Возвращаем звук в динамик, чтобы голос Ками было слышно громко.
@@ -92,7 +93,7 @@ export function useVoiceRecorder() {
       player.current = createAudioPlayer(uri);
       player.current.play();
     } catch (e) {
-      setError('Не получилось воспроизвести запись.');
+      setError(tr('Не получилось воспроизвести запись.'));
     }
   }
 

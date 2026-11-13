@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Button, Card } from './ui';
 import { colors, radius } from '../theme';
+import { tr } from '../i18n';
 
 function makeTask() {
   const a = 6 + Math.floor(Math.random() * 7); // 6–12
@@ -11,14 +12,14 @@ function makeTask() {
   return { a, b, answer: a * b };
 }
 
-export default function ParentalGate({ title = 'Для взрослых', onPass, onCancel }) {
+export default function ParentalGate({ title = tr('Для взрослых'), onPass, onCancel }) {
   const [task, setTask] = useState(makeTask);
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
 
   function check() {
     if (Number(value) === task.answer) return onPass();
-    setError('Неверно. Попробуйте ещё раз.');
+    setError(tr('Неверно. Попробуйте ещё раз.'));
     setValue('');
     setTask(makeTask());
   }
@@ -26,7 +27,7 @@ export default function ParentalGate({ title = 'Для взрослых', onPass
   return (
     <Card style={styles.card}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.small}>Чтобы продолжить, решите пример:</Text>
+      <Text style={styles.small}>{tr('Чтобы продолжить, решите пример:')}</Text>
       <Text style={styles.task}>{task.a} × {task.b} = ?</Text>
       <TextInput
         style={styles.input}
@@ -34,13 +35,13 @@ export default function ParentalGate({ title = 'Для взрослых', onPass
         onChangeText={setValue}
         keyboardType="number-pad"
         maxLength={3}
-        accessibilityLabel="Ответ"
+        accessibilityLabel={tr('Ответ')}
         onSubmitEditing={check}
       />
       {!!error && <Text style={styles.error}>{error}</Text>}
       <View style={{ gap: 8 }}>
-        <Button title="Продолжить" onPress={check} disabled={!value} />
-        <Button title="Отмена" variant="secondary" onPress={onCancel} />
+        <Button title={tr('Продолжить')} onPress={check} disabled={!value} />
+        <Button title={tr('Отмена')} variant="secondary" onPress={onCancel} />
       </View>
     </Card>
   );

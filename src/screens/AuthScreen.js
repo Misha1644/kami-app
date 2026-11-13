@@ -8,6 +8,7 @@ import { Button } from '../components/ui';
 import { colors, radius } from '../theme';
 import { supabase } from '../lib/supabase';
 import PrivacyScreen from './PrivacyScreen';
+import { tr, UI_LANGS } from '../i18n';
 
 const TITLES = {
   signUp: 'Аккаунт родителя',
@@ -19,16 +20,16 @@ const TITLES = {
 
 function humanError(message = '') {
   const m = message.toLowerCase();
-  if (m.includes('invalid login')) return 'Неверный email или пароль.';
-  if (m.includes('email not confirmed')) return 'Почта ещё не подтверждена. Введите код из письма.';
-  if (m.includes('already registered')) return 'Этот email уже зарегистрирован. Войдите или сбросьте пароль.';
-  if (m.includes('expired') || m.includes('invalid') && m.includes('token')) return 'Код неверный или устарел. Запросите новый.';
-  if (m.includes('rate limit') || m.includes('security purposes')) return 'Слишком много попыток. Подождите минуту.';
-  if (m.includes('network')) return 'Нет интернета. Проверьте подключение.';
-  return 'Что-то пошло не так. Попробуйте ещё раз.';
+  if (m.includes('invalid login')) return tr('Неверный email или пароль.');
+  if (m.includes('email not confirmed')) return tr('Почта ещё не подтверждена. Введите код из письма.');
+  if (m.includes('already registered')) return tr('Этот email уже зарегистрирован. Войдите или сбросьте пароль.');
+  if (m.includes('expired') || m.includes('invalid') && m.includes('token')) return tr('Код неверный или устарел. Запросите новый.');
+  if (m.includes('rate limit') || m.includes('security purposes')) return tr('Слишком много попыток. Подождите минуту.');
+  if (m.includes('network')) return tr('Нет интернета. Проверьте подключение.');
+  return tr('Что-то пошло не так. Попробуйте ещё раз.');
 }
 
-export default function AuthScreen() {
+export default function AuthScreen({ lang = 'ru', onLang }) {
   const [mode, setMode] = useState('signUp');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,24 +70,24 @@ export default function AuthScreen() {
   }
 
   function submit() {
-    if (mode !== 'reset' && mode !== 'verify' && !cleanEmail.includes('@')) return setError('Введите email.');
+    if (mode !== 'reset' && mode !== 'verify' && !cleanEmail.includes('@')) return setError(tr('Введите email.'));
     if ((mode === 'signUp' || mode === 'signIn' || mode === 'reset') && password.length < 8) {
-      return setError('Пароль — не короче 8 символов.');
+      return setError(tr('Пароль — не короче 8 символов.'));
     }
-    if ((mode === 'verify' || mode === 'reset') && cleanCode.length < 6) return setError('Введите код из письма.');
-    if (mode === 'signUp' && !consent) return setError('Подтвердите, что вы родитель, и согласие с политикой.');
+    if ((mode === 'verify' || mode === 'reset') && cleanCode.length < 6) return setError(tr('Введите код из письма.'));
+    if (mode === 'signUp' && !consent) return setError(tr('Подтвердите, что вы родитель, и согласие с политикой.'));
 
     run(async () => {
       if (mode === 'signUp') {
         const { data, error: err } = await supabase.auth.signUp({ email: cleanEmail, password });
         if (err) throw err;
-        if (!data.session) go('verify', `Мы отправили код на ${cleanEmail}. Проверьте и папку «Спам».`);
+        if (!data.session) go('verify', tr('Мы отправили код на {0}. Проверьте и папку «Спам».', cleanEmail));
       } else if (mode === 'signIn') {
         const { error: err } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (err) {
           if (err.message?.toLowerCase().includes('email not confirmed')) {
             await supabase.auth.resend({ type: 'signup', email: cleanEmail });
-            return go('verify', `Почта не подтверждена. Мы отправили новый код на ${cleanEmail}.`);
+            return go('verify', tr('Почта не подтверждена. Мы отправили новый код на {0}.', cleanEmail));
           }
           throw err;
         }
@@ -95,7 +96,7 @@ export default function AuthScreen() {
       } else if (mode === 'forgot') {
         const { error: err } = await supabase.auth.resetPasswordForEmail(cleanEmail);
         if (err) throw err;
-        go('reset', `Если аккаунт с ${cleanEmail} есть, мы отправили на него код.`);
+        go('reset', tr('Если аккаунт с {0} есть, мы отправили на него код.', cleanEmail));
         setPassword('');
       } else if (mode === 'reset') {
         const { error: err } = await supabase.auth.verifyOtp({ email: cleanEmail, token: cleanCode, type: 'recovery' });
@@ -112,7 +113,7 @@ export default function AuthScreen() {
         ? await supabase.auth.resend({ type: 'signup', email: cleanEmail })
         : await supabase.auth.resetPasswordForEmail(cleanEmail);
       if (err) throw err;
-      setInfo('Отправили новый код.');
+      setInfo(tr('Отправили новый код.'));
     });
   }
 
@@ -122,22 +123,37 @@ export default function AuthScreen() {
   const needsPassword = mode === 'signUp' || mode === 'signIn' || mode === 'reset';
   const needsCode = mode === 'verify' || mode === 'reset';
   const buttonTitle = {
-    signUp: 'Создать аккаунт', signIn: 'Войти', verify: 'Подтвердить',
-    forgot: 'Отправить код', reset: 'Сохранить пароль',
+    signUp: tr('Создать аккаунт'), signIn: tr('Войти'), verify: tr('Подтвердить'),
+    forgot: tr('Отправить код'), reset: tr('Сохранить пароль'),
   }[mode];
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+        {!!onLang && (
+          <View style={styles.langRow}>
+            {UI_LANGS.map((l) => (
+              <Pressable
+                key={l.code}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: lang === l.code }}
+                onPress={() => onLang(l.code)}
+                style={[styles.langChip, lang === l.code && styles.langChipActive]}
+              >
+                <Text style={[styles.langText, lang === l.code && styles.langTextActive]}>{l.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
         <View style={{ alignItems: 'center', gap: 8 }}>
           <Kami size={140} />
-          <Text style={styles.h1}>Ками</Text>
-          <Text style={styles.muted}>Школьный испанский для тех, кто только переехал</Text>
+          <Text style={styles.h1}>{tr('Ками')}</Text>
+          <Text style={styles.muted}>{tr('Школьный испанский для тех, кто только переехал')}</Text>
         </View>
 
-        <Text style={styles.h2}>{TITLES[mode]}</Text>
+        <Text style={styles.h2}>{tr(TITLES[mode])}</Text>
         {mode === 'signUp' && (
-          <Text style={styles.small}>Аккаунт создаёт родитель. Потом вы добавите профиль ребёнка.</Text>
+          <Text style={styles.small}>{tr('Аккаунт создаёт родитель. Потом вы добавите профиль ребёнка.')}</Text>
         )}
 
         {needsEmail && (
@@ -159,7 +175,7 @@ export default function AuthScreen() {
 
         {needsCode && (
           <View style={{ gap: 6 }}>
-            <Text style={styles.label}>Код из письма</Text>
+            <Text style={styles.label}>{tr('Код из письма')}</Text>
             <TextInput
               style={[styles.input, styles.code]}
               value={code}
@@ -176,7 +192,7 @@ export default function AuthScreen() {
 
         {needsPassword && (
           <View style={{ gap: 6 }}>
-            <Text style={styles.label}>{mode === 'reset' ? 'Новый пароль' : 'Пароль'}</Text>
+            <Text style={styles.label}>{mode === 'reset' ? tr('Новый пароль') : tr('Пароль')}</Text>
             <TextInput
               style={styles.input}
               value={password}
@@ -184,7 +200,7 @@ export default function AuthScreen() {
               secureTextEntry
               autoComplete={mode === 'signIn' ? 'password' : 'new-password'}
               textContentType={mode === 'signIn' ? 'password' : 'newPassword'}
-              placeholder="Минимум 8 символов"
+              placeholder={tr('Минимум 8 символов')}
               placeholderTextColor="#8A928E"
             />
           </View>
@@ -200,9 +216,8 @@ export default function AuthScreen() {
             <View style={[styles.box, consent && styles.boxOn]}>
               {consent && <Text style={styles.tick}>✓</Text>}
             </View>
-            <Text style={styles.consentText}>
-              Мне есть 18 лет, я родитель или законный представитель ребёнка и согласен(на) с{' '}
-              <Text style={styles.inlineLink} onPress={() => setShowPrivacy(true)}>политикой конфиденциальности</Text>.
+            <Text style={styles.consentText}>{tr('Мне есть 18 лет, я родитель или законный представитель ребёнка и согласен(на) с')}{' '}
+              <Text style={styles.inlineLink} onPress={() => setShowPrivacy(true)}>{tr('политикой конфиденциальности')}</Text>.
             </Text>
           </Pressable>
         )}
@@ -210,33 +225,36 @@ export default function AuthScreen() {
         {!!error && <Text style={styles.error}>{error}</Text>}
         {!!info && <Text style={styles.info}>{info}</Text>}
 
-        <Button title={busy ? 'Подождите…' : buttonTitle} onPress={submit} disabled={busy} />
+        <Button title={busy ? tr('Подождите…') : buttonTitle} onPress={submit} disabled={busy} />
 
         {needsCode && (
-          <Text style={styles.switch} accessibilityRole="button" onPress={resend}>Отправить код ещё раз</Text>
+          <Text style={styles.switch} accessibilityRole="button" onPress={resend}>{tr('Отправить код ещё раз')}</Text>
         )}
         {mode === 'signIn' && (
-          <Text style={styles.switch} accessibilityRole="button" onPress={() => go('forgot')}>Забыли пароль?</Text>
+          <Text style={styles.switch} accessibilityRole="button" onPress={() => go('forgot')}>{tr('Забыли пароль?')}</Text>
         )}
         <Text
           style={styles.switch}
           accessibilityRole="button"
           onPress={() => go(mode === 'signUp' ? 'signIn' : 'signUp')}
         >
-          {mode === 'signUp' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Создать'}
+          {mode === 'signUp' ? tr('Уже есть аккаунт? Войти') : tr('Нет аккаунта? Создать')}
         </Text>
         {mode !== 'signUp' && mode !== 'signIn' && (
-          <Text style={styles.switch} accessibilityRole="button" onPress={() => go('signIn')}>Назад ко входу</Text>
+          <Text style={styles.switch} accessibilityRole="button" onPress={() => go('signIn')}>{tr('Назад ко входу')}</Text>
         )}
-        <Text style={styles.privacy} accessibilityRole="link" onPress={() => setShowPrivacy(true)}>
-          Политика конфиденциальности
-        </Text>
+        <Text style={styles.privacy} accessibilityRole="link" onPress={() => setShowPrivacy(true)}>{tr('Политика конфиденциальности')}</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  langRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, flexWrap: 'wrap' },
+  langChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.border },
+  langChipActive: { backgroundColor: colors.green, borderColor: colors.green },
+  langText: { fontSize: 13, color: colors.text },
+  langTextActive: { color: '#fff', fontWeight: '700' },
   wrap: { padding: 24, gap: 14, flexGrow: 1, justifyContent: 'center' },
   h1: { fontSize: 28, fontWeight: '800', color: colors.text },
   h2: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 8 },

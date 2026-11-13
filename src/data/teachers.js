@@ -3,6 +3,7 @@
 //   avatar — какой рисунок (src/components/Teacher.js), color — основной цвет
 //   motto  — любимая фраза [испанский, перевод]
 //   hello / praise / wrong / done — реплики в начале урока, на верный ответ, на ошибку, в конце темы
+import { tr } from '../i18n';
 
 export const TEACHERS = {
   mat: {
@@ -127,4 +128,4 @@ export const KAMI_TEACHER = {
 };
 
 export const teacherFor = (subjectCode) => TEACHERS[subjectCode] || KAMI_TEACHER;
-export const pickLine = (list) => list[Math.floor(Math.random() * list.length)];
+export const pickLine = (list) => tr(list[Math.floor(Math.random() * list.length)]);

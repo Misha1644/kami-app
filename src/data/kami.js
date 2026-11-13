@@ -1,8 +1,10 @@
 // Характер Ками. Ками — хамелеон, который тоже недавно переехал в Валенсию.
 // Любопытный, немного неуклюжий и добрый: никогда не ругает, радуется вместе с тобой
 // и вставляет испанские словечки. Когда волнуется — меняет цвет (на картинке краснеют щёки).
+import { tr } from '../i18n';
 
-const pick = (list) => list[Math.floor(Math.random() * list.length)];
+const pickRaw = (list) => list[Math.floor(Math.random() * list.length)];
+const pick = (list) => tr(pickRaw(list));
 
 const GREETINGS = {
   morning: [

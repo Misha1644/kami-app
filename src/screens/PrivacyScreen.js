@@ -5,15 +5,19 @@ import { Button } from '../components/ui';
 import { colors, radius } from '../theme';
 import { PRIVACY } from '../data/privacy';
 import { PRIVACY_UPDATED, SUPPORT_EMAIL } from '../config';
+import { tr, getLang } from '../i18n';
+
+const LABEL = { ru: 'Русский', es: 'Español', en: 'English', ar: 'العربية' };
+const UPDATED = { ru: 'Обновлено', es: 'Actualizada', en: 'Updated', ar: 'آخر تحديث' };
 
 export default function PrivacyScreen({ onBack }) {
-  const [lang, setLang] = useState('ru');
+  const [lang, setLang] = useState(getLang());
   const doc = PRIVACY[lang];
-  const fill = (t) => (SUPPORT_EMAIL ? t.replace(/\[(email поддержки|email de soporte)\]/g, SUPPORT_EMAIL) : t);
+  const fill = (t) => (SUPPORT_EMAIL ? t.replace(/\[(email поддержки|email de soporte|support email|بريد الدعم)\]/g, SUPPORT_EMAIL) : t);
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <View style={styles.langRow}>
-        {['ru', 'es'].map((l) => (
+        {['ru', 'es', 'en', 'ar'].map((l) => (
           <Pressable
             key={l}
             accessibilityRole="button"
@@ -21,7 +25,7 @@ export default function PrivacyScreen({ onBack }) {
             onPress={() => setLang(l)}
             style={[styles.chip, lang === l && styles.chipActive]}
           >
-            <Text style={[styles.chipText, lang === l && styles.chipTextActive]}>{l === 'ru' ? 'Русский' : 'Español'}</Text>
+            <Text style={[styles.chipText, lang === l && styles.chipTextActive]}>{LABEL[l]}</Text>
           </Pressable>
         ))}
       </View>
@@ -32,8 +36,8 @@ export default function PrivacyScreen({ onBack }) {
           <Text style={styles.body}>{fill(p)}</Text>
         </View>
       ))}
-      <Text style={styles.small}>{lang === 'ru' ? 'Обновлено' : 'Actualizada'}: {PRIVACY_UPDATED}</Text>
-      <Button title={lang === 'ru' ? 'Назад' : 'Volver'} variant="secondary" onPress={onBack} />
+      <Text style={styles.small}>{UPDATED[lang]}: {PRIVACY_UPDATED}</Text>
+      <Button title={tr('Назад')} variant="secondary" onPress={onBack} />
     </ScrollView>
   );
 }

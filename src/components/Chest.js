@@ -1,5 +1,6 @@
 // Сундук: type 'lesson' — деревянный, 'skin' — фиолетовый с золотом. open — крышка откинута.
 import Svg, { Rect, Path, Circle, G } from 'react-native-svg';
+import { tr } from '../i18n';
 
 const LOOK = {
   lesson: { body: '#B7793F', dark: '#7A4A1E', band: '#D9A92B', glow: '#FDE68A' },
@@ -9,7 +10,7 @@ const LOOK = {
 export default function Chest({ type = 'lesson', open = false, size = 120 }) {
   const c = LOOK[type] || LOOK.lesson;
   return (
-    <Svg width={size} height={size} viewBox="0 0 120 120" accessibilityLabel={open ? 'Открытый сундук' : 'Сундук'}>
+    <Svg width={size} height={size} viewBox="0 0 120 120" accessibilityLabel={open ? tr('Открытый сундук') : tr('Сундук')}>
       {open && (
         <G>
           <Circle cx={60} cy={58} r={40} fill={c.glow} opacity={0.6} />

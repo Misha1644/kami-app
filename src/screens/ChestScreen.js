@@ -11,6 +11,7 @@ import { Coin } from '../components/icons';
 import { Button } from '../components/ui';
 import { colors, radius } from '../theme';
 import { plural } from '../data/content';
+import { tr } from '../i18n';
 
 const INFO = {
   lesson: {
@@ -33,13 +34,13 @@ const SPIN_MS = 5200;
 
 // Редкость — цвет полоски снизу, как в CS.
 function rarity(tile) {
-  if (tile.type === 'coins') return { color: '#98A2B3', label: 'монеты' };
+  if (tile.type === 'coins') return { color: '#98A2B3', label: tr('монеты') };
   const p = tile.item.price;
-  if (p >= 10000) return { color: '#F5B700', label: 'легендарное' };
-  if (p >= 5000) return { color: '#EB4B4B', label: 'тайное' };
-  if (p >= 600) return { color: '#D32CE6', label: 'засекреченное' };
-  if (p >= 300) return { color: '#8847FF', label: 'запрещённое' };
-  return { color: '#4B69FF', label: 'армейское' };
+  if (p >= 10000) return { color: '#F5B700', label: tr('легендарное') };
+  if (p >= 5000) return { color: '#EB4B4B', label: tr('тайное') };
+  if (p >= 600) return { color: '#D32CE6', label: tr('засекреченное') };
+  if (p >= 300) return { color: '#8847FF', label: tr('запрещённое') };
+  return { color: '#4B69FF', label: tr('армейское') };
 }
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -82,7 +83,7 @@ function Tile({ tile }) {
     <View style={styles.tile}>
       <View style={styles.tileArt}><TileArt tile={tile} /></View>
       <Text style={styles.tileName} numberOfLines={1}>
-        {tile.type === 'coins' ? 'Монеты' : tile.item.title_ru || tile.item.title}
+        {tile.type === 'coins' ? tr('Монеты') : tr(tile.item.title_ru || tile.item.title)}
       </Text>
       <View style={[styles.rarityBar, { backgroundColor: r.color }]} />
     </View>
@@ -164,9 +165,9 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
       <View style={styles.header}>
         <Chest type={type} open={phase === 'opened'} size={72} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.h1}>{INFO[type].title}</Text>
+          <Text style={styles.h1}>{tr(INFO[type].title)}</Text>
           <Text style={styles.small}>
-            {plural(remaining, 'Остался', 'Осталось', 'Осталось')} {remaining} {plural(remaining, 'сундук', 'сундука', 'сундуков')}
+            {plural(remaining, tr('Остался'), tr('Осталось'), tr('Осталось'))} {remaining} {plural(remaining, tr('сундук'), tr('сундука'), tr('сундуков'))}
           </Text>
         </View>
       </View>
@@ -185,37 +186,37 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
       {/* Результат */}
       {phase === 'opened' && win && (
         <Animated.View style={[styles.reward, legendary && styles.rewardLegend, { transform: [{ scale: pop }] }]}>
-          {legendary && <Text style={styles.legend}>★ РЕДКОЕ — ШАНС 0,005% ★</Text>}
+          {legendary && <Text style={styles.legend}>{tr('★ РЕДКОЕ — ШАНС 0,005% ★')}</Text>}
           <TileArt tile={win} big />
           {win.type === 'coins' ? (
-            <Text style={styles.itemTitle}>{win.amount} {plural(win.amount, 'монета', 'монеты', 'монет')}</Text>
+            <Text style={styles.itemTitle}>{win.amount} {plural(win.amount, tr('монета'), tr('монеты'), tr('монет'))}</Text>
           ) : (
             <>
-              <Text style={styles.itemKind}>{KIND_RU[item.kind]} · {rarity(win).label}</Text>
+              <Text style={styles.itemKind}>{tr(KIND_RU[item.kind])} · {rarity(win).label}</Text>
               <Text style={styles.itemTitle}>{item.title}</Text>
-              <View style={styles.price}><Coin size={16} /><Text style={styles.small}>стоит {item.price}</Text></View>
+              <View style={styles.price}><Coin size={16} /><Text style={styles.small}>{tr('стоит {0}', item.price)}</Text></View>
             </>
           )}
         </Animated.View>
       )}
-      {phase === 'spinning' && <Text style={styles.spinning}>Крутится…</Text>}
+      {phase === 'spinning' && <Text style={styles.spinning}>{tr('Крутится…')}</Text>}
       {!!error && <Text style={styles.error}>{error}</Text>}
 
       <View style={{ gap: 10, marginTop: 'auto' }}>
-        {phase === 'ready' && <Button title="Крутить!" onPress={spin} disabled={!pool.length || remaining < 1} />}
+        {phase === 'ready' && <Button title={tr('Крутить!')} onPress={spin} disabled={!pool.length || remaining < 1} />}
         {phase === 'opened' && item && !equipped && (
           <Button
-            title={item.kind === 'color' ? 'Надеть на Ками' : 'Поставить'}
+            title={item.kind === 'color' ? tr('Надеть на Ками') : tr('Поставить')}
             onPress={async () => {
               try { await onEquip(item.id); setEquipped(true); } catch (e) { setError(e.message); }
             }}
           />
         )}
         {phase === 'opened' && remaining > 0 && (
-          <Button title={`Крутить ещё (${remaining})`} variant={item && !equipped ? 'secondary' : 'primary'} onPress={again} />
+          <Button title={tr('Крутить ещё ({0})', remaining)} variant={item && !equipped ? 'secondary' : 'primary'} onPress={again} />
         )}
-        {phase !== 'spinning' && <Button title="Готово" variant="secondary" onPress={onClose} />}
-        <Text style={styles.odds}>{INFO[type].odds}</Text>
+        {phase !== 'spinning' && <Button title={tr('Готово')} variant="secondary" onPress={onClose} />}
+        <Text style={styles.odds}>{tr(INFO[type].odds)}</Text>
       </View>
     </ScrollView>
   );

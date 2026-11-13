@@ -39,6 +39,7 @@ import {
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
 import { remindersSupported, remindersEnabled, rescheduleReminders, setRemindersEnabled } from './src/lib/reminders';
+import { tr, setLang, getLang, uiLangFor, deviceLang } from './src/i18n';
 
 const TABS = [
   { key: 'home', label: 'Сегодня' },
@@ -83,6 +84,10 @@ export default function App() {
   const [reminders, setReminders] = useState(false);
   const pendingAnswer = useRef(Promise.resolve()); // последний ответ, ещё не записанный в базу // код предмета, для которого открыт экран «Мои слова»
   const [loadError, setLoadError] = useState('');
+  // Язык интерфейса: до создания ученика — язык телефона (или выбранный на экране входа), потом — язык ученика.
+  const [preLang, setPreLang] = useState(deviceLang);
+  const uiLangNow = student ? uiLangFor(student.native_lang) : preLang;
+  if (getLang() !== uiLangNow) setLang(uiLangNow);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -181,21 +186,27 @@ export default function App() {
   }
 
   // Переводы слов на выбранном языке (русский или английский).
-  const en = student?.native_lang === 'en';
-  const tr = useCallback((w) => (en && w.en ? { ...w, ru: w.en } : w), [en]);
-  const allTopics = useMemo(() => (en ? topics.map((t) => ({ ...t, words: t.words.map(tr) })) : topics), [topics, en, tr]);
+  // Русский и украинский — переводы на русском; английский и арабский — на своём языке (арабского пока нет → английский).
+  const uiLang = student?.native_lang || 'ru';
+  const en = uiLang !== 'ru' && uiLang !== 'uk';
+  const gloss = useCallback((w) => {
+    if (!en) return w;
+    const t = (uiLang === 'ar' && w.ar) || w.en;
+    return t ? { ...w, ru: t } : w;
+  }, [en, uiLang]);
+  const allTopics = useMemo(() => (en ? topics.map((t) => ({ ...t, titleRu: (uiLang === 'ar' && t.titleAr) || t.titleEn || t.titleRu, words: t.words.map(gloss) })) : topics), [topics, en, gloss, uiLang]);
   // Темы класса + сессия повторения + подготовка к контрольной.
   const lessonTopics = useMemo(() => {
-    const list = [...allTopics, { id: 'review', subject: 'Повторение', title: 'повторение', titleRu: '', words: dueWords.map(tr) }];
+    const list = [...allTopics, { id: 'review', subject: tr('Повторение'), title: tr('повторение'), titleRu: '', words: dueWords.map(gloss) }];
     if (examSession) {
       const subj = subjectByCode(examSession.exam.subject_code);
       list.push({
         id: 'exam', subject: subj.es, subjectCode: examSession.exam.subject_code,
-        title: examSession.mode === 'practice' ? 'подготовка к контрольной' : 'контрольная', titleRu: '', words: examSession.words,
+        title: examSession.mode === 'practice' ? tr('подготовка к контрольной') : tr('контрольная'), titleRu: '', words: examSession.words,
       });
     }
     return list;
-  }, [allTopics, dueWords, tr, examSession]);
+  }, [allTopics, dueWords, gloss, examSession]);
 
   function startExam(exam) {
     const task = todayTask(exam, allTopics, learned);
@@ -224,7 +235,7 @@ export default function App() {
       if (!res) return;
       setStudent((s) => ({ ...s, coins: res.coins }));
       setWordsToday(res.words_today);
-      if (res.goal_bonus > 0) setGoalBanner(`Цель дня выполнена! +${res.goal_bonus} монет`);
+      if (res.goal_bonus > 0) setGoalBanner(tr('Цель дня выполнена! +{0} монет', res.goal_bonus));
     },
     [studentId]
   );
@@ -330,17 +341,19 @@ export default function App() {
   if (session === undefined || (session && student === undefined && !loadError)) {
     screen = <View style={styles.center}><ActivityIndicator color={colors.green} size="large" /></View>;
   } else if (!session) {
-    screen = <AuthScreen />;
+    screen = <AuthScreen lang={preLang} onLang={setPreLang} />;
   } else if (loadError) {
     screen = (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Не удалось загрузить данные: {loadError}</Text>
-        <Text style={styles.link} onPress={signOut} accessibilityRole="button">Выйти и попробовать снова</Text>
+        <Text style={styles.errorText}>{tr('Не удалось загрузить данные: {0}', loadError)}</Text>
+        <Text style={styles.link} onPress={signOut} accessibilityRole="button">{tr('Выйти и попробовать снова')}</Text>
       </View>
     );
   } else if (!student) {
     screen = (
       <StudentSetupScreen
+        lang={preLang}
+        onLang={setPreLang}
         onCreated={async (s) => {
           setTopics(await loadTopics(s.grade));
           setStudent(s);
@@ -543,7 +556,7 @@ export default function App() {
                 <Pressable
                   key={t.key}
                   accessibilityRole="tab"
-                  accessibilityLabel={t.label}
+                  accessibilityLabel={tr(t.label)}
                   accessibilityState={{ selected: active }}
                   onPress={() => setTab(t.key)}
                   style={styles.tab}
@@ -555,7 +568,7 @@ export default function App() {
                   ) : (
                     <TabIcon name={t.key} color={active ? colors.green : colors.muted} />
                   )}
-                  <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>{t.label}</Text>
+                  <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>{tr(t.label)}</Text>
                 </Pressable>
               );
             })}

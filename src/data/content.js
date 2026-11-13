@@ -1,6 +1,7 @@
 // Учебный контент первой версии: 1º ESO, две темы.
 // Позже эти данные переедут в базу Supabase (таблицы topics и words).
 // У каждого слова: испанский термин, перевод (ru, en) и фраза, как её скажет учитель.
+import { tr, getLang } from '../i18n';
 
 export const GRADE = '1º ESO';
 export const GRADES = ['1º ESO', '2º ESO', '3º ESO', '4º ESO'];
@@ -74,7 +75,7 @@ export function isCustom(code) {
 }
 
 export function subjectByCode(code) {
-  if (isCustom(code)) return { code, es: code.slice(CUSTOM_PREFIX.length), ru: 'свой предмет', custom: true };
+  if (isCustom(code)) return { code, es: code.slice(CUSTOM_PREFIX.length), ru: tr('свой предмет'), custom: true };
   return SUBJECTS.find((s) => s.code === code) || { code, es: code, ru: '' };
 }
 
@@ -93,7 +94,7 @@ export const KAMI_COLORS = {
 };
 
 export const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт'];
-const WEEKDAY_NAMES = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу'];
+const NEXT_DAY = ['В понедельник', 'Во вторник', 'В среду', 'В четверг', 'В пятницу'];
 
 // Следующий учебный день: завтра, а после пятницы — понедельник.
 // Возвращает { weekday: 1..5, label: 'Завтра' | 'В понедельник' }.
@@ -106,12 +107,13 @@ export function nextSchoolDay(now = new Date()) {
     skipped = true;
   }
   const weekday = d.getDay(); // 1..5
-  const name = WEEKDAY_NAMES[weekday - 1];
-  const label = skipped ? `В${weekday === 2 ? 'о' : ''} ${name}` : 'Завтра';
+  const label = skipped ? tr(NEXT_DAY[weekday - 1]) : tr('Завтра');
   return { weekday, label };
 }
 
 export function plural(n, one, few, many) {
+  // В английском и арабском интерфейсе формы уже переведены: 1 — «one», остальное — «many».
+  if (getLang() !== 'ru') return n === 1 ? one : many;
   const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
@@ -133,7 +135,7 @@ export function customTopics(customWords) {
     id: `my-${code}`,
     subject: subjectByCode(code).es,
     subjectCode: code,
-    title: 'мои слова',
+    title: tr('мои слова'),
     titleRu: '',
     custom: true,
     words,

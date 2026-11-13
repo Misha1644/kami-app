@@ -4,6 +4,7 @@ import { Component } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Kami from './Kami';
 import { colors } from '../theme';
+import { tr } from '../i18n';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -24,10 +25,10 @@ export default class ErrorBoundary extends Component {
     return (
       <View style={styles.wrap}>
         <Kami size={120} mood="worried" />
-        <Text style={styles.h1}>¡Uy! Что-то сломалось</Text>
-        <Text style={styles.body}>Твой прогресс сохранён. Попробуй открыть экран ещё раз.</Text>
+        <Text style={styles.h1}>{tr('¡Uy! Что-то сломалось')}</Text>
+        <Text style={styles.body}>{tr('Твой прогресс сохранён. Попробуй открыть экран ещё раз.')}</Text>
         <Pressable accessibilityRole="button" onPress={() => this.setState({ failed: false })} style={styles.button}>
-          <Text style={styles.buttonText}>Попробовать снова</Text>
+          <Text style={styles.buttonText}>{tr('Попробовать снова')}</Text>
         </Pressable>
       </View>
     );

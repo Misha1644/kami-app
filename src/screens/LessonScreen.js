@@ -15,6 +15,7 @@ import Teacher from '../components/Teacher';
 import Chest from '../components/Chest';
 import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey } from '../lib/speech';
 import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
+import { tr } from '../i18n';
 
 const KINDS = ['choose', 'listen', 'speak', 'type', 'phrase', 'dictation'];
 const TYPED = ['type', 'dictation'];
@@ -31,11 +32,11 @@ function shuffle(list) {
   return a;
 }
 
-function SpeakButton({ text, lang, label = 'Послушать', slow }) {
+function SpeakButton({ text, lang, label = tr('Послушать'), slow }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={slow ? 'Послушать медленно' : label}
+      accessibilityLabel={slow ? tr('Послушать медленно') : label}
       onPress={() => speak(text, { slow, lang })}
       style={({ pressed }) => [styles.speak, pressed && { opacity: 0.7 }]}
     >
@@ -48,11 +49,11 @@ function SpeakButton({ text, lang, label = 'Послушать', slow }) {
 function ListenButtons({ text, lang }) {
   return (
     <View style={styles.listenRow}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Послушать ещё раз" onPress={() => speak(text, { lang })} style={styles.bigSpeak}>
+      <Pressable accessibilityRole="button" accessibilityLabel={tr('Послушать ещё раз')} onPress={() => speak(text, { lang })} style={styles.bigSpeak}>
         <Text style={styles.bigSpeakText}>🔊</Text>
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Послушать медленно" onPress={() => speak(text, { slow: true, lang })} style={styles.slowSpeak}>
-        <Text style={styles.slowText}>🐢 медленно</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={tr('Послушать медленно')} onPress={() => speak(text, { slow: true, lang })} style={styles.slowSpeak}>
+        <Text style={styles.slowText}>{tr('🐢 медленно')}</Text>
       </Pressable>
     </View>
   );
@@ -81,7 +82,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const comfort = useMemo(() => pickLine(teacher.wrong), [index, phase, teacher]);
   const ending = useMemo(() => ({
     done: pickLine(teacher.done),
-    perfect: teacher === KAMI_TEACHER ? kamiSays('perfect') : `Ни одной ошибки! ${pickLine(teacher.done)}`,
+    perfect: teacher === KAMI_TEACHER ? kamiSays('perfect') : tr('Ни одной ошибки! {0}', pickLine(teacher.done)),
     review: kamiSays('reviewDone'),
   }), [teacher]);
 
@@ -158,7 +159,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     return (
       <View style={[styles.wrap, styles.center]}>
         <Teacher teacher={teacher} size={140} kamiColor={kamiColor} mood="excited" />
-        <Text style={styles.h1}>{test ? 'Пробная контрольная сдана!' : review ? 'Повторение готово!' : 'Тема готова!'}</Text>
+        <Text style={styles.h1}>{test ? tr('Пробная контрольная сдана!') : review ? tr('Повторение готово!') : tr('Тема готова!')}</Text>
         {test && (() => {
           const nota = Math.round(((words.length - mistakes) / Math.max(1, words.length)) * 100) / 10;
           const label = nota >= 9 ? 'sobresaliente' : nota >= 7 ? 'notable' : nota >= 6 ? 'bien' : nota >= 5 ? 'suficiente' : 'insuficiente';
@@ -167,32 +168,30 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
               <Text style={styles.notaValue}>{String(nota).replace('.', ',')}</Text>
               <Text style={styles.notaLabel}>{label}</Text>
               <Text style={styles.small}>
-                {nota >= 5 ? 'Так держать! К контрольной ты готов.' : 'Повтори трудные слова ещё раз — и всё получится.'}
+                {nota >= 5 ? tr('Так держать! К контрольной ты готов.') : tr('Повтори трудные слова ещё раз — и всё получится.')}
               </Text>
             </View>
           );
         })()}
-        {teacher !== KAMI_TEACHER && <Text style={styles.teacherName}>{teacher.name} · {teacher.who}</Text>}
+        {teacher !== KAMI_TEACHER && <Text style={styles.teacherName}>{tr(teacher.name)} · {tr(teacher.who)}</Text>}
         <Text style={styles.mutedCenter}>{mistakes === 0 ? ending.perfect : review ? ending.review : ending.done}</Text>
-        <Text style={styles.mutedCenter}>
-          {review ? 'Слова закреплены.' : `${topic.subject}: ${topic.title}.`} Слов: {words.length}, ошибок: {mistakes}.
-        </Text>
+        <Text style={styles.mutedCenter}>{tr('{0} Слов: {1}, ошибок: {2}.', review ? tr('Слова закреплены.') : `${topic.subject}: ${topic.title}.`, words.length, mistakes)}</Text>
         <View style={styles.earned}>
           <Coin size={22} />
-          <Text style={styles.earnedText}>+{earned} {plural(earned, 'монета', 'монеты', 'монет')}</Text>
+          <Text style={styles.earnedText}>+{earned} {plural(earned, tr('монета'), tr('монеты'), tr('монет'))}</Text>
         </View>
         {gotChest && (
           <Pressable accessibilityRole="button" onPress={onOpenChest} style={styles.chestGift}>
             <Chest type="lesson" size={64} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.chestTitle}>+1 сундук!</Text>
-              <Text style={styles.small}>Нажми, чтобы открыть</Text>
+              <Text style={styles.chestTitle}>{tr('+1 сундук!')}</Text>
+              <Text style={styles.small}>{tr('Нажми, чтобы открыть')}</Text>
             </View>
           </Pressable>
         )}
         <View style={{ alignSelf: 'stretch', gap: 8 }}>
-          {gotChest && <Button title="Открыть сундук" onPress={onOpenChest} />}
-          <Button title="На главную" variant={gotChest ? 'secondary' : 'primary'} onPress={onClose} />
+          {gotChest && <Button title={tr('Открыть сундук')} onPress={onOpenChest} />}
+          <Button title={tr('На главную')} variant={gotChest ? 'secondary' : 'primary'} onPress={onClose} />
         </View>
       </View>
     );
@@ -208,7 +207,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   return (
     <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
       <View style={styles.top}>
-        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Закрыть урок" style={styles.close}>
+        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
         <View style={{ flex: 1 }}>
@@ -219,7 +218,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
       <View style={styles.capsRow}>
         <Teacher teacher={teacher} size={28} kamiColor={kamiColor} />
         <Text style={[styles.caps, { flex: 1 }]}>
-          {test ? `ПРОБНАЯ КОНТРОЛЬНАЯ · ${topic.subject.toUpperCase()}` : review ? 'ПОВТОРЕНИЕ' : `${topic.subject.toUpperCase()} · ${topic.title.toUpperCase()}`}
+          {test ? tr('ПРОБНАЯ КОНТРОЛЬНАЯ · {0}', topic.subject.toUpperCase()) : review ? tr('ПОВТОРЕНИЕ') : `${topic.subject.toUpperCase()} · ${topic.title.toUpperCase()}`}
         </Text>
       </View>
 
@@ -247,27 +246,27 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
             {!!word.teacher && (
               <View style={styles.teacherBox}>
                 <View style={styles.wordRow}>
-                  <Text style={styles.teacherLabel}>{topic.custom ? 'Пример' : 'Как скажет учитель'}</Text>
-                  <SpeakButton text={word.teacher} lang={word.lang} label="Послушать фразу" />
+                  <Text style={styles.teacherLabel}>{topic.custom ? tr('Пример') : tr('Как скажет учитель')}</Text>
+                  <SpeakButton text={word.teacher} lang={word.lang} label={tr('Послушать фразу')} />
                 </View>
                 <Text style={styles.teacher}>«{word.teacher}»</Text>
               </View>
             )}
           </Card>
-          <Button title="Понятно, проверь меня" onPress={() => setPhase('exercise')} />
+          <Button title={tr('Понятно, проверь меня')} onPress={() => setPhase('exercise')} />
         </>
       )}
 
       {phase === 'exercise' && kind === 'choose' && (
         <>
-          <Text style={styles.question}>Как по-испански «{word.ru}»?</Text>
+          <Text style={styles.question}>{tr('Как по-испански «{0}»?', word.ru)}</Text>
           <Options options={options} word={word} picked={picked} onChoose={choose} />
         </>
       )}
 
       {phase === 'exercise' && kind === 'listen' && (
         <>
-          <Text style={styles.question}>Послушай и выбери слово</Text>
+          <Text style={styles.question}>{tr('Послушай и выбери слово')}</Text>
           <ListenButtons text={word.es} lang={word.lang} />
           <Options options={options} word={word} picked={picked} onChoose={choose} />
         </>
@@ -285,7 +284,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
 
       {phase === 'exercise' && kind === 'phrase' && (
         <>
-          <Text style={styles.question}>Послушай учителя и собери фразу</Text>
+          <Text style={styles.question}>{tr('Послушай учителя и собери фразу')}</Text>
           <ListenButtons text={word.teacher} lang={word.lang} />
           <PhraseTiles key={word.id} phrase={word.teacher} decoys={decoys} answered={answered} onCheck={(ok) => !answered && record(ok)} />
         </>
@@ -294,10 +293,10 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
       {phase === 'exercise' && TYPED.includes(kind) && (
         <>
           {kind === 'type' ? (
-            <Text style={styles.question}>Напиши {word.lang === 'ca-ES' ? 'по-валенсийски' : 'по-испански'}: «{word.ru}»</Text>
+            <Text style={styles.question}>{tr('Напиши {0}: «{1}»', word.lang === 'ca-ES' ? tr('по-валенсийски') : tr('по-испански'), word.ru)}</Text>
           ) : (
             <>
-              <Text style={styles.question}>Послушай и напиши, что услышал</Text>
+              <Text style={styles.question}>{tr('Послушай и напиши, что услышал')}</Text>
               <ListenButtons text={word.es} lang={word.lang} />
             </>
           )}
@@ -312,14 +311,14 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
             editable={!answered}
             autoCapitalize="none"
             autoCorrect={false}
-            placeholder="Твой ответ"
+            placeholder={tr('Твой ответ')}
             placeholderTextColor="#8A928E"
             returnKeyType="done"
             onSubmitEditing={checkTypedAnswer}
           />
-          {!answered && <Button title="Проверить" onPress={checkTypedAnswer} disabled={!typed.trim()} />}
-          {typedResult === 'accents' && <Text style={styles.note}>Верно! Только с ударением: {word.es}</Text>}
-          <Text style={styles.small}>Артикль (el, la) писать не обязательно.</Text>
+          {!answered && <Button title={tr('Проверить')} onPress={checkTypedAnswer} disabled={!typed.trim()} />}
+          {typedResult === 'accents' && <Text style={styles.note}>{tr('Верно! Только с ударением: {0}', word.es)}</Text>}
+          <Text style={styles.small}>{tr('Артикль (el, la) писать не обязательно.')}</Text>
         </>
       )}
 
@@ -329,14 +328,14 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
             <Teacher teacher={teacher} size={64} kamiColor={kamiColor} mood={correctNow ? 'excited' : 'worried'} />
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={styles.kamiText}>{correctNow ? praise : comfort}</Text>
-              {!correctNow && kind !== 'phrase' && <Text style={styles.kamiText}>Правильно: {word.es}. Вернёмся к нему в повторении.</Text>}
-              {!correctNow && kind === 'phrase' && <Text style={styles.kamiText}>Порядок слов другой. Послушай ещё раз — вернёмся к этому слову в повторении.</Text>}
+              {!correctNow && kind !== 'phrase' && <Text style={styles.kamiText}>{tr('Правильно: {0}. Вернёмся к нему в повторении.', word.es)}</Text>}
+              {!correctNow && kind === 'phrase' && <Text style={styles.kamiText}>{tr('Порядок слов другой. Послушай ещё раз — вернёмся к этому слову в повторении.')}</Text>}
               {!correctNow && <Text style={styles.small}>{word.ru}</Text>}
             </View>
             <SpeakButton text={word.es} lang={word.lang} />
           </View>
-          {kind === 'phrase' && <Text style={styles.small}>Фраза: «{word.teacher}»</Text>}
-          <Button title="Дальше" onPress={next} />
+          {kind === 'phrase' && <Text style={styles.small}>{tr('Фраза: «{0}»', word.teacher)}</Text>}
+          <Button title={tr('Дальше')} onPress={next} />
         </>
       )}
     </ScrollView>
@@ -360,7 +359,7 @@ function PhraseTiles({ phrase, decoys, answered, onCheck }) {
   return (
     <View style={{ gap: 12 }}>
       <View style={[styles.slots, ok === true && styles.slotsRight, ok === false && styles.slotsWrong]}>
-        {chosen.length === 0 && <Text style={styles.small}>Нажимай на слова по порядку</Text>}
+        {chosen.length === 0 && <Text style={styles.small}>{tr('Нажимай на слова по порядку')}</Text>}
         {chosen.map((i) => (
           <Pressable
             key={i}
@@ -389,7 +388,7 @@ function PhraseTiles({ phrase, decoys, answered, onCheck }) {
           );
         })}
       </View>
-      {!answered && <Button title="Проверить" onPress={check} disabled={chosen.length === 0} />}
+      {!answered && <Button title={tr('Проверить')} onPress={check} disabled={chosen.length === 0} />}
     </View>
   );
 }
@@ -424,13 +423,13 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
 
   return (
     <View style={{ gap: 14 }}>
-      <Text style={styles.question}>Скажи вслух</Text>
+      <Text style={styles.question}>{tr('Скажи вслух')}</Text>
       <Card style={{ gap: 6, padding: 16 }}>
         <View style={styles.wordRow}>
           <Text style={styles.word}>{word.es}</Text>
           <View style={styles.speakPair}>
             <SpeakButton text={word.es} lang={word.lang} slow />
-            <SpeakButton text={word.es} lang={word.lang} label="Послушать Ками" />
+            <SpeakButton text={word.es} lang={word.lang} label={tr('Послушать Ками')} />
           </View>
         </View>
         <Text style={styles.translation}>{word.ru}</Text>
@@ -440,17 +439,17 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
         <>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Нажми и скажи слово"
+            accessibilityLabel={tr('Нажми и скажи слово')}
             disabled={listening || answered}
             onPress={sayIt}
             style={[styles.mic, listening && styles.micOn, answered && { opacity: 0.5 }]}
           >
             <Text style={styles.micIcon}>🎤</Text>
-            <Text style={styles.micText}>{listening ? 'Слушаю…' : 'Нажми и скажи'}</Text>
+            <Text style={styles.micText}>{listening ? tr('Слушаю…') : tr('Нажми и скажи')}</Text>
           </Pressable>
           {heard !== null && !answered && (
             <Text style={styles.note}>
-              {heard ? `Я услышал: «${heard}». Попробуй ещё раз!` : 'Ничего не расслышал — скажи погромче.'}
+              {heard ? tr('Я услышал: «{0}». Попробуй ещё раз!', heard) : tr('Ничего не расслышал — скажи погромче.')}
             </Text>
           )}
         </>
@@ -458,31 +457,31 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
         <>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={voice.recording ? 'Остановить запись' : 'Записать свой голос'}
+            accessibilityLabel={voice.recording ? tr('Остановить запись') : tr('Записать свой голос')}
             disabled={answered}
             onPress={voice.recording ? voice.stop : voice.start}
             style={[styles.mic, voice.recording && styles.micOn, answered && { opacity: 0.5 }]}
           >
             <Text style={styles.micIcon}>{voice.recording ? '⏹' : '🎤'}</Text>
-            <Text style={styles.micText}>{voice.recording ? 'Стоп' : voice.uri ? 'Записать ещё раз' : 'Записать себя'}</Text>
+            <Text style={styles.micText}>{voice.recording ? tr('Стоп') : voice.uri ? tr('Записать ещё раз') : tr('Записать себя')}</Text>
           </Pressable>
           {!!voice.error && <Text style={[styles.note, { color: colors.danger }]}>{voice.error}</Text>}
           {!!voice.uri && !voice.recording && (
             <>
               <View style={styles.compareRow}>
                 <Pressable accessibilityRole="button" onPress={voice.playMine} style={styles.compareBtn}>
-                  <Text style={styles.compareText}>▶ Я</Text>
+                  <Text style={styles.compareText}>{tr('▶ Я')}</Text>
                 </Pressable>
                 <Pressable accessibilityRole="button" onPress={() => speak(word.es, { lang: word.lang })} style={styles.compareBtn}>
-                  <Text style={styles.compareText}>🔊 Ками</Text>
+                  <Text style={styles.compareText}>{tr('🔊 Ками')}</Text>
                 </Pressable>
               </View>
               {!answered && (
                 <>
-                  <Text style={styles.small}>Послушай себя и Ками. Похоже?</Text>
+                  <Text style={styles.small}>{tr('Послушай себя и Ками. Похоже?')}</Text>
                   <View style={styles.compareRow}>
-                    <View style={{ flex: 1 }}><Button title="Похоже!" onPress={() => onResult(true)} /></View>
-                    <View style={{ flex: 1 }}><Button title="Не очень" variant="secondary" onPress={() => onResult(false)} /></View>
+                    <View style={{ flex: 1 }}><Button title={tr('Похоже!')} onPress={() => onResult(true)} /></View>
+                    <View style={{ flex: 1 }}><Button title={tr('Не очень')} variant="secondary" onPress={() => onResult(false)} /></View>
                   </View>
                 </>
               )}
@@ -492,9 +491,7 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
       )}
 
       {!answered && (
-        <Text style={styles.link} onPress={onSkip} accessibilityRole="button">
-          Не могу говорить сейчас
-        </Text>
+        <Text style={styles.link} onPress={onSkip} accessibilityRole="button">{tr('Не могу говорить сейчас')}</Text>
       )}
     </View>
   );
@@ -558,15 +555,15 @@ function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <View style={styles.top}>
-        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Закрыть урок" style={styles.close}>
+        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
         <View style={{ flex: 1 }}>
           <ProgressBar value={matched.size / pairs.length} height={10} />
         </View>
       </View>
-      <Text style={styles.question}>Соедини пары</Text>
-      <Text style={styles.small}>Нажми на испанское слово, потом на его перевод.</Text>
+      <Text style={styles.question}>{tr('Соедини пары')}</Text>
+      <Text style={styles.small}>{tr('Нажми на испанское слово, потом на его перевод.')}</Text>
       <View style={styles.matchCols}>
         <View style={styles.matchCol}>
           {left.map((w) => {
@@ -601,7 +598,7 @@ function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
       </View>
       <View style={styles.kamiRow}>
         <Teacher teacher={teacher} size={56} kamiColor={kamiColor} mood={wrong ? 'worried' : 'happy'} />
-        <Text style={styles.kamiText}>{wrong ? '¡Uy! Не та пара — попробуй ещё.' : matchLine}</Text>
+        <Text style={styles.kamiText}>{wrong ? tr('¡Uy! Не та пара — попробуй ещё.') : matchLine}</Text>
       </View>
     </ScrollView>
   );
