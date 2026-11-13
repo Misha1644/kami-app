@@ -11,6 +11,7 @@ import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { tr, itemTitle } from '../i18n';
+import { plural } from '../data/content';
 
 export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEquip, onOpenPlus, onOpenChest, refreshing, onRefresh }) {
   const [busy, setBusy] = useState(null);
@@ -54,7 +55,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
             const isWorn = worn[kind] === item.id;
             return (
               <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn, item.price >= 5000 && styles.legendCard]}>
-                <Tag tag={rot[item.id]?.tag} />
+                <Tag tag={rot[item.id]?.tag} away={rot[item.id]?.away} />
                 {item.price >= 5000 && <Text style={styles.legend}>{tr('ЛЕГЕНДАРНОЕ')}</Text>}
                 {preview(item)}
                 <Text style={styles.itemTitle} numberOfLines={1}>{itemTitle(item)}</Text>
@@ -146,7 +147,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
           <Card style={styles.featured}>
             <View style={styles.featuredHead}>
               <Text style={styles.featuredLabel}>{tr('★ ВЕЩЬ ДНЯ')}</Text>
-              <Tag tag={rot[featured.id]?.tag} inline />
+              <Tag tag={rot[featured.id]?.tag} away={rot[featured.id]?.away} inline />
             </View>
             <View style={styles.featuredRow}>
               {preview(featured)}
@@ -224,15 +225,29 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   );
 }
 
-// Метка «НОВИНКА» / «ВЕРНУЛОСЬ».
-function Tag({ tag, inline }) {
-  if (!tag) return inline ? null : <View style={{ height: 18 }} />;
+// «спустя 12 дней» / «спустя 2 месяца» / «спустя больше года».
+function awayText(days) {
+  if (!days) return '';
+  if (days >= 365) return tr('спустя больше года');
+  if (days >= 30) {
+    const m = Math.round(days / 30);
+    return tr('спустя {0} {1}', m, plural(m, tr('месяц'), tr('месяца'), tr('месяцев')));
+  }
+  return tr('спустя {0} {1}', days, plural(days, tr('день'), tr('дня'), tr('дней')));
+}
+
+// Метка «НОВИНКА» (вещи ещё не было на витрине) / «ВЕРНУЛОСЬ спустя …».
+function Tag({ tag, away, inline }) {
+  if (!tag) return inline ? null : <View style={styles.tagSlot} />;
   const isNew = tag === 'new';
-  return (
+  const pill = (
     <View style={[styles.tag, isNew ? styles.tagNew : styles.tagBack]}>
       <Text style={styles.tagText}>{isNew ? tr('НОВИНКА') : tr('ВЕРНУЛОСЬ')}</Text>
     </View>
   );
+  const sub = !isNew && away ? <Text style={styles.tagAway}>{awayText(away)}</Text> : null;
+  if (inline) return <View style={styles.tagInline}>{pill}{sub}</View>;
+  return <View style={styles.tagSlot}>{pill}{sub}</View>;
 }
 
 // Сколько осталось до обновления витрины.
@@ -294,6 +309,9 @@ const styles = StyleSheet.create({
   featuredLabel: { fontSize: 13, fontWeight: '800', letterSpacing: 1, color: '#B54708' },
   featuredRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   featuredTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
+  tagSlot: { height: 34, alignItems: 'center', gap: 2 },
+  tagInline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tagAway: { fontSize: 11, fontWeight: '700', color: '#1570EF' },
   tag: { alignSelf: 'center', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
   tagNew: { backgroundColor: '#F79009' },
   tagBack: { backgroundColor: '#1570EF' },

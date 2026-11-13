@@ -111,9 +111,9 @@ export async function loadShop(studentId) {
     supabase.rpc('shop_today'),
   ]);
   if (items.error) throw items.error;
-  // Витрина дня: { [id]: { tag: 'new' | 'back' | null, featured } }
+  // Витрина дня: { [id]: { tag: 'new' | 'back' | null, featured, away — сколько дней вещи не было } }
   const rotation = {};
-  for (const r of today.data?.items || []) rotation[r.id] = { tag: r.tag, featured: r.featured };
+  for (const r of today.data?.items || []) rotation[r.id] = { tag: r.tag, featured: r.featured, away: r.away };
   return {
     items: items.data,
     owned: new Set((owned.data || []).map((r) => r.item_id)),
