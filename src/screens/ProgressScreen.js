@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { Card, ProgressBar } from '../components/ui';
+import { Flame } from '../components/icons';
 import { colors, radius } from '../theme';
 import { learnedCount, subjectByCode } from '../data/content';
 import { loadHardWords, loadActivity } from '../lib/api';
@@ -79,7 +80,13 @@ export default function ProgressScreen({
       </View>
 
       <View style={styles.stats}>
-        <Card style={styles.stat}><Text style={styles.statValue}>🔥 {streakInfo.streak}</Text><Text style={styles.small}>дней подряд</Text></Card>
+        <Card style={styles.stat}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Flame size={20} color={streakInfo.today_done ? '#E8833A' : '#A3ABB5'} />
+            <Text style={styles.statValue}>{streakInfo.streak}</Text>
+          </View>
+          <Text style={styles.small}>{streakInfo.today_done ? 'дней подряд' : 'сегодня ещё нет урока'}</Text>
+        </Card>
         <Card style={styles.stat}><Text style={styles.statValue}>{totalLearned}</Text><Text style={styles.small}>слов выучено</Text></Card>
         <Card style={styles.stat}><Text style={styles.statValue}>{Math.min(wordsToday, goal)}/{goal}</Text><Text style={styles.small}>цель на сегодня</Text></Card>
       </View>

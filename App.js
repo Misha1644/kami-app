@@ -407,6 +407,7 @@ export default function App() {
           shop={shop}
           kamiColor={kamiColor}
           streak={streakInfo.streak}
+          todayDone={!!streakInfo.today_done}
           learnedTotal={Object.keys(learned).length}
           prefs={prefs}
           onSavePrefs={onSavePrefs}

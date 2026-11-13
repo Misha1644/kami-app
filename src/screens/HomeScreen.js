@@ -79,9 +79,13 @@ export default function HomeScreen({
           >
             {refreshing ? <ActivityIndicator size="small" color={colors.green} /> : <Text style={styles.refreshText}>↻</Text>}
           </Pressable>
-          <View style={[styles.chip, { backgroundColor: colors.orangeLight }]}>
-            <Flame size={16} />
-            <Text style={[styles.chipText, { color: colors.orangeText }]}>{streakInfo.streak}</Text>
+          {/* Огонёк серый, пока сегодня не пройден урок; загорается после урока. */}
+          <View
+            style={[styles.chip, { backgroundColor: streakInfo.today_done ? colors.orangeLight : '#EEF0F2' }]}
+            accessibilityLabel={streakInfo.today_done ? `Серия ${streakInfo.streak} дней, сегодня урок пройден` : `Серия ${streakInfo.streak} дней, сегодня урока ещё не было`}
+          >
+            <Flame size={16} color={streakInfo.today_done ? '#E8833A' : '#A3ABB5'} />
+            <Text style={[styles.chipText, { color: streakInfo.today_done ? colors.orangeText : '#6B7480' }]}>{streakInfo.streak}</Text>
           </View>
           <View style={[styles.chip, { backgroundColor: '#FBF1D6' }]}>
             <Coin size={16} />

@@ -6,6 +6,7 @@ import UserAvatar from '../components/UserAvatar';
 import { BgSwatch } from '../components/Background';
 import ParentalGate from '../components/ParentalGate';
 import { Button, Card } from '../components/ui';
+import { Flame } from '../components/icons';
 import { colors, radius } from '../theme';
 import { GRADES } from '../data/content';
 import { deleteAccount } from '../lib/api';
@@ -58,7 +59,7 @@ function SwitchRow({ title, note, value, onChange }) {
 }
 
 export default function ProfileScreen({
-  student, plan, shop, kamiColor, streak, learnedTotal,
+  student, plan, shop, kamiColor, streak, todayDone, learnedTotal,
   prefs, onSavePrefs, onEquip, onChangeGrade, onUpdateStudent,
   reminders, remindersSupported, onToggleReminders,
   onOpenPlus, onOpenPrivacy, onOpenShop, onOpenFriends, onToggleFriends, onSignOut, refreshing, onRefresh,
@@ -126,7 +127,11 @@ export default function ProfileScreen({
       <View style={styles.head}>
         <UserAvatar value={avatarValue} size={92} kamiColor={kamiColor} />
         <Text style={styles.h1}>{student.nickname}</Text>
-        <Text style={styles.small}>{student.grade} · 🔥 {streak} · {learnedTotal} слов</Text>
+        <View style={styles.headStats}>
+          <Text style={styles.small}>{student.grade} · </Text>
+          <Flame size={14} color={todayDone ? '#E8833A' : '#A3ABB5'} />
+          <Text style={styles.small}> {streak} · {learnedTotal} слов</Text>
+        </View>
         {!!planLine && <Text style={styles.plusBadge}>{planLine}</Text>}
       </View>
       {!!error && <Text style={styles.error}>{error}</Text>}
@@ -298,6 +303,7 @@ const styles = StyleSheet.create({
   body: { fontSize: 15, color: colors.text },
   small: { fontSize: 13, color: colors.muted, lineHeight: 18 },
   error: { fontSize: 14, color: colors.danger, textAlign: 'center' },
+  headStats: { flexDirection: 'row', alignItems: 'center' },
   plusBadge: { fontSize: 13, fontWeight: '800', color: '#6B3FB8', backgroundColor: '#F3ECFC', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   showAll: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 4 },
