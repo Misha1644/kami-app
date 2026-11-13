@@ -58,3 +58,12 @@ export function tr(s, ...args) {
   if (!args.length) return out;
   return out.replace(/\{(\d+)\}/g, (m, i) => (args[i] !== undefined && args[i] !== null ? String(args[i]) : m));
 }
+
+// Название вещи из магазина: у новых вещей переводы лежат в базе (title_en, title_ar),
+// у старых — в словаре интерфейса.
+export function itemTitle(item) {
+  if (!item) return '';
+  if (LANG === 'en' && item.title_en) return item.title_en;
+  if (LANG === 'ar' && item.title_ar) return item.title_ar;
+  return tr(item.title_ru || item.title);
+}

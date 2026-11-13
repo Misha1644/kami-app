@@ -58,9 +58,11 @@ function Ears({ a }) {
   }
 }
 
-export function AnimalFace({ animal, size = 64, mood = 'happy' }) {
-  const a = ANIMALS[animal];
-  if (!a) return null;
+// body/bg — необязательная перекраска (новинки из магазина: тот же зверёк в новых цветах).
+export function AnimalFace({ animal, size = 64, mood = 'happy', body, bg }) {
+  const base = ANIMALS[animal];
+  if (!base) return null;
+  const a = { ...base, ...(body ? { body } : null), ...(bg ? { bg } : null) };
   const stroke = a.outline ? { stroke: '#D0D5DD', strokeWidth: 1.5 } : {};
   const eyeY = a.topEyes ? 34 : 50;
   const mouthY = a.snout ? 72 : 66;

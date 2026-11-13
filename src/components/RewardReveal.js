@@ -12,7 +12,7 @@ import { Coin } from './icons';
 import UserAvatar from './UserAvatar';
 import { BgSwatch } from './Background';
 import { Button } from './ui';
-import { tr } from '../i18n';
+import { tr, itemTitle } from '../i18n';
 
 const RAYS = 14;
 const SPARKS = 12;
@@ -208,7 +208,7 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', showPri
               </View>
 
               <Animated.View style={[styles.bottom, { opacity: drop }]}>
-                {!!(item.title_ru || item.title) && <Text style={styles.name}>{tr(item.title_ru || item.title)}</Text>}
+                {!!itemTitle(item) && <Text style={styles.name}>{itemTitle(item)}</Text>}
                 {!!item.extra && <Text style={styles.extra}>{item.extra}</Text>}
                 {showPrice && item.price > 0 && (
                   <View style={styles.price}>

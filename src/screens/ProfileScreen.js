@@ -11,7 +11,7 @@ import { colors, radius } from '../theme';
 import { GRADES } from '../data/content';
 import { deleteAccount, loadWeeklyEmail, setWeeklyEmail } from '../lib/api';
 import { PLUS_ENABLED, SUPPORT_EMAIL } from '../config';
-import { tr, UI_LANGS, uiLangFor, setLang } from '../i18n';
+import { tr, itemTitle, UI_LANGS, uiLangFor, setLang } from '../i18n';
 
 const DEFAULTS = new Set(['color-green', 'avatar-person', 'bg-default']);
 const GOALS = [5, 10, 15, 20, 30];
@@ -158,7 +158,7 @@ export default function ProfileScreen({
             <Pressable
               key={i.id}
               accessibilityRole="button"
-              accessibilityLabel={tr('Аватар {0}', tr(i.title_ru))}
+              accessibilityLabel={tr('Аватар {0}', itemTitle(i))}
               accessibilityState={{ selected: worn }}
               onPress={() => !worn && act(() => onEquip(i.id))}
               style={[styles.pick, worn && styles.pickActive]}
@@ -181,13 +181,13 @@ export default function ProfileScreen({
             <Pressable
               key={i.id}
               accessibilityRole="button"
-              accessibilityLabel={tr('Фон {0}', tr(i.title_ru))}
+              accessibilityLabel={tr('Фон {0}', itemTitle(i))}
               accessibilityState={{ selected: worn }}
               onPress={() => !worn && act(() => onEquip(i.id))}
               style={[styles.swatchWrap, worn && styles.pickActive]}
             >
               <BgSwatch value={i.value} style={styles.swatch} />
-              <Text style={styles.swatchText} numberOfLines={1}>{tr(i.title_ru)}</Text>
+              <Text style={styles.swatchText} numberOfLines={1}>{itemTitle(i)}</Text>
             </Pressable>
           );
         })}
@@ -205,7 +205,7 @@ export default function ProfileScreen({
             <Pressable
               key={i.id}
               accessibilityRole="button"
-              accessibilityLabel={tr(i.title_ru)}
+              accessibilityLabel={itemTitle(i)}
               accessibilityState={{ selected: worn }}
               onPress={() => !worn && act(() => onEquip(i.id))}
               style={[styles.pick, worn && styles.pickActive]}

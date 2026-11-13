@@ -12,7 +12,7 @@ import { Coin } from '../components/icons';
 import { Button } from '../components/ui';
 import { colors, radius } from '../theme';
 import { plural } from '../data/content';
-import { tr } from '../i18n';
+import { tr, itemTitle } from '../i18n';
 
 const INFO = {
   lesson: {
@@ -84,7 +84,7 @@ function Tile({ tile }) {
     <View style={styles.tile}>
       <View style={styles.tileArt}><TileArt tile={tile} /></View>
       <Text style={styles.tileName} numberOfLines={1}>
-        {tile.type === 'coins' ? tr('Монеты') : tr(tile.item.title_ru || tile.item.title)}
+        {tile.type === 'coins' ? tr('Монеты') : itemTitle(tile.item)}
       </Text>
       <View style={[styles.rarityBar, { backgroundColor: r.color }]} />
     </View>
@@ -207,7 +207,7 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
           ) : (
             <>
               <Text style={styles.itemKind}>{tr(KIND_RU[item.kind])} · {rarity(win).label}</Text>
-              <Text style={styles.itemTitle}>{item.title}</Text>
+              <Text style={styles.itemTitle}>{itemTitle(item)}</Text>
               <View style={styles.price}><Coin size={16} /><Text style={styles.small}>{tr('стоит {0}', item.price)}</Text></View>
             </>
           )}

@@ -55,7 +55,10 @@ export default function UserAvatar({ value = 'person', size = 40, kamiColor }) {
     );
   }
   if (BY_AVATAR[value]) return <Teacher teacher={BY_AVATAR[value]} size={size} />;
-  // Зверята из магазина: value = 'a:<ключ>'
-  if (value?.startsWith('a:') && ANIMALS[value.slice(2)]) return <AnimalFace animal={value.slice(2)} size={size} />;
+  // Зверята из магазина: value = 'a:<ключ>' или 'a:<ключ>~#окрас~#фон' (тот же зверёк в новых цветах)
+  if (value?.startsWith('a:')) {
+    const [key, body, bg] = value.slice(2).split('~');
+    if (ANIMALS[key]) return <AnimalFace animal={key} size={size} body={body} bg={bg} />;
+  }
   return <PersonIcon size={size} />;
 }

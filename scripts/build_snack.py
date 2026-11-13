@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODULES = [
     ('src/theme.js', ['colors', 'radius']),
     ('src/i18n_dict.js', ['DICT']),
-    ('src/i18n.js', ['UI_LANGS', 'uiLangFor', 'deviceLang', 'getLang', 'isRTL', 'setLang', 'tr']),
+    ('src/i18n.js', ['UI_LANGS', 'uiLangFor', 'deviceLang', 'getLang', 'isRTL', 'setLang', 'tr', 'itemTitle']),
     ('src/config.js', ['PLUS_ENABLED', 'PAYMENTS_ENABLED', 'TRIAL_DAYS', 'SUPPORT_EMAIL', 'PRIVACY_UPDATED']),
     ('src/data/privacy.js', ['PRIVACY']),
     ('src/data/kami.js', ['greeting', 'kamiSays', 'kamiFact']),

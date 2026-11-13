@@ -106,7 +106,7 @@ export async function loadWordsToday(studentId) {
 // Магазин: товары и то, что уже куплено.
 export async function loadShop(studentId) {
   const [items, owned, today] = await Promise.all([
-    supabase.from('shop_items').select('id, kind, title_ru, price, value, sort, plus_only, exclusive').order('sort'),
+    supabase.from('shop_items').select('id, kind, title_ru, title_en, title_ar, price, value, sort, plus_only, exclusive').order('sort'),
     supabase.from('student_items').select('item_id').eq('student_id', studentId),
     supabase.rpc('shop_today'),
   ]);

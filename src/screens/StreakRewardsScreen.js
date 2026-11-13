@@ -13,7 +13,7 @@ import { Flame, Coin } from '../components/icons';
 import { Button, ProgressBar } from '../components/ui';
 import { colors, radius } from '../theme';
 import { plural } from '../data/content';
-import { tr } from '../i18n';
+import { tr, itemTitle } from '../i18n';
 
 const dayWord = (n) => plural(n, tr('день'), tr('дня'), tr('дней'));
 
@@ -102,7 +102,7 @@ export default function StreakRewardsScreen({ streak, claimed = [], shopItems = 
             <View style={styles.art}><RewardArt r={r} item={item} kamiColor={kamiColor} /></View>
             <View style={{ flex: 1, gap: 2 }}>
               {item && <Text style={styles.exclusive}>{tr('ЭКСКЛЮЗИВ')}</Text>}
-              {item && <Text style={styles.itemTitle}>{tr(item.title_ru)}</Text>}
+              {item && <Text style={styles.itemTitle}>{itemTitle(item)}</Text>}
               <Text style={item ? styles.small : styles.itemTitle}>{(item ? '+ ' : '') + rewardText(r)}</Text>
             </View>
             {got ? (

@@ -10,7 +10,7 @@ import Kami from '../components/Kami';
 import { Coin, Snowflake } from '../components/icons';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
-import { tr } from '../i18n';
+import { tr, itemTitle } from '../i18n';
 
 export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEquip, onOpenPlus, onOpenChest, refreshing, onRefresh }) {
   const [busy, setBusy] = useState(null);
@@ -57,7 +57,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
                 <Tag tag={rot[item.id]?.tag} />
                 {item.price >= 5000 && <Text style={styles.legend}>{tr('ЛЕГЕНДАРНОЕ')}</Text>}
                 {preview(item)}
-                <Text style={styles.itemTitle} numberOfLines={1}>{tr(item.title_ru)}</Text>
+                <Text style={styles.itemTitle} numberOfLines={1}>{itemTitle(item)}</Text>
                 {isWorn ? (
                   <Text style={styles.worn}>{WORN_TEXT[kind]}</Text>
                 ) : locked ? (
@@ -151,7 +151,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
             <View style={styles.featuredRow}>
               {preview(featured)}
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={styles.featuredTitle}>{tr(featured.title_ru)}</Text>
+                <Text style={styles.featuredTitle}>{itemTitle(featured)}</Text>
                 <Text style={styles.small}>{tr('{0} · только сегодня', { avatar: tr('Аватар'), color: tr('Цвет Ками'), bg: tr('Фон') }[featured.kind])}</Text>
                 {worn ? <Text style={styles.worn}>{tr('Надето')}</Text> : owned ? (
                   <Pressable accessibilityRole="button" onPress={() => run(featured.id, () => onEquip(featured.id), tr('Готово!'))} style={styles.equip}>
@@ -178,7 +178,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
           <View style={styles.chestRow}>
             <Chest type="skin" size={80} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.itemTitle}>{tr(chest.title_ru)}</Text>
+              <Text style={styles.itemTitle}>{itemTitle(chest)}</Text>
               <Text style={styles.small}>{tr('Только вещи: аватары, цвета, фоны. Вещи дороже 500 — с шансом 0,005%. Повторов не бывает.')}</Text>
             </View>
           </View>
@@ -206,7 +206,7 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
         <Card style={styles.freezeCard}>
           <View style={styles.freezeIcon}><Snowflake size={28} /></View>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.itemTitle}>{tr(freeze.title_ru)}</Text>
+            <Text style={styles.itemTitle}>{itemTitle(freeze)}</Text>
             <Text style={styles.small}>{tr('Спасает серию, если пропустишь день. У тебя: {0} из 5. Каждый месяц 1-го числа снова 5.', student.streak_freezes)}</Text>
           </View>
           <PriceButton
@@ -224,13 +224,13 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   );
 }
 
-// Метка «НОВОЕ» / «ВЕРНУЛОСЬ».
+// Метка «НОВИНКА» / «ВЕРНУЛОСЬ».
 function Tag({ tag, inline }) {
   if (!tag) return inline ? null : <View style={{ height: 18 }} />;
   const isNew = tag === 'new';
   return (
     <View style={[styles.tag, isNew ? styles.tagNew : styles.tagBack]}>
-      <Text style={styles.tagText}>{isNew ? tr('НОВОЕ') : tr('ВЕРНУЛОСЬ')}</Text>
+      <Text style={styles.tagText}>{isNew ? tr('НОВИНКА') : tr('ВЕРНУЛОСЬ')}</Text>
     </View>
   );
 }
