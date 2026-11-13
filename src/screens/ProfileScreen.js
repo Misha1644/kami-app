@@ -61,7 +61,7 @@ export default function ProfileScreen({
   student, plan, shop, kamiColor, streak, learnedTotal,
   prefs, onSavePrefs, onEquip, onChangeGrade, onUpdateStudent,
   reminders, remindersSupported, onToggleReminders,
-  onOpenPlus, onOpenPrivacy, onOpenShop, onSignOut, refreshing, onRefresh,
+  onOpenPlus, onOpenPrivacy, onOpenShop, onOpenFriends, onToggleFriends, onSignOut, refreshing, onRefresh,
 }) {
   const [error, setError] = useState('');
   const [adult, setAdult] = useState('closed'); // closed | gate | open
@@ -112,6 +112,17 @@ export default function ProfileScreen({
         {!!planLine && <Text style={styles.plusBadge}>{planLine}</Text>}
       </View>
       {!!error && <Text style={styles.error}>{error}</Text>}
+
+      {student.friends_enabled && (
+        <Pressable accessibilityRole="button" onPress={onOpenFriends} style={styles.friends}>
+          <Text style={styles.friendsIcon}>👋</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.friendsTitle}>Друзья</Text>
+            <Text style={styles.small}>Добавляй одноклассников по коду и подбадривай их</Text>
+          </View>
+          <Text style={styles.plusArrow}>›</Text>
+        </Pressable>
+      )}
 
       {/* Стиль */}
       <Text style={styles.h2}>Аватар</Text>
@@ -231,6 +242,12 @@ export default function ProfileScreen({
       {adult === 'gate' && <ParentalGate onPass={() => setAdult('open')} onCancel={() => setAdult('closed')} />}
       {adult === 'open' && (
         <Card style={{ gap: 10 }}>
+          <SwitchRow
+            title="Разрешить друзей"
+            note="Добавление по коду и готовые реакции. Сообщений писать нельзя."
+            value={!!student.friends_enabled}
+            onChange={(v) => act(() => onToggleFriends(v))}
+          />
           <Button title="Выйти из аккаунта" variant="secondary" onPress={onSignOut} />
           <Text style={styles.link} accessibilityRole="link" onPress={onOpenPrivacy}>Политика конфиденциальности</Text>
           {!!SUPPORT_EMAIL && <Text style={styles.small}>Поддержка: {SUPPORT_EMAIL}</Text>}
@@ -275,6 +292,9 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 14, color: colors.text },
   chipTextActive: { color: colors.greenDark, fontWeight: '700' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  friends: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.green, backgroundColor: colors.greenLight },
+  friendsIcon: { fontSize: 26 },
+  friendsTitle: { fontSize: 16, fontWeight: '800', color: colors.greenDark },
   plus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: radius.lg, borderWidth: 1.5, borderColor: '#B07CE8', backgroundColor: '#F7F2FD', marginTop: 8 },
   plusActive: { backgroundColor: '#F3ECFC' },
   plusTitle: { fontSize: 16, fontWeight: '800', color: '#6B3FB8' },

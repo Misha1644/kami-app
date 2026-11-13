@@ -13,6 +13,7 @@ import TaskScreen from './src/screens/TaskScreen';
 import ProgressScreen from './src/screens/ProgressScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ChestScreen from './src/screens/ChestScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
 import { TabIcon } from './src/components/TabIcons';
 import UserAvatar from './src/components/UserAvatar';
 import { parseBg, PatternLayer } from './src/components/Background';
@@ -30,7 +31,7 @@ import { supabase } from './src/lib/supabase';
 import { KAMI_COLORS } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
-  loadShop, buyItem, equipItem, openChest, loadSchedule, saveScheduleDay, updateStudent, startTrial,
+  loadShop, buyItem, equipItem, openChest, myCheers, setFriendsEnabled, CHEERS, loadSchedule, saveScheduleDay, updateStudent, startTrial,
   completeLesson, loadPlan,
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
@@ -62,6 +63,8 @@ export default function App() {
 
   const [plan, setPlan] = useState({ plus: false, trialUsed: false });
   const [showTask, setShowTask] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
+  const [newCheers, setNewCheers] = useState([]); // непрочитанные реакции от друзей
   const [chestType, setChestType] = useState(null); // открыт экран сундука: 'lesson' | 'skin'
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
   const [showPlus, setShowPlus] = useState(false);
@@ -131,6 +134,7 @@ export default function App() {
       remindersEnabled(),
     ]);
     setDueWords(due);
+    myCheers(id).then((c) => setNewCheers(c.filter((x) => !x.seen))).catch(() => {});
     setCurrentTopics(current ? JSON.parse(current) : {});
     setReminders(remOn);
     if (remOn) rescheduleReminders(sch).catch(() => {});
@@ -265,6 +269,8 @@ export default function App() {
     setPlan({ plus: false, trialUsed: false });
     setShowTask(false);
     setChestType(null);
+    setShowFriends(false);
+    setNewCheers([]);
     setShowPlus(false);
     setShowPrivacy(false);
     setDueWords([]);
@@ -324,6 +330,13 @@ export default function App() {
         onOpen={onOpenChest}
         onEquip={onEquip}
         onClose={() => setChestType(null)}
+      />
+    );
+  } else if (showFriends) {
+    screen = (
+      <FriendsScreen
+        student={student}
+        onBack={() => { setShowFriends(false); setNewCheers([]); }}
       />
     );
   } else if (showPrivacy) {
@@ -406,6 +419,8 @@ export default function App() {
           onOpenPlus={openPlus}
           onOpenPrivacy={() => setShowPrivacy(true)}
           onOpenShop={() => setTab('shop')}
+          onOpenFriends={() => setShowFriends(true)}
+          onToggleFriends={async (on) => { await setFriendsEnabled(studentId, on); setStudent((s) => ({ ...s, friends_enabled: on })); }}
           onSignOut={signOut}
           refreshing={refreshing}
           onRefresh={refresh}
@@ -425,6 +440,9 @@ export default function App() {
           onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
           onOpenTask={taskReady ? () => setShowTask(true) : null}
           onOpenChest={setChestType}
+          newCheers={student.friends_enabled ? newCheers : []}
+          cheerLabels={CHEERS}
+          onOpenFriends={() => setShowFriends(true)}
           onOpenSchedule={() => setTab('schedule')}
           refreshing={refreshing}
           onRefresh={refresh}

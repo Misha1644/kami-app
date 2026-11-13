@@ -3,7 +3,7 @@
 import { supabase } from './supabase';
 import { topics as localTopics } from '../data/content';
 
-const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg, chests_lesson, chests_skin';
+const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg, chests_lesson, chests_skin, friends_enabled';
 
 // Темы со словами. Если база недоступна — берём встроенный контент, чтобы приложение работало.
 // Язык озвучки слова: в Valencià слова валенсийские, остальное — испанский.
@@ -321,4 +321,59 @@ export async function deleteAccount() {
   const { data, error } = await supabase.functions.invoke('delete-account', { body: {} });
   if (error || !data?.ok) throw new Error('Не получилось удалить аккаунт. Попробуйте позже.');
   await supabase.auth.signOut();
+}
+
+// ----- Друзья (по коду; общение — только готовыми реакциями) -----
+export const CHEERS = {
+  hola: '👋 ¡Hola!',
+  animo: '💪 ¡Ánimo!',
+  bravo: '👏 ¡Bravo!',
+  fuego: '🔥 ¡Qué racha!',
+  genial: '⭐ ¡Genial!',
+  vamos: '🚀 ¡Vamos!',
+  gracias: '🙏 ¡Gracias!',
+  chocala: '✋ ¡Choca esos cinco!',
+};
+
+const FRIEND_ERRORS = {
+  'not found': 'Такого кода нет. Проверь буквы и цифры.',
+  self: 'Это твой собственный код 🙂',
+  already: 'Заявка уже отправлена или вы уже друзья.',
+  'too many': 'На сегодня хватит — попробуй завтра.',
+  'friends disabled': 'Друзья выключены в настройках для взрослых.',
+  'not friends': 'Вы больше не друзья.',
+};
+const friendError = (e) => new Error(FRIEND_ERRORS[e?.message] || 'Не получилось. Попробуй ещё раз.');
+
+export async function myFriendCode(studentId) {
+  const { data, error } = await supabase.rpc('my_friend_code', { p_student: studentId });
+  if (error) throw friendError(error);
+  return data;
+}
+export async function addFriend(studentId, code) {
+  const { data, error } = await supabase.rpc('add_friend', { p_student: studentId, p_code: code });
+  if (error) throw friendError(error);
+  return data;
+}
+export async function friendAction(studentId, otherId, action) {
+  const { error } = await supabase.rpc('friend_action', { p_student: studentId, p_other: otherId, p_action: action });
+  if (error) throw friendError(error);
+}
+export async function listFriends(studentId) {
+  const { data, error } = await supabase.rpc('list_friends', { p_student: studentId });
+  if (error) throw friendError(error);
+  return data || [];
+}
+export async function sendCheer(studentId, friendId, cheer) {
+  const { error } = await supabase.rpc('send_cheer', { p_student: studentId, p_friend: friendId, p_cheer: cheer });
+  if (error) throw friendError(error);
+}
+export async function myCheers(studentId, markSeen = false) {
+  const { data, error } = await supabase.rpc('my_cheers', { p_student: studentId, p_mark_seen: markSeen });
+  if (error) return [];
+  return data || [];
+}
+export async function setFriendsEnabled(studentId, on) {
+  const { error } = await supabase.from('students').update({ friends_enabled: on }).eq('id', studentId);
+  if (error) throw new Error('Не получилось сохранить.');
 }

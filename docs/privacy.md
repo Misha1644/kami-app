@@ -1,6 +1,6 @@
 # Kami — политика конфиденциальности / Política de privacidad
 
-Обновлено / Actualizada: 12.11.2026
+Обновлено / Actualizada: 13.11.2026
 
 ## Политика конфиденциальности
 
@@ -18,12 +18,13 @@
 • Профиль ребёнка: имя или прозвище, класс, родной язык. Советуем указывать прозвище, а не полное имя.
 • Учёба: выученные слова, ошибки, дни занятий, серия, монеты и купленные за монеты цвета Ками, расписание уроков.
 • Количество разборов заданий за день (только дата, без содержимого).
+• Друзья (если не выключены): код друга, список друзей и заявок, отправленные готовые реакции. Друзья видят только имя или прозвище, аватар, цвет Ками, число выученных слов и занимался ли ребёнок сегодня.
 
 ### Чего мы НЕ храним
 
 • Фото и файлы заданий: они передаются на обработку и сразу удаляются, мы их не сохраняем.
 • Записи голоса: остаются только на телефоне и никуда не отправляются.
-• Мы не показываем рекламу, не продаём данные, не используем трекинг и аналитику, а пользователи не могут переписываться друг с другом.
+• Мы не показываем рекламу, не продаём данные, не используем трекинг и аналитику, а пользователи не могут переписываться друг с другом: друзья обмениваются только готовыми реакциями из списка. Найти ребёнка по имени нельзя — только по коду, который он сам сказал. Взрослый может выключить друзей в профиле.
 
 ### Кто обрабатывает данные
 
@@ -63,12 +64,13 @@ La cuenta solo la crea el padre, la madre o el tutor legal. En España, el conse
 • Perfil del alumno: nombre o apodo, curso e idioma materno. Recomendamos usar un apodo, no el nombre completo.
 • Aprendizaje: palabras aprendidas, errores, días de estudio, racha, monedas y colores de Kami comprados con monedas, horario de clases.
 • Número de explicaciones de tareas al día (solo la fecha, sin contenido).
+• Amigos (si no están desactivados): código de amigo, lista de amigos y solicitudes, reacciones predefinidas enviadas. Los amigos solo ven el nombre o apodo, el avatar, el color de Kami, el número de palabras aprendidas y si ha estudiado hoy.
 
 ### Qué NO guardamos
 
 • Fotos y archivos de tareas: se envían para su análisis y se descartan; no los guardamos.
 • Grabaciones de voz: se quedan en el teléfono y no se envían a ningún sitio.
-• No mostramos publicidad, no vendemos datos, no usamos seguimiento ni analítica, y los usuarios no pueden escribirse entre sí.
+• No mostramos publicidad, no vendemos datos, no usamos seguimiento ni analítica, y los usuarios no pueden escribirse entre sí: los amigos solo intercambian reacciones predefinidas. No se puede buscar a un alumno por su nombre, solo por el código que él mismo comparte. Un adulto puede desactivar los amigos en el perfil.
 
 ### Quién trata los datos
 

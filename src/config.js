@@ -12,4 +12,4 @@ export const TRIAL_DAYS = 3;
 export const SUPPORT_EMAIL = '';
 
 // Версия политики конфиденциальности: при изменении текста — обновить дату.
-export const PRIVACY_UPDATED = '12.11.2026';
+export const PRIVACY_UPDATED = '13.11.2026';
