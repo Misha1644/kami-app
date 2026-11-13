@@ -24,6 +24,7 @@ const BENEFITS = [
   { title: 'Трудные слова', free: '—', plus: '✓' },
   { title: 'Разбор заданий по фото', free: '—', plus: '15 в день' },
   { title: 'Фиолетовый Ками и звёздный фон', free: '—', plus: '✓' },
+  { title: 'Подарок при оформлении', free: '—', plus: '+500 монет' },
 ];
 
 export default function PlusScreen({ plan, onBack, onStartTrial }) {
@@ -133,7 +134,7 @@ export default function PlusScreen({ plan, onBack, onStartTrial }) {
             />
           )}
           {!!note && <Text style={styles.note}>{note}</Text>}
-          <Text style={styles.small}>Подписку оформляет и оплачивает только взрослый.</Text>
+          <Text style={styles.small}>При первом оформлении подписки ребёнку — 500 монет в подарок (один раз, пробный период не считается). Подписку оформляет и оплачивает только взрослый.</Text>
         </>
       )}
     </ScrollView>
