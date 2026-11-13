@@ -73,6 +73,24 @@ export default function ProfileScreen({
   const ownedOf = (kind) => items.filter((i) => i.kind === kind && owns(i.id));
   const valueOf = (id) => items.find((i) => i.id === id)?.value;
   const avatarValue = valueOf(student.avatar) || 'person';
+  // В сетке сначала 8 вещей (надетая — всегда видна), остальные — по кнопке «Показать все».
+  const [expanded, setExpanded] = useState({});
+  const wornId = { avatar: student.avatar, bg: student.bg, color: student.kami_color };
+  function limit(list, kind) {
+    if (expanded[kind] || list.length <= 8) return list;
+    const first = list.slice(0, 8);
+    const worn = list.find((i) => i.id === wornId[kind]);
+    return worn && !first.includes(worn) ? [worn, ...first.slice(0, 7)] : first;
+  }
+  function moreButton(kind) {
+    const n = ownedOf(kind).length;
+    if (n <= 8) return null;
+    return (
+      <Text style={styles.showAll} accessibilityRole="button" onPress={() => setExpanded((e) => ({ ...e, [kind]: !e[kind] }))}>
+        {expanded[kind] ? 'Свернуть' : `Показать все (${n})`}
+      </Text>
+    );
+  }
 
   async function act(fn) {
     setError('');
@@ -126,8 +144,8 @@ export default function ProfileScreen({
 
       {/* Стиль */}
       <Text style={styles.h2}>Аватар</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hscroll}>
-        {ownedOf('avatar').map((i) => {
+      <View style={styles.grid}>
+        {limit(ownedOf('avatar'), 'avatar').map((i) => {
           const worn = student.avatar === i.id;
           return (
             <Pressable
@@ -145,11 +163,12 @@ export default function ProfileScreen({
         <Pressable accessibilityRole="button" onPress={onOpenShop} style={[styles.pick, styles.more]}>
           <Text style={styles.moreText}>+ ещё{'\n'}в магазине</Text>
         </Pressable>
-      </ScrollView>
+      </View>
+      {moreButton('avatar')}
 
       <Text style={styles.h2}>Фон</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hscroll}>
-        {ownedOf('bg').map((i) => {
+      <View style={styles.grid}>
+        {limit(ownedOf('bg'), 'bg').map((i) => {
           const worn = student.bg === i.id;
           return (
             <Pressable
@@ -168,11 +187,12 @@ export default function ProfileScreen({
         <Pressable accessibilityRole="button" onPress={onOpenShop} style={[styles.swatchWrap, styles.more, { height: 60, justifyContent: 'center' }]}>
           <Text style={styles.moreText}>+ ещё</Text>
         </Pressable>
-      </ScrollView>
+      </View>
+      {moreButton('bg')}
 
       <Text style={styles.h2}>Цвет Ками</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hscroll}>
-        {ownedOf('color').map((i) => {
+      <View style={styles.grid}>
+        {limit(ownedOf('color'), 'color').map((i) => {
           const worn = student.kami_color === i.id;
           return (
             <Pressable
@@ -187,7 +207,8 @@ export default function ProfileScreen({
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
+      {moreButton('color')}
 
       {/* Учёба */}
       <Text style={styles.h2}>Учёба</Text>
@@ -278,7 +299,8 @@ const styles = StyleSheet.create({
   small: { fontSize: 13, color: colors.muted, lineHeight: 18 },
   error: { fontSize: 14, color: colors.danger, textAlign: 'center' },
   plusBadge: { fontSize: 13, fontWeight: '800', color: '#6B3FB8', backgroundColor: '#F3ECFC', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
-  hscroll: { gap: 10, paddingVertical: 2 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  showAll: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 4 },
   pick: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
   pickActive: { borderColor: colors.green, borderWidth: 3 },
   more: { borderColor: '#C9D0CB', borderStyle: 'dashed', borderWidth: 1.5, backgroundColor: colors.card },
