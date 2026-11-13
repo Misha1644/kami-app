@@ -385,3 +385,27 @@ export async function setFriendsEnabled(studentId, on) {
   const { error } = await supabase.from('students').update({ friends_enabled: on }).eq('id', studentId);
   if (error) throw new Error('Не получилось сохранить.');
 }
+
+// ----- Контрольные -----
+export async function loadExams(studentId) {
+  const from = new Date();
+  from.setDate(from.getDate() - 3);
+  const { data } = await supabase.from('exams').select('id, subject_code, topic_ids, exam_date, best_score')
+    .eq('student_id', studentId).gte('exam_date', from.toISOString().slice(0, 10)).order('exam_date');
+  return data || [];
+}
+export async function createExam(studentId, subjectCode, topicIds, examDate) {
+  const { data, error } = await supabase.from('exams')
+    .insert({ student_id: studentId, subject_code: subjectCode, topic_ids: topicIds, exam_date: examDate })
+    .select('id, subject_code, topic_ids, exam_date, best_score').single();
+  if (error) throw new Error('Не получилось сохранить контрольную. Попробуй ещё раз.');
+  return data;
+}
+export async function deleteExam(examId) {
+  const { error } = await supabase.from('exams').delete().eq('id', examId);
+  if (error) throw new Error('Не получилось удалить.');
+}
+export async function saveExamScore(examId, score) {
+  const { data } = await supabase.rpc('save_exam_score', { p_exam: examId, p_score: score });
+  return data;
+}

@@ -58,11 +58,13 @@ function ListenButtons({ text, lang }) {
   );
 }
 
-export default function LessonScreen({ topics, topicId, review, kamiColor, prefs = {}, onAnswer, onComplete, onClose, onOpenChest }) {
+export default function LessonScreen({ topics, topicId, review, test, kamiColor, prefs = {}, onAnswer, onComplete, onClose, onOpenChest, onTestScore }) {
+  // test — пробная контрольная: без карточек и «найди пару», в конце оценка от 0 до 10.
+  const quiz = review || test;
   const topic = topics.find((t) => t.id === topicId);
   const words = topic.words;
   const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState(review ? 'exercise' : 'learn'); // learn → exercise → (match) → done
+  const [phase, setPhase] = useState(quiz ? 'exercise' : 'learn'); // learn → exercise → (match) → done
   const [picked, setPicked] = useState(null);
   const [typed, setTyped] = useState('');
   const [typedResult, setTypedResult] = useState(null); // 'exact' | 'accents' | 'wrong'
@@ -73,7 +75,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
   const [earned, setEarned] = useState(0);
   // Реплики Ками: новые на каждое слово, но не меняются при перерисовке.
   // Урок ведёт учитель предмета; повторение и свои предметы — Ками.
-  const teacher = review || topic.custom ? KAMI_TEACHER : teacherFor(topic.subjectCode);
+  const teacher = (review && !test) || topic.custom ? KAMI_TEACHER : teacherFor(topic.subjectCode);
   const hello = useMemo(() => pickLine(teacher.hello), [teacher]);
   const praise = useMemo(() => pickLine(teacher.praise), [index, phase, teacher]);
   const comfort = useMemo(() => pickLine(teacher.wrong), [index, phase, teacher]);
@@ -133,6 +135,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
 
   function finish() {
     setPhase('done');
+    if (test) onTestScore?.(Math.round(((words.length - mistakes) / Math.max(1, words.length)) * 100));
     Promise.resolve(onComplete?.(topic.id)).then((res) => { if (res?.chest) setGotChest(true); }).catch(() => {});
   }
 
@@ -143,8 +146,8 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
     setVerdict(null);
     if (index + 1 < words.length) {
       setIndex(index + 1);
-      setPhase(review ? 'exercise' : 'learn');
-    } else if (words.length >= 4) {
+      setPhase(quiz ? 'exercise' : 'learn');
+    } else if (words.length >= 4 && !test) {
       setPhase('match');
     } else {
       finish();
@@ -155,7 +158,20 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
     return (
       <View style={[styles.wrap, styles.center]}>
         <Teacher teacher={teacher} size={140} kamiColor={kamiColor} mood="excited" />
-        <Text style={styles.h1}>{review ? 'Повторение готово!' : 'Тема готова!'}</Text>
+        <Text style={styles.h1}>{test ? 'Пробная контрольная сдана!' : review ? 'Повторение готово!' : 'Тема готова!'}</Text>
+        {test && (() => {
+          const nota = Math.round(((words.length - mistakes) / Math.max(1, words.length)) * 100) / 10;
+          const label = nota >= 9 ? 'sobresaliente' : nota >= 7 ? 'notable' : nota >= 6 ? 'bien' : nota >= 5 ? 'suficiente' : 'insuficiente';
+          return (
+            <View style={styles.notaCard}>
+              <Text style={styles.notaValue}>{String(nota).replace('.', ',')}</Text>
+              <Text style={styles.notaLabel}>{label}</Text>
+              <Text style={styles.small}>
+                {nota >= 5 ? 'Так держать! К контрольной ты готов.' : 'Повтори трудные слова ещё раз — и всё получится.'}
+              </Text>
+            </View>
+          );
+        })()}
         {teacher !== KAMI_TEACHER && <Text style={styles.teacherName}>{teacher.name} · {teacher.who}</Text>}
         <Text style={styles.mutedCenter}>{mistakes === 0 ? ending.perfect : review ? ending.review : ending.done}</Text>
         <Text style={styles.mutedCenter}>
@@ -203,7 +219,7 @@ export default function LessonScreen({ topics, topicId, review, kamiColor, prefs
       <View style={styles.capsRow}>
         <Teacher teacher={teacher} size={28} kamiColor={kamiColor} />
         <Text style={[styles.caps, { flex: 1 }]}>
-          {review ? 'ПОВТОРЕНИЕ' : `${topic.subject.toUpperCase()} · ${topic.title.toUpperCase()}`}
+          {test ? `ПРОБНАЯ КОНТРОЛЬНАЯ · ${topic.subject.toUpperCase()}` : review ? 'ПОВТОРЕНИЕ' : `${topic.subject.toUpperCase()} · ${topic.title.toUpperCase()}`}
         </Text>
       </View>
 
@@ -637,6 +653,9 @@ const styles = StyleSheet.create({
   note: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
   small: { fontSize: 13, color: colors.muted },
   kamiRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  notaCard: { alignItems: 'center', gap: 2, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignSelf: 'stretch' },
+  notaValue: { fontSize: 44, fontWeight: '800', color: colors.text },
+  notaLabel: { fontSize: 16, fontWeight: '800', color: colors.greenDark, textTransform: 'uppercase', letterSpacing: 1 },
   chestGift: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#D9A92B', backgroundColor: '#FFFBEB' },
   chestTitle: { fontSize: 18, fontWeight: '800', color: '#7A5200' },
   capsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

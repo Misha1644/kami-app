@@ -7,6 +7,7 @@ import Chest from '../components/Chest';
 import UserAvatar from '../components/UserAvatar';
 import Teacher from '../components/Teacher';
 import { teacherFor, TEACHERS } from '../data/teachers';
+import { daysUntil, whenText } from '../lib/exams';
 import { greeting, kamiSays, kamiFact } from '../data/kami';
 import { Flame, Coin, Snowflake } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
@@ -17,7 +18,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
-  onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
+  onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, exams = [], examsDone = {}, onOpenExams, onStartExam, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
   currentTopics, onOpenTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
@@ -186,6 +187,32 @@ export default function HomeScreen({
 
       <FactCard kamiColor={kamiColor} />
 
+      {(() => {
+        const next = exams.find((e) => daysUntil(e.exam_date) >= 0);
+        if (!next) return null;
+        const days = daysUntil(next.exam_date);
+        const done = examsDone[next.id];
+        const task = days === 0 ? 'Быстрое повторение' : days === 1 ? 'Пробная контрольная' : 'Подготовка: 10 слов';
+        return (
+          <View style={styles.examCard}>
+            <View style={styles.examHead}>
+              <Teacher teacher={teacherFor(next.subject_code)} size={44} kamiColor={kamiColor} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.examTitle}>📝 {subjectByCode(next.subject_code).es} — {whenText(days)}</Text>
+                <Text style={styles.small}>
+                  {days === 0 ? '¡Suerte! Ты готовился — всё получится.' : done ? 'На сегодня готово ✓ Завтра продолжим.' : `Сегодня: ${task.toLowerCase()}`}
+                </Text>
+              </View>
+            </View>
+            {!done && <Button title={task} onPress={() => onStartExam(next)} />}
+            <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">Все контрольные</Text>
+          </View>
+        );
+      })()}
+      {!exams.some((e) => daysUntil(e.exam_date) >= 0) && (
+        <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">📝 Скоро контрольная? Подготовимся вместе</Text>
+      )}
+
       {newCheers.length > 0 && (
         <Pressable accessibilityRole="button" onPress={onOpenFriends} style={styles.cheerCard}>
           <UserAvatar value={newCheers[0].avatar} size={44} />
@@ -300,6 +327,9 @@ const styles = StyleSheet.create({
   reviewButtonText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   bubble: { flex: 1, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, borderBottomLeftRadius: 4, padding: 12 },
   bubbleText: { fontSize: 15, lineHeight: 21, color: colors.text },
+  examCard: { gap: 10, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#7A5AF8', backgroundColor: '#F4F1FF' },
+  examHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  examTitle: { fontSize: 16, fontWeight: '800', color: '#4A2DB3' },
   cheerCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.green, backgroundColor: colors.greenLight },
   cheerTitle: { fontSize: 16, fontWeight: '800', color: colors.greenDark },
   chestCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#D9A92B', backgroundColor: '#FFFBEB' },

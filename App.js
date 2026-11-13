@@ -14,6 +14,8 @@ import ProgressScreen from './src/screens/ProgressScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ChestScreen from './src/screens/ChestScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
+import ExamScreen from './src/screens/ExamScreen';
+import { todayTask, isDoneToday, markDoneToday } from './src/lib/exams';
 import { TabIcon } from './src/components/TabIcons';
 import UserAvatar from './src/components/UserAvatar';
 import { parseBg, PatternLayer } from './src/components/Background';
@@ -28,10 +30,11 @@ import TopicsScreen from './src/screens/TopicsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from './src/theme';
 import { supabase } from './src/lib/supabase';
-import { KAMI_COLORS } from './src/data/content';
+import { KAMI_COLORS, subjectByCode } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
-  loadShop, buyItem, equipItem, openChest, myCheers, setFriendsEnabled, CHEERS, loadSchedule, saveScheduleDay, updateStudent, startTrial,
+  loadShop, buyItem, equipItem, openChest, myCheers, setFriendsEnabled, CHEERS,
+  loadExams, createExam, deleteExam, saveExamScore, loadSchedule, saveScheduleDay, updateStudent, startTrial,
   completeLesson, loadPlan,
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
@@ -64,6 +67,10 @@ export default function App() {
   const [plan, setPlan] = useState({ plus: false, trialUsed: false });
   const [showTask, setShowTask] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [exams, setExams] = useState([]);
+  const [examsDone, setExamsDone] = useState({}); // { [examId]: true } — сегодня уже готовился
+  const [showExams, setShowExams] = useState(false);
+  const [examSession, setExamSession] = useState(null); // { exam, mode, words }
   const [newCheers, setNewCheers] = useState([]); // непрочитанные реакции от друзей
   const [chestType, setChestType] = useState(null); // открыт экран сундука: 'lesson' | 'skin'
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
@@ -135,6 +142,12 @@ export default function App() {
     ]);
     setDueWords(due);
     myCheers(id).then((c) => setNewCheers(c.filter((x) => !x.seen))).catch(() => {});
+    loadExams(id).then(async (list) => {
+      setExams(list);
+      const done = {};
+      for (const e of list) done[e.id] = await isDoneToday(e.id);
+      setExamsDone(done);
+    }).catch(() => {});
     setCurrentTopics(current ? JSON.parse(current) : {});
     setReminders(remOn);
     if (remOn) rescheduleReminders(sch).catch(() => {});
@@ -171,11 +184,36 @@ export default function App() {
   const en = student?.native_lang === 'en';
   const tr = useCallback((w) => (en && w.en ? { ...w, ru: w.en } : w), [en]);
   const allTopics = useMemo(() => (en ? topics.map((t) => ({ ...t, words: t.words.map(tr) })) : topics), [topics, en, tr]);
-  // Темы класса + сессия повторения.
-  const lessonTopics = useMemo(
-    () => [...allTopics, { id: 'review', subject: 'Повторение', title: 'повторение', titleRu: '', words: dueWords.map(tr) }],
-    [allTopics, dueWords, tr]
-  );
+  // Темы класса + сессия повторения + подготовка к контрольной.
+  const lessonTopics = useMemo(() => {
+    const list = [...allTopics, { id: 'review', subject: 'Повторение', title: 'повторение', titleRu: '', words: dueWords.map(tr) }];
+    if (examSession) {
+      const subj = subjectByCode(examSession.exam.subject_code);
+      list.push({
+        id: 'exam', subject: subj.es, subjectCode: examSession.exam.subject_code,
+        title: examSession.mode === 'practice' ? 'подготовка к контрольной' : 'контрольная', titleRu: '', words: examSession.words,
+      });
+    }
+    return list;
+  }, [allTopics, dueWords, tr, examSession]);
+
+  function startExam(exam) {
+    const task = todayTask(exam, allTopics, learned);
+    if (!task.words.length) return;
+    setExamSession({ exam, mode: task.mode, words: task.words });
+    setShowExams(false);
+    setLessonTopic('exam');
+  }
+
+  async function onCreateExam(subject, topicIds, date) {
+    const e = await createExam(studentId, subject, topicIds, date);
+    setExams((list) => [...list, e].sort((a, b) => a.exam_date.localeCompare(b.exam_date)));
+  }
+
+  async function onDeleteExam(id) {
+    await deleteExam(id).catch(() => {});
+    setExams((list) => list.filter((e) => e.id !== id));
+  }
 
   const onAnswer = useCallback(
     async (wordId, correct) => {
@@ -271,6 +309,9 @@ export default function App() {
     setChestType(null);
     setShowFriends(false);
     setNewCheers([]);
+    setExams([]);
+    setShowExams(false);
+    setExamSession(null);
     setShowPlus(false);
     setShowPrivacy(false);
     setDueWords([]);
@@ -312,12 +353,25 @@ export default function App() {
         topics={lessonTopics}
         topicId={lessonTopic}
         review={lessonTopic === 'review'}
+        test={lessonTopic === 'exam' && examSession?.mode !== 'practice'}
+        onTestScore={async (score) => {
+          if (!examSession) return;
+          const best = await saveExamScore(examSession.exam.id, score).catch(() => null);
+          if (best != null) setExams((list) => list.map((e) => (e.id === examSession.exam.id ? { ...e, best_score: best } : e)));
+        }}
         kamiColor={kamiColor}
         prefs={prefs}
         onAnswer={onAnswer}
         onComplete={onCompleteLesson}
-        onClose={() => setLessonTopic(null)}
-        onOpenChest={() => { setLessonTopic(null); setChestType('lesson'); }}
+        onClose={() => {
+          if (lessonTopic === 'exam' && examSession) {
+            markDoneToday(examSession.exam.id);
+            setExamsDone((d) => ({ ...d, [examSession.exam.id]: true }));
+            setExamSession(null);
+          }
+          setLessonTopic(null);
+        }}
+        onOpenChest={() => { setLessonTopic(null); setExamSession(null); setChestType('lesson'); }}
       />
     );
   } else if (chestType) {
@@ -330,6 +384,20 @@ export default function App() {
         onOpen={onOpenChest}
         onEquip={onEquip}
         onClose={() => setChestType(null)}
+      />
+    );
+  } else if (showExams) {
+    screen = (
+      <ExamScreen
+        topics={allTopics}
+        exams={exams}
+        plan={plan}
+        kamiColor={kamiColor}
+        onCreate={onCreateExam}
+        onDelete={onDeleteExam}
+        onStart={startExam}
+        onOpenPlus={openPlus}
+        onBack={() => setShowExams(false)}
       />
     );
   } else if (showFriends) {
@@ -388,6 +456,7 @@ export default function App() {
       screen = (
         <ProgressScreen
           topics={allTopics}
+          exams={exams}
           student={student}
           learned={learned}
           streakInfo={streakInfo}
@@ -441,6 +510,10 @@ export default function App() {
           onStartTopic={(id) => { setGoalBanner(''); setLessonTopic(id); }}
           onOpenTask={taskReady ? () => setShowTask(true) : null}
           onOpenChest={setChestType}
+          exams={exams}
+          examsDone={examsDone}
+          onOpenExams={() => setShowExams(true)}
+          onStartExam={startExam}
           newCheers={student.friends_enabled ? newCheers : []}
           cheerLabels={CHEERS}
           onOpenFriends={() => setShowFriends(true)}

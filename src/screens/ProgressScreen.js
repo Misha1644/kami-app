@@ -10,6 +10,7 @@ import { loadHardWords, loadActivity } from '../lib/api';
 import { PLUS_ENABLED } from '../config';
 import Teacher from '../components/Teacher';
 import { teacherFor } from '../data/teachers';
+import { daysUntil, whenText } from '../lib/exams';
 
 const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
@@ -27,7 +28,7 @@ function Locked({ title, text, plan, onOpenPlus }) {
 }
 
 export default function ProgressScreen({
-  topics, student, learned, streakInfo, wordsToday, plan, kamiColor, onOpenPlus, refreshing, onRefresh,
+  topics, exams = [], student, learned, streakInfo, wordsToday, plan, kamiColor, onOpenPlus, refreshing, onRefresh,
 }) {
   const open = plan.plus || !PLUS_ENABLED;
   const en = student.native_lang === 'en';
@@ -90,6 +91,24 @@ export default function ProgressScreen({
         <Card style={styles.stat}><Text style={styles.statValue}>{totalLearned}</Text><Text style={styles.small}>слов выучено</Text></Card>
         <Card style={styles.stat}><Text style={styles.statValue}>{Math.min(wordsToday, goal)}/{goal}</Text><Text style={styles.small}>цель на сегодня</Text></Card>
       </View>
+
+      {exams.length > 0 && (
+        <>
+          <Text style={styles.h2}>Контрольные</Text>
+          <Card style={{ gap: 10 }}>
+            {exams.map((e) => (
+              <View key={e.id} style={styles.rowBetween}>
+                <Text style={styles.body}>
+                  {subjectByCode(e.subject_code).es} · {daysUntil(e.exam_date) >= 0 ? whenText(daysUntil(e.exam_date)) : e.exam_date.split('-').reverse().slice(0, 2).join('.')}
+                </Text>
+                <Text style={styles.small}>
+                  {e.best_score != null ? `пробная: ${String(e.best_score / 10).replace('.', ',')}` : 'пробной ещё не было'}
+                </Text>
+              </View>
+            ))}
+          </Card>
+        </>
+      )}
 
       <Text style={styles.h2}>Последние 2 недели</Text>
       {open ? (
