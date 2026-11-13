@@ -21,7 +21,7 @@ export default function StudentSetupScreen({ onCreated, lang: uiLang = 'ru', onL
   const [lang, setLangState] = useState(uiLang);
   // Выбор языка сразу переключает и интерфейс.
   const setLang = (code) => { setLangState(code); onLang?.(uiLangFor(code)); };
-  const [grade, setGrade] = useState(GRADES[0]);
+  const [grade, setGrade] = useState('1º ESO');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 

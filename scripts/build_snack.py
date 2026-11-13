@@ -22,7 +22,7 @@ MODULES = [
     ('src/data/kami.js', ['greeting', 'kamiSays', 'kamiFact']),
     ('src/data/teachers.js', ['TEACHERS', 'KAMI_TEACHER', 'teacherFor', 'pickLine']),
     ('src/data/facts.js', ['FACTS', 'DATED', 'dayKey', 'factOfDay']),
-    ('src/data/content.js', ['GRADE', 'GRADES', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
+    ('src/data/content.js', ['GRADE', 'GRADES', 'isPrimaria', 'setGradeContext', 'subjectsForGrade', 'topics', 'learnedCount', 'SUBJECTS', 'subjectByCode',
                              'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural',
                              'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom', 'customTopics']),
     ('src/components/Kami.js', ['Kami']),

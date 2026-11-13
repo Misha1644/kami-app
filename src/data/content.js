@@ -4,7 +4,26 @@
 import { tr, getLang } from '../i18n';
 
 export const GRADE = '1º ESO';
-export const GRADES = ['1º ESO', '2º ESO', '3º ESO', '4º ESO'];
+export const GRADES = [
+  '1º Primaria', '2º Primaria', '3º Primaria', '4º Primaria', '5º Primaria', '6º Primaria',
+  '1º ESO', '2º ESO', '3º ESO', '4º ESO',
+];
+
+// В начальной школе (Primaria) часть предметов называется иначе, а некоторых нет вовсе.
+const PRIMARIA_NAMES = {
+  bio: { es: 'Ciencias de la Naturaleza', ru: 'Естествознание' },
+  geo: { es: 'Ciencias Sociales', ru: 'Обществознание' },
+  pla: { es: 'Educación Artística', ru: 'ИЗО' },
+};
+const NOT_IN_PRIMARIA = new Set(['fyq', 'tec']);
+let PRIMARIA = false;
+export const isPrimaria = (grade) => !!grade && grade.includes('Primaria');
+// Вызывается из App при смене ученика или класса.
+export function setGradeContext(grade) { PRIMARIA = isPrimaria(grade); }
+// Предметы для расписания с учётом ступени.
+export function subjectsForGrade() {
+  return PRIMARIA ? SUBJECTS.filter((s) => !NOT_IN_PRIMARIA.has(s.code)).map((s) => ({ ...s, ...(PRIMARIA_NAMES[s.code] || {}) })) : SUBJECTS;
+}
 
 export const topics = [
   {
@@ -76,7 +95,9 @@ export function isCustom(code) {
 
 export function subjectByCode(code) {
   if (isCustom(code)) return { code, es: code.slice(CUSTOM_PREFIX.length), ru: tr('свой предмет'), custom: true };
-  return SUBJECTS.find((s) => s.code === code) || { code, es: code, ru: '' };
+  const s = SUBJECTS.find((x) => x.code === code);
+  if (!s) return { code, es: code, ru: '' };
+  return PRIMARIA && PRIMARIA_NAMES[code] ? { ...s, ...PRIMARIA_NAMES[code] } : s;
 }
 
 // Цвета Ками по id товара из магазина.

@@ -21,7 +21,11 @@ export async function loadTopics(grade = '1º ESO') {
   if (error || !data?.length) return grade === '1º ESO' ? localTopics : [];
   const mine = data.filter((t) => t.grade === grade || t.grade === 'ESO');
   const covered = new Set(mine.map((t) => t.subject_code));
-  const borrowed = data.filter((t) => !covered.has(t.subject_code) && t.grade !== grade && t.grade !== 'ESO');
+  // Чужие темы берём только из той же ступени (Primaria или ESO); физики-химии и технологии в Primaria нет.
+  const primaria = grade.includes('Primaria');
+  const sameStage = (g) => g !== 'ESO' && g.includes('Primaria') === primaria;
+  const borrowed = data.filter((t) => !covered.has(t.subject_code) && t.grade !== grade && sameStage(t.grade)
+    && !(primaria && ['fyq', 'tec'].includes(t.subject_code)));
   return [...mine, ...borrowed].map((t) => ({
     id: t.id,
     subject: t.subject,

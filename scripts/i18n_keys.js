@@ -14,7 +14,7 @@ const DATA_VARS = {
   'src/screens/ExamScreen.js': ['WD'], 'src/screens/ProgressScreen.js': ['WD'], 'src/screens/HomeScreen.js': ['DAY_LETTERS'],
   'src/screens/PlusScreen.js': ['PLANS', 'BENEFITS'], 'src/components/UserAvatar.js': ['BY_AVATAR'],
   'src/lib/api.js': ['SHOP_ERRORS', 'TASK_ERRORS', 'FRIEND_ERRORS'],
-  'src/data/content.js': ['SUBJECTS', 'NEXT_DAY'], 'src/data/kami.js': ['*'], 'src/data/teachers.js': ['*'], 'src/data/facts.js': ['*'],
+  'src/data/content.js': ['SUBJECTS', 'NEXT_DAY', 'PRIMARIA_NAMES'], 'src/data/kami.js': ['*'], 'src/data/teachers.js': ['*'], 'src/data/facts.js': ['*'],
 };
 const keys = [];
 const seen = new Set();

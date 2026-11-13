@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
-import { SUBJECTS, WEEKDAYS, subjectByCode, nextSchoolDay, customCode, isCustom, CUSTOM_MAX } from '../data/content';
+import { subjectsForGrade, WEEKDAYS, subjectByCode, nextSchoolDay, customCode, isCustom, CUSTOM_MAX } from '../data/content';
 import { tr } from '../i18n';
 
 export default function ScheduleScreen({ schedule, onSaveDay }) {
@@ -98,7 +98,7 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
         <View style={{ gap: 8 }}>
           <Text style={styles.label}>{tr('Какой предмет {0}-м уроком?', lessons.length + 1)}</Text>
           <View style={styles.grid}>
-            {SUBJECTS.map((s) => (
+            {subjectsForGrade().map((s) => (
               <Pressable
                 key={s.code}
                 accessibilityRole="button"

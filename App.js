@@ -30,7 +30,7 @@ import TopicsScreen from './src/screens/TopicsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from './src/theme';
 import { supabase } from './src/lib/supabase';
-import { KAMI_COLORS, subjectByCode } from './src/data/content';
+import { KAMI_COLORS, subjectByCode, setGradeContext } from './src/data/content';
 import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipItem, openChest, myCheers, setFriendsEnabled, CHEERS,
@@ -88,6 +88,7 @@ export default function App() {
   const [preLang, setPreLang] = useState(deviceLang);
   const uiLangNow = student ? uiLangFor(student.native_lang) : preLang;
   if (getLang() !== uiLangNow) setLang(uiLangNow);
+  setGradeContext(student?.grade);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
