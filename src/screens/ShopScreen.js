@@ -22,7 +22,9 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
   const freeze = shop.items.find((i) => i.kind === 'freeze');
   const chest = shop.items.find((i) => i.kind === 'chest');
   // Вещи «только с Плюсом» видны, если подписка включена (или Плюс уже есть).
-  const visible = (kind) => shop.items.filter((i) => i.kind === kind && (PLUS_ENABLED || plan.plus || !i.plus_only));
+  const visible = (kind) => shop.items
+    .filter((i) => i.kind === kind && (PLUS_ENABLED || plan.plus || !i.plus_only))
+    .sort((a, b) => a.price - b.price || a.sort - b.sort);
   const DEFAULTS = ['color-green', 'avatar-person', 'bg-default'];
   const worn = { color: student.kami_color, avatar: student.avatar, bg: student.bg };
   const WORN_TEXT = { color: 'Надет', avatar: 'Выбран', bg: 'Выбран' };

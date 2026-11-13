@@ -25,6 +25,7 @@ MODULES = [
                              'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom', 'customTopics']),
     ('src/components/Kami.js', ['Kami']),
     ('src/components/Teacher.js', ['Teacher']),
+    ('src/components/Animals.js', ['ANIMALS', 'AnimalFace']),
     ('src/components/TabIcons.js', ['TabIcon']),
     ('src/components/Background.js', ['parseBg', 'PatternLayer', 'BgSwatch']),
     ('src/components/Chest.js', ['Chest']),

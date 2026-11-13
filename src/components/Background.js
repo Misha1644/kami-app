@@ -98,6 +98,23 @@ const TILES = {
       <Circle cx={24} cy={56} r={1} fill="#DD2590" opacity={0.6} />
     </G>
   ),
+  // ---- Простые узоры для недорогих фонов (цвет узора — в названии) ----
+  'dots': <G><Circle cx={15} cy={15} r={4} fill="#1D2939" opacity={0.1} /><Circle cx={45} cy={45} r={4} fill="#1D2939" opacity={0.1} /></G>,
+  'stripes': <G><Path d="M-10 20 L20 -10 M10 50 L50 10 M40 70 L70 40" stroke="#1D2939" strokeWidth={6} opacity={0.06} /></G>,
+  'checks': <G><Rect x={0} y={0} width={30} height={30} fill="#1D2939" opacity={0.05} /><Rect x={30} y={30} width={30} height={30} fill="#1D2939" opacity={0.05} /></G>,
+  'hearts': (
+    <G fill="#F04438" opacity={0.22}>
+      <Path d="M15 22 C5 14 9 6 15 11 C21 6 25 14 15 22 Z" />
+      <Path d="M45 52 C35 44 39 36 45 41 C51 36 55 44 45 52 Z" />
+    </G>
+  ),
+  'clouds': (
+    <G fill="#FFFFFF" opacity={0.9}>
+      <Path d="M8 22 Q8 14 16 15 Q19 8 26 12 Q33 11 32 19 Q36 22 32 25 L10 25 Q5 25 8 22 Z" />
+      <Path d="M36 50 Q36 44 42 45 Q45 40 50 43 Q56 42 55 48 Q58 50 55 53 L38 53 Q34 53 36 50 Z" />
+    </G>
+  ),
+  'zigzag': <G><Path d="M0 20 L10 12 L20 20 L30 12 L40 20 L50 12 L60 20 M0 50 L10 42 L20 50 L30 42 L40 50 L50 42 L60 50" stroke="#1D2939" strokeWidth={2.5} fill="none" opacity={0.1} /></G>,
 };
 
 // Узор поверх цвета. Растягивается на всю площадь родителя.

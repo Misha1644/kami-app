@@ -273,8 +273,8 @@ export default function App() {
     setTab('home');
   }
 
-  const kamiColor = KAMI_COLORS[student?.kami_color] || KAMI_COLORS['color-green'];
   const itemValue = (id) => shop?.items.find((i) => i.id === id)?.value;
+  const kamiColor = KAMI_COLORS[student?.kami_color] || (student && itemValue(student.kami_color)) || KAMI_COLORS['color-green'];
   const bg = parseBg((student && itemValue(student.bg)) || colors.bg);
   const avatarValue = (student && itemValue(student.avatar)) || 'person';
 

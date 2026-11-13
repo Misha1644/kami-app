@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import Kami from './Kami';
 import Teacher from './Teacher';
+import { AnimalFace, ANIMALS } from './Animals';
 import { TEACHERS } from '../data/teachers';
 import { colors } from '../theme';
 
@@ -42,5 +43,7 @@ export default function UserAvatar({ value = 'person', size = 40, kamiColor }) {
     );
   }
   if (BY_AVATAR[value]) return <Teacher teacher={BY_AVATAR[value]} size={size} />;
+  // Зверята из магазина: value = 'a:<ключ>'
+  if (value?.startsWith('a:') && ANIMALS[value.slice(2)]) return <AnimalFace animal={value.slice(2)} size={size} />;
   return <PersonIcon size={size} />;
 }
