@@ -1,7 +1,8 @@
-// Открытие сундука: нажми — сундук трясётся, открывается, и Ками показывает награду.
-// Что выпало, решает сервер (open_chest). Шансы показаны прямо здесь.
-import { useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated, Easing } from 'react-native';
+// Открытие сундука — рулетка как в CS: лента вещей прокручивается и останавливается
+// на выигрыше под жёлтым указателем. Что выпало, решает сервер (open_chest) ДО прокрутки;
+// лента вокруг выигрыша — просто для красоты. Шансы показаны внизу экрана.
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Chest from '../components/Chest';
 import Kami from '../components/Kami';
 import UserAvatar from '../components/UserAvatar';
@@ -23,87 +24,185 @@ const INFO = {
 };
 
 const KIND_RU = { avatar: 'Аватар', color: 'Цвет Ками', bg: 'Фон' };
+const TILE = 100;      // ширина плитки
+const GAP = 8;
+const STEP = TILE + GAP;
+const COUNT = 46;      // плиток в ленте
+const WIN_AT = 40;     // на какой плитке остановится
+const SPIN_MS = 5200;
 
-export default function ChestScreen({ type, left, onOpen, onEquip, onClose }) {
-  const [phase, setPhase] = useState('closed'); // closed | opening | opened
+// Редкость — цвет полоски снизу, как в CS.
+function rarity(tile) {
+  if (tile.type === 'coins') return { color: '#98A2B3', label: 'монеты' };
+  const p = tile.item.price;
+  if (p >= 10000) return { color: '#F5B700', label: 'легендарное' };
+  if (p >= 5000) return { color: '#EB4B4B', label: 'тайное' };
+  if (p >= 600) return { color: '#D32CE6', label: 'засекреченное' };
+  if (p >= 300) return { color: '#8847FF', label: 'запрещённое' };
+  return { color: '#4B69FF', label: 'армейское' };
+}
+
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
+// Лента: случайные плитки + выигрыш на позиции WIN_AT.
+function buildStrip(type, items, win) {
+  const regular = items.filter((i) => i.price < 10000);
+  const legendary = items.filter((i) => i.price >= 10000);
+  const tiles = [];
+  for (let i = 0; i < COUNT; i++) {
+    if (i === WIN_AT) { tiles.push(win); continue; }
+    const r = Math.random();
+    if (type === 'lesson' && r < 0.68) tiles.push({ type: 'coins', amount: 1 + Math.floor(Math.random() * 15) });
+    else if (legendary.length && r > 0.9) tiles.push({ type: 'item', item: pick(legendary) });
+    else if (regular.length) tiles.push({ type: 'item', item: pick(regular) });
+    else tiles.push({ type: 'coins', amount: 1 + Math.floor(Math.random() * 15) });
+  }
+  return tiles;
+}
+
+function TileArt({ tile, big }) {
+  const s = big ? 1.6 : 1;
+  if (tile.type === 'coins') {
+    return (
+      <View style={styles.coinArt}>
+        <Coin size={30 * s} />
+        <Text style={[styles.coinAmount, big && { fontSize: 34 }]}>+{tile.amount}</Text>
+      </View>
+    );
+  }
+  const it = tile.item;
+  if (it.kind === 'avatar') return <UserAvatar value={it.value} size={56 * s} />;
+  if (it.kind === 'color') return <Kami size={64 * s} color={it.value} />;
+  return <BgSwatch value={it.value} style={{ width: 72 * s, height: 46 * s, borderRadius: 8, borderWidth: 1, borderColor: colors.border }} />;
+}
+
+function Tile({ tile }) {
+  const r = rarity(tile);
+  return (
+    <View style={styles.tile}>
+      <View style={styles.tileArt}><TileArt tile={tile} /></View>
+      <Text style={styles.tileName} numberOfLines={1}>
+        {tile.type === 'coins' ? 'Монеты' : tile.item.title_ru || tile.item.title}
+      </Text>
+      <View style={[styles.rarityBar, { backgroundColor: r.color }]} />
+    </View>
+  );
+}
+
+export default function ChestScreen({ type, left, shopItems = [], onOpen, onEquip, onClose }) {
+  const [phase, setPhase] = useState('ready'); // ready | spinning | opened
+  const [strip, setStrip] = useState([]);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [equipped, setEquipped] = useState(false);
-  const shake = useRef(new Animated.Value(0)).current;
+  const [width, setWidth] = useState(0);
+  const offset = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
+  const doneRef = useRef(false);
 
-  async function open() {
-    if (phase !== 'closed') return;
-    setPhase('opening');
+  // Пул вещей для ленты: всё, что можно выиграть (не подписка, не бесплатное).
+  const pool = shopItems.filter((i) => ['avatar', 'color', 'bg'].includes(i.kind) && i.price > 0 && !i.plus_only);
+
+  // Пока не крутили — показываем ленту-превью.
+  useEffect(() => {
+    if (phase === 'ready' && pool.length) setStrip(buildStrip(type, pool, { type: 'coins', amount: 15 }));
+  }, [phase, type, shopItems.length]);
+
+  function finish() {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    setPhase('opened');
+    pop.setValue(0);
+    Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: false }).start();
+  }
+
+  async function spin() {
+    if (phase !== 'ready') return;
     setError('');
     setEquipped(false);
-    const wobble = Animated.sequence(
-      [-1, 1, -1, 1, -0.6, 0.6, 0].map((v) => Animated.timing(shake, { toValue: v, duration: 90, easing: Easing.linear, useNativeDriver: true }))
-    );
+    let res;
     try {
-      const [res] = await Promise.all([onOpen(type), new Promise((r) => wobble.start(r))]);
-      setResult(res);
-      setPhase('opened');
-      pop.setValue(0);
-      Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }).start();
+      res = await onOpen(type);
     } catch (e) {
       setError(e.message);
-      setPhase('closed');
+      return;
     }
+    const full = res.item && (pool.find((i) => i.id === res.item.id) || { ...res.item, title_ru: res.item.title });
+    const win = res.type === 'coins' ? { type: 'coins', amount: res.amount } : { type: 'item', item: full };
+    setResult(res);
+    setStrip(buildStrip(type, pool, win));
+    setPhase('spinning');
+    doneRef.current = false;
+
+    // Остановиться так, чтобы выигрыш оказался под указателем (с небольшим случайным сдвигом).
+    const center = (width || 340) / 2;
+    const jitter = (Math.random() - 0.5) * (TILE * 0.6);
+    const target = -(WIN_AT * STEP + TILE / 2 - center + jitter);
+    offset.setValue(0);
+    Animated.timing(offset, {
+      toValue: target,
+      duration: SPIN_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start(() => finish());
+    setTimeout(finish, SPIN_MS + 400); // на случай, если анимация не сообщит о конце
   }
 
   function again() {
+    offset.setValue(0);
     setResult(null);
-    setPhase('closed');
+    setPhase('ready');
   }
 
-  const rotate = shake.interpolate({ inputRange: [-1, 1], outputRange: ['-10deg', '10deg'] });
   const item = result?.item;
   const legendary = !!result?.legendary;
   const remaining = result ? (type === 'lesson' ? result.chests_lesson : result.chests_skin) : left;
+  const win = strip[WIN_AT];
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.h1}>{INFO[type].title}</Text>
-      <Text style={styles.small}>{plural(remaining, 'Остался', 'Осталось', 'Осталось')} {remaining} {plural(remaining, 'сундук', 'сундука', 'сундуков')}</Text>
-
-      <View style={styles.stage}>
-        {phase !== 'opened' ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Открыть сундук" onPress={open} disabled={phase !== 'closed'}>
-            <Animated.View style={{ transform: [{ rotate }] }}>
-              <Chest type={type} size={200} />
-            </Animated.View>
-            <Text style={styles.tap}>{phase === 'opening' ? 'Открываем…' : 'Нажми, чтобы открыть!'}</Text>
-          </Pressable>
-        ) : (
-          <Animated.View style={[styles.reward, legendary && styles.rewardLegend, { transform: [{ scale: pop }] }]}>
-            <Chest type={type} open size={110} />
-            {legendary && <Text style={styles.legend}>★ ЛЕГЕНДАРНОЕ ★</Text>}
-            {result.type === 'coins' ? (
-              <>
-                <View style={styles.coins}>
-                  <Coin size={36} />
-                  <Text style={styles.coinsText}>+{result.amount}</Text>
-                </View>
-                <Text style={styles.body}>{plural(result.amount, 'монета', 'монеты', 'монет')}</Text>
-              </>
-            ) : (
-              <>
-                {item.kind === 'avatar' && <UserAvatar value={item.value} size={110} />}
-                {item.kind === 'color' && <Kami size={130} color={item.value} mood="excited" />}
-                {item.kind === 'bg' && <BgSwatch value={item.value} style={styles.bg} />}
-                <Text style={styles.itemKind}>{KIND_RU[item.kind]}</Text>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <View style={styles.price}><Coin size={16} /><Text style={styles.priceText}>стоит {item.price}</Text></View>
-              </>
-            )}
-          </Animated.View>
-        )}
+    <ScrollView contentContainerStyle={styles.wrap}>
+      <View style={styles.header}>
+        <Chest type={type} open={phase === 'opened'} size={72} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.h1}>{INFO[type].title}</Text>
+          <Text style={styles.small}>
+            {plural(remaining, 'Остался', 'Осталось', 'Осталось')} {remaining} {plural(remaining, 'сундук', 'сундука', 'сундуков')}
+          </Text>
+        </View>
       </View>
 
+      {/* Рулетка */}
+      <View style={styles.roulette} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        <Animated.View style={[styles.strip, { transform: [{ translateX: offset }] }]}>
+          {strip.map((t, i) => <Tile key={i} tile={t} />)}
+        </Animated.View>
+        <View pointerEvents="none" style={styles.fadeLeft} />
+        <View pointerEvents="none" style={styles.fadeRight} />
+        <View pointerEvents="none" style={styles.marker} />
+        <View pointerEvents="none" style={styles.markerTop} />
+      </View>
+
+      {/* Результат */}
+      {phase === 'opened' && win && (
+        <Animated.View style={[styles.reward, legendary && styles.rewardLegend, { transform: [{ scale: pop }] }]}>
+          {legendary && <Text style={styles.legend}>★ ЛЕГЕНДАРНОЕ ★</Text>}
+          <TileArt tile={win} big />
+          {win.type === 'coins' ? (
+            <Text style={styles.itemTitle}>{win.amount} {plural(win.amount, 'монета', 'монеты', 'монет')}</Text>
+          ) : (
+            <>
+              <Text style={styles.itemKind}>{KIND_RU[item.kind]} · {rarity(win).label}</Text>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <View style={styles.price}><Coin size={16} /><Text style={styles.small}>стоит {item.price}</Text></View>
+            </>
+          )}
+        </Animated.View>
+      )}
+      {phase === 'spinning' && <Text style={styles.spinning}>Крутится…</Text>}
       {!!error && <Text style={styles.error}>{error}</Text>}
 
-      <View style={{ gap: 10 }}>
+      <View style={{ gap: 10, marginTop: 'auto' }}>
+        {phase === 'ready' && <Button title="Крутить!" onPress={spin} disabled={!pool.length || remaining < 1} />}
         {phase === 'opened' && item && !equipped && (
           <Button
             title={item.kind === 'color' ? 'Надеть на Ками' : 'Поставить'}
@@ -112,31 +211,40 @@ export default function ChestScreen({ type, left, onOpen, onEquip, onClose }) {
             }}
           />
         )}
-        {phase === 'opened' && remaining > 0 && <Button title="Открыть ещё" variant={item && !equipped ? 'secondary' : 'primary'} onPress={again} />}
-        <Button title="Готово" variant="secondary" onPress={onClose} />
+        {phase === 'opened' && remaining > 0 && (
+          <Button title={`Крутить ещё (${remaining})`} variant={item && !equipped ? 'secondary' : 'primary'} onPress={again} />
+        )}
+        {phase !== 'spinning' && <Button title="Готово" variant="secondary" onPress={onClose} />}
+        <Text style={styles.odds}>{INFO[type].odds}</Text>
       </View>
-      <Text style={styles.odds}>{INFO[type].odds}</Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 20, gap: 12 },
-  h1: { fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  body: { fontSize: 16, color: colors.text },
-  small: { fontSize: 14, color: colors.muted, textAlign: 'center' },
-  stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tap: { fontSize: 16, fontWeight: '700', color: colors.green, textAlign: 'center', marginTop: 8 },
-  reward: { alignItems: 'center', gap: 8, padding: 20, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, minWidth: 240 },
+  wrap: { flexGrow: 1, padding: 20, gap: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  h1: { fontSize: 22, fontWeight: '800', color: colors.text },
+  small: { fontSize: 14, color: colors.muted },
+  roulette: { height: 150, borderRadius: radius.lg, backgroundColor: '#1D2433', overflow: 'hidden', justifyContent: 'center' },
+  strip: { flexDirection: 'row', gap: GAP, paddingHorizontal: 0 },
+  tile: { width: TILE, height: 122, borderRadius: 10, backgroundColor: '#2B3447', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, overflow: 'hidden' },
+  tileArt: { height: 70, alignItems: 'center', justifyContent: 'center' },
+  tileName: { fontSize: 11, fontWeight: '700', color: '#E4E7EC', paddingHorizontal: 4 },
+  rarityBar: { height: 6, alignSelf: 'stretch' },
+  coinArt: { alignItems: 'center', gap: 2 },
+  coinAmount: { fontSize: 16, fontWeight: '800', color: '#FDE68A' },
+  fadeLeft: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 40, backgroundColor: 'rgba(29,36,51,0.6)' },
+  fadeRight: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 40, backgroundColor: 'rgba(29,36,51,0.6)' },
+  marker: { position: 'absolute', left: '50%', top: 0, bottom: 0, width: 3, marginLeft: -1.5, backgroundColor: '#F5C443' },
+  markerTop: { position: 'absolute', left: '50%', top: -2, marginLeft: -9, width: 18, height: 12, backgroundColor: '#F5C443', borderBottomLeftRadius: 9, borderBottomRightRadius: 9 },
+  spinning: { fontSize: 16, fontWeight: '700', color: colors.muted, textAlign: 'center' },
+  reward: { alignItems: 'center', gap: 6, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   rewardLegend: { borderColor: '#F5C443', borderWidth: 3, backgroundColor: '#FFFBEB' },
   legend: { fontSize: 14, fontWeight: '800', letterSpacing: 1, color: '#B54708' },
-  coins: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  coinsText: { fontSize: 40, fontWeight: '800', color: '#7A5200' },
-  bg: { width: 160, height: 100, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
   itemKind: { fontSize: 13, fontWeight: '700', color: colors.muted },
   itemTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
   price: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  priceText: { fontSize: 14, color: colors.muted },
   error: { fontSize: 14, color: colors.danger, textAlign: 'center' },
   odds: { fontSize: 12, color: colors.muted, textAlign: 'center', lineHeight: 17 },
 });

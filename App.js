@@ -320,6 +320,7 @@ export default function App() {
         key={chestType}
         type={chestType}
         left={chestType === 'lesson' ? student.chests_lesson : student.chests_skin}
+        shopItems={shop?.items || []}
         onOpen={onOpenChest}
         onEquip={onEquip}
         onClose={() => setChestType(null)}
