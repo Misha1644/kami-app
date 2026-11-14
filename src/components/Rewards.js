@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Chest from './Chest';
+import RewardReveal from './RewardReveal';
 import { Coin, Snowflake } from './icons';
 import { Button } from './ui';
 import { colors, radius } from '../theme';
@@ -70,6 +71,7 @@ function DailyIcon({ r, big }) {
 // Ежедневная награда: показывается при первом входе за день.
 export function DailyRewardModal({ day, reset, onClaim, onOpenChest, onClose }) {
   const [claimed, setClaimed] = useState(null); // ответ сервера
+  const [showReveal, setShowReveal] = useState(false); // после галочки — большая анимация награды
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const pulse = useRef(new Animated.Value(0)).current;
@@ -98,6 +100,7 @@ export function DailyRewardModal({ day, reset, onClaim, onOpenChest, onClose }) 
         Animated.spring(pop, { toValue: 1, friction: 4, useNativeDriver: false }),
         Animated.timing(fly, { toValue: 1, duration: 1100, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
       ]).start();
+      setTimeout(() => setShowReveal(true), 800);
     } catch (e) {
       setError(e.message);
     }
@@ -128,6 +131,20 @@ export function DailyRewardModal({ day, reset, onClaim, onOpenChest, onClose }) 
       return <Animated.View key={r.day} style={[styles.cell, big && styles.cellBig, { transform: [{ scale: s }] }]}>{t}</Animated.View>;
     }
     return <View key={r.day} style={[styles.cell, big && styles.cellBig]}>{t}</View>;
+  }
+
+  // Награда получена — показываем её большой анимацией (как в Subway Surfers).
+  if (claimed && showReveal) {
+    return (
+      <RewardReveal
+        item={{
+          id: `daily-${claimed.day}`, kind: 'pack', headline: tr('ДЕНЬ {0}!', claimed.day),
+          coins: claimed.coins_added, freeze: claimed.freeze_added, chests: claimed.chest_added, chestType: 'lesson',
+        }}
+        action={claimed.chest_added > 0 && onOpenChest ? { title: tr('Открыть сундук'), onPress: () => onOpenChest('lesson') } : null}
+        onClose={onClose}
+      />
+    );
   }
 
   return (

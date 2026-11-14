@@ -98,7 +98,7 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
   const [error, setError] = useState('');
   const [equipped, setEquipped] = useState(false);
   const [width, setWidth] = useState(0);
-  const [reveal, setReveal] = useState(null); // выпавшая вещь — показываем большой анимацией
+  const [reveal, setReveal] = useState(null); // выигрыш (вещь или монеты) — показываем большой анимацией
   const offset = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   const doneRef = useRef(false);
@@ -135,7 +135,10 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
     const full = res.item && (pool.find((i) => i.id === res.item.id) || { ...res.item, title_ru: res.item.title });
     const win = res.type === 'coins' ? { type: 'coins', amount: res.amount } : { type: 'item', item: full };
     setResult(res);
-    winRef.current = win.type === 'item' ? win.item : null;
+    // Что показать большой анимацией после рулетки: вещь или монеты.
+    winRef.current = win.type === 'item'
+      ? win.item
+      : { id: `coins-${Date.now()}`, kind: 'pack', coins: res.amount, headline: tr('МОНЕТЫ!') };
     setStrip(buildStrip(type, pool, win));
     setPhase('spinning');
     doneRef.current = false;

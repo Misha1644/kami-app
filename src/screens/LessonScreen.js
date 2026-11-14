@@ -3,7 +3,7 @@
 //   «собери фразу учителя на слух», «диктант».
 // В конце, если слов 4 и больше, — «соедини пары».
 // Режим повторения (review) пропускает карточки и сразу проверяет.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Coin } from '../components/icons';
 import { Button, Card, ProgressBar } from '../components/ui';
@@ -13,6 +13,7 @@ import { kamiSays } from '../data/kami';
 import { teacherFor, KAMI_TEACHER, pickLine } from '../data/teachers';
 import Teacher from '../components/Teacher';
 import Chest from '../components/Chest';
+import RewardReveal from '../components/RewardReveal';
 import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey } from '../lib/speech';
 import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
 import { tr } from '../i18n';
@@ -74,6 +75,8 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const [speakOff, setSpeakOff] = useState(prefs.speaking === false); // выключено в профиле или «не могу говорить сейчас»
   const [mistakes, setMistakes] = useState(0);
   const [earned, setEarned] = useState(0);
+  const earnedRef = useRef(0); // актуальное число монет для анимации в конце
+  const [reveal, setReveal] = useState(null); // награда за урок большой анимацией
   // Реплики Ками: новые на каждое слово, но не меняются при перерисовке.
   // Урок ведёт учитель предмета; повторение и свои предметы — Ками.
   const teacher = (review && !test) || topic.custom ? KAMI_TEACHER : teacherFor(topic.subjectCode);
@@ -117,7 +120,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   function record(ok) {
     setVerdict(ok ? 'right' : 'wrong');
     onAnswer(word.id, ok);
-    if (ok) setEarned((c) => c + 1);
+    if (ok) { earnedRef.current += 1; setEarned((c) => c + 1); }
     else setMistakes((m) => m + 1);
   }
 
@@ -137,7 +140,18 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   function finish() {
     setPhase('done');
     if (test) onTestScore?.(Math.round(((words.length - mistakes) / Math.max(1, words.length)) * 100));
-    Promise.resolve(onComplete?.(topic.id)).then((res) => { if (res?.chest) setGotChest(true); }).catch(() => {});
+    const showReward = (chest) => {
+      const coins = earnedRef.current;
+      if (!coins && !chest) return;
+      setReveal({
+        id: `lesson-${Date.now()}`, kind: 'pack', chestType: 'lesson',
+        coins, chests: chest ? 1 : 0,
+        headline: test ? tr('КОНТРОЛЬНАЯ СДАНА!') : review ? tr('ПОВТОРЕНИЕ ГОТОВО!') : tr('ТЕМА ГОТОВА!'),
+      });
+    };
+    Promise.resolve(onComplete?.(topic.id))
+      .then((res) => { if (res?.chest) setGotChest(true); showReward(!!res?.chest); })
+      .catch(() => showReward(false));
   }
 
   function next() {
@@ -158,6 +172,13 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   if (phase === 'done') {
     return (
       <View style={[styles.wrap, styles.center]}>
+        {reveal && (
+          <RewardReveal
+            item={reveal}
+            action={reveal.chests && onOpenChest ? { title: tr('Открыть сундук'), onPress: onOpenChest } : null}
+            onClose={() => setReveal(null)}
+          />
+        )}
         <Teacher teacher={teacher} size={140} kamiColor={kamiColor} mood="excited" />
         <Text style={styles.h1}>{test ? tr('Пробная контрольная сдана!') : review ? tr('Повторение готово!') : tr('Тема готова!')}</Text>
         {test && (() => {

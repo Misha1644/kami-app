@@ -8,7 +8,7 @@ import { Modal, View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import Kami from './Kami';
 import Chest from './Chest';
-import { Coin } from './icons';
+import { Coin, Snowflake } from './icons';
 import UserAvatar from './UserAvatar';
 import { BgSwatch } from './Background';
 import { Button } from './ui';
@@ -18,7 +18,8 @@ const RAYS = 14;
 const SPARKS = 12;
 
 // Цвет лучей по цене вещи — те же ступени, что у редкости в сундуке.
-function tint(price = 0, exclusive) {
+function tint(price = 0, exclusive, pack) {
+  if (pack && !exclusive) return { ray: '#FFC83D', glow: '#FFF1C2', label: '' };
   if (exclusive) return { ray: '#FF8A3D', glow: '#FFE2C7', label: tr('ЭКСКЛЮЗИВ · ЗА СЕРИЮ') };
   if (price >= 10000) return { ray: '#FFD84D', glow: '#FFF3B0', label: tr('ЛЕГЕНДАРНОЕ!') };
   if (price >= 5000) return { ray: '#FF6B6B', glow: '#FFD1D1', label: tr('ТАЙНОЕ!') };
@@ -70,16 +71,37 @@ function GiftBox({ size = 130 }) {
   );
 }
 
+function CountUp({ to, style }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const v = new Animated.Value(0);
+    const id = v.addListener(({ value }) => setN(Math.round(value)));
+    Animated.timing(v, { toValue: to, duration: Math.min(1200, 350 + to * 12), delay: 250, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    return () => v.removeListener(id);
+  }, [to]);
+  return <Text style={style}>+{n}</Text>;
+}
+
 function ItemArt({ item, kamiColor }) {
-  // Набор: монеты и/или сундуки (награда за серию без вещи).
+  // Набор: монеты (с отсчётом), заморозка и/или сундуки.
   if (item.kind === 'pack') {
+    const many = [item.coins, item.freeze, item.chests].filter(Boolean).length > 1;
     return (
       <View style={styles.pack}>
         {!!item.coins && (
-          <View style={styles.packRow}><Coin size={72} /><Text style={styles.packText}>+{item.coins}</Text></View>
+          <View style={styles.packRow}><Coin size={many ? 64 : 96} /><CountUp to={item.coins} style={styles.packText} /></View>
+        )}
+        {!!item.freeze && (
+          <View style={styles.packRow}>
+            <View style={[styles.freeze, many && { width: 64, height: 64, borderRadius: 32 }]}><Snowflake size={many ? 38 : 60} color="#FFFFFF" /></View>
+            <Text style={styles.packText}>+{item.freeze}</Text>
+          </View>
         )}
         {!!item.chests && (
-          <View style={styles.packRow}><Chest type="skin" size={item.coins ? 80 : 130} />{item.chests > 1 && <Text style={styles.packText}>×{item.chests}</Text>}</View>
+          <View style={styles.packRow}>
+            <Chest type={item.chestType || 'skin'} size={many ? 80 : 130} />
+            {item.chests > 1 && <Text style={styles.packText}>×{item.chests}</Text>}
+          </View>
         )}
       </View>
     );
@@ -89,7 +111,7 @@ function ItemArt({ item, kamiColor }) {
   return <BgSwatch value={item.value} style={styles.bg} />;
 }
 
-export default function RewardReveal({ item, kamiColor, intro = 'flash', showPrice = false, onEquip, onClose }) {
+export default function RewardReveal({ item, kamiColor, intro = 'flash', showPrice = false, onEquip, action, onClose }) {
   const [stage, setStage] = useState(intro === 'box' ? 'box' : 'reveal'); // box | reveal
   const [error, setError] = useState('');
 
@@ -103,7 +125,7 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', showPri
   const drop = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
 
-  const t = tint(item?.price, item?.exclusive);
+  const t = tint(item?.price, item?.exclusive, item?.kind === 'pack');
   const legendary = (item?.price || 0) >= 10000 || !!item?.exclusive;
 
   // Лучи крутятся и свечение «дышит» всё время, пока открыто окно.
@@ -226,7 +248,8 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', showPri
                       }}
                     />
                   )}
-                  <Button title={tr('Круто!')} variant="secondary" onPress={onClose} />
+                  {action && <Button title={action.title} onPress={() => { onClose(); action.onPress(); }} />}
+                  <Button title={tr('Круто!')} variant={action || (onEquip && item.kind !== 'pack') ? 'secondary' : 'primary'} onPress={onClose} />
                 </View>
               </Animated.View>
             </>
@@ -260,6 +283,7 @@ const styles = StyleSheet.create({
   priceText: { fontSize: 17, fontWeight: '800', color: '#FDE68A' },
   extra: { fontSize: 16, fontWeight: '700', color: '#FDE68A', textAlign: 'center' },
   pack: { alignItems: 'center', gap: 6 },
+  freeze: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#4A90D9', alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
   packRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   packText: { fontSize: 40, fontWeight: '900', color: '#FDE68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 0 },
   flash: { backgroundColor: '#FFFFFF' },
