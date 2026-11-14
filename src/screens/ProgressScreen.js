@@ -87,7 +87,7 @@ export default function ProgressScreen({
             <Flame size={20} color={streakInfo.today_done ? '#E8833A' : '#A3ABB5'} />
             <Text style={styles.statValue}>{streakInfo.streak}</Text>
           </View>
-          <Text style={styles.small}>{streakInfo.today_done ? tr('дней подряд') : tr('сегодня ещё нет урока')}</Text>
+          <Text style={styles.small}>{streakInfo.today_done ? tr('дней подряд') : streakInfo.weekend ? tr('выходные: урок ещё впереди') : tr('сегодня ещё нет урока')}</Text>
         </Card>
         <Card style={styles.stat}><Text style={styles.statValue}>{totalLearned}</Text><Text style={styles.small}>{tr('слов выучено')}</Text></Card>
         <Card style={styles.stat}><Text style={styles.statValue}>{Math.min(wordsToday, goal)}/{goal}</Text><Text style={styles.small}>{tr('цель на сегодня')}</Text></Card>

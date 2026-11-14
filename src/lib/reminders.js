@@ -33,12 +33,19 @@ export async function remindersEnabled() {
 }
 
 function textFor(date, schedule) {
+  // Пятница и суббота: для серии хватит одного урока за выходные.
+  const today = date.getDay();
+  if (today === 5 || today === 6) {
+    return tr('Выходные! Хватит одного урока до вечера воскресенья, чтобы серия не сгорела.');
+  }
   const next = new Date(date);
   next.setDate(next.getDate() + 1);
   const wd = next.getDay();
   const codes = wd >= 1 && wd <= 5 ? [...new Set(schedule[wd] || [])] : [];
   if (codes.length) {
-    return tr('Завтра: {0}. Пройди урок, чтобы серия не сгорела!', codes.map((c) => subjectByCode(c).es).join(', '));
+    const list = codes.map((c) => subjectByCode(c).es).join(', ');
+    if (today === 0) return tr('Завтра: {0}. Если на выходных урока ещё не было — сегодня последний шанс сохранить серию!', list);
+    return tr('Завтра: {0}. Пройди урок, чтобы серия не сгорела!', list);
   }
   return tr('Ками ждёт тебя! Пройди один урок, чтобы серия не сгорела.');
 }

@@ -56,12 +56,13 @@ export default function HomeScreen({
   if (!hasSchedule) bubble = tr('{0} Заполни расписание, и я буду готовить тебя к нужным урокам.', hello.text);
   else if (!subjects.length) bubble = kamiSays('emptyDay');
   else bubble = tr('{0}: {1}. Подготовимся?', next.label, subjects.map((c) => subjectByCode(c).es).join(', '));
-  if (hasSchedule && !streakInfo.today_done && streakInfo.streak > 0) mood = 'worried';
+  if (hasSchedule && !streakInfo.today_done && streakInfo.streak > 0 && !streakInfo.weekend) mood = 'worried';
   if (streakInfo.today_done) mood = 'excited';
   const [riskLine] = useState(() => kamiSays('streakRisk'));
   const [doneLine] = useState(() => kamiSays('streakDone'));
   if (hasSchedule && streakInfo.streak > 0) {
-    bubble = `${streakInfo.today_done ? doneLine : riskLine} ${bubble}`;
+    const risk = streakInfo.weekend ? tr('Выходные! Один урок до воскресенья — и огонёк цел.') : riskLine;
+    bubble = `${streakInfo.today_done ? doneLine : risk} ${bubble}`;
   } else if (hasSchedule) {
     bubble = `${hello.text} ${bubble}`;
   }
@@ -132,20 +133,30 @@ export default function HomeScreen({
                     styles.dayDot,
                     d.status === 'done' && styles.dayDone,
                     d.status === 'frozen' && styles.dayFrozen,
+                    d.status === 'covered' && styles.dayCovered,
                     isToday && d.status === 'none' && styles.dayToday,
                   ]}
                 >
                   {d.status === 'done' && <Flame size={14} color="#FFFFFF" />}
                   {d.status === 'frozen' && <Snowflake size={12} color="#FFFFFF" />}
+                  {d.status === 'covered' && <Flame size={14} color={colors.orange} />}
                 </View>
               </View>
             );
           })}
         </View>
         {!streakInfo.today_done && (
-          <Text style={styles.hint}>{tr('Пройди сегодня хотя бы один урок до конца, чтобы продлить серию.')}</Text>
+          <Text style={styles.hint}>
+            {streakInfo.weekend
+              ? tr('Выходные: хватит одного урока до конца воскресенья — и серия продлится на все три дня.')
+              : tr('Пройди сегодня хотя бы один урок до конца, чтобы продлить серию.')}
+          </Text>
         )}
-        {streakInfo.today_done && <Text style={styles.hintDone}>{tr('Серия на сегодня продлена!')}</Text>}
+        {streakInfo.today_done && (
+          <Text style={styles.hintDone}>
+            {streakInfo.weekend ? tr('Выходные закрыты! Отдыхай — следующий урок в понедельник.') : tr('Серия на сегодня продлена!')}
+          </Text>
+        )}
         {!!streakInfo.used_freezes && (
           <Text style={styles.small}>{tr('Заморозка спасла твою серию: {0} {1}.', streakInfo.used_freezes, plural(streakInfo.used_freezes, tr('день'), tr('дня'), tr('дней')))}</Text>
         )}
@@ -352,6 +363,7 @@ const styles = StyleSheet.create({
   dayDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.track, alignItems: 'center', justifyContent: 'center' },
   dayDone: { backgroundColor: colors.orange },
   dayFrozen: { backgroundColor: '#4A90D9' },
+  dayCovered: { backgroundColor: colors.orangeLight },
   dayToday: { borderWidth: 2, borderColor: colors.orange, backgroundColor: colors.card },
   hint: { fontSize: 13, color: colors.orangeText },
   hintDone: { fontSize: 13, fontWeight: '700', color: colors.greenDark },
