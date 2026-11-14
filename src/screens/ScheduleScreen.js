@@ -6,8 +6,141 @@ import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { subjectsForGrade, WEEKDAYS, subjectByCode, nextSchoolDay, customCode, isCustom, CUSTOM_MAX } from '../data/content';
 import { tr } from '../i18n';
+import { suggestions, fmtDate, parseDate, todayIso } from '../data/holidays';
 
-export default function ScheduleScreen({ schedule, onSaveDay }) {
+// Каникулы: список, подсказки дат Валенсии и свои даты.
+function Holidays({ holidays = [], onAdd, onDelete }) {
+  const [custom, setCustom] = useState(false);
+  const [kind, setKind] = useState('short');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const today = todayIso();
+  const list = holidays.filter((h) => h.end_date >= today);
+  const hints = suggestions(holidays);
+
+  async function add(k, start, end) {
+    setBusy(true);
+    setError('');
+    try {
+      await onAdd(k, start, end);
+      setCustom(false);
+      setFrom('');
+      setTo('');
+    } catch (e) {
+      setError(e.message);
+    }
+    setBusy(false);
+  }
+
+  function addCustom() {
+    const start = parseDate(from);
+    const end = parseDate(to);
+    if (!start || !end) return setError(tr('Напиши даты так: 22.12.2026'));
+    if (end < start) return setError(tr('Конец каникул должен быть позже начала.'));
+    if ((new Date(end) - new Date(start)) / 86400000 > 120) return setError(tr('Каникулы не могут быть длиннее 120 дней.'));
+    if (holidays.some((h) => h.start_date <= end && h.end_date >= start)) return setError(tr('Эти даты пересекаются с уже добавленными каникулами.'));
+    add(kind, start, end);
+  }
+
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={styles.h2}>{tr('Каникулы')}</Text>
+      <Text style={styles.muted}>{tr('На каникулах хватит повторить хотя бы одно слово в день. Летом Ками повторит с тобой весь год по расписанию, а в конце лета подготовит к новому классу.')}</Text>
+
+      {list.length > 0 && (
+        <Card style={{ paddingVertical: 4 }}>
+          {list.map((h, i) => (
+            <View key={h.id} style={[styles.lesson, i < list.length - 1 && styles.lessonBorder]}>
+              <Text style={styles.holidayIcon}>{h.kind === 'summer' ? '☀️' : '🎄'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.subject}>{h.kind === 'summer' ? tr('Летние каникулы') : tr('Каникулы')}</Text>
+                <Text style={styles.small}>{fmtDate(h.start_date)} – {fmtDate(h.end_date)}</Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={tr('Удалить каникулы')}
+                onPress={() => onDelete(h.id).catch((e) => setError(e.message))}
+                style={styles.remove}
+              >
+                <Text style={styles.removeText}>✕</Text>
+              </Pressable>
+            </View>
+          ))}
+        </Card>
+      )}
+
+      {hints.length > 0 && (
+        <View style={{ gap: 8 }}>
+          <Text style={styles.small}>{tr('Школьный календарь Валенсии — нажми, чтобы добавить:')}</Text>
+          <View style={styles.grid}>
+            {hints.map((h) => (
+              <Pressable
+                key={h.key}
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={() => add(h.kind, h.start, h.end)}
+                style={[styles.subjectChip, styles.newChip]}
+              >
+                <Text style={styles.newChipText}>
+                  + {tr(h.name)}: {fmtDate(h.start).slice(0, 5)} – {fmtDate(h.end).slice(0, 5)}{h.approx ? ` (${tr('примерно')})` : ''}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {!custom ? (
+        <Text style={styles.link} onPress={() => { setCustom(true); setError(''); }} accessibilityRole="button">{tr('+ Свои даты каникул')}</Text>
+      ) : (
+        <View style={{ gap: 8 }}>
+          <View style={styles.grid}>
+            {[['short', tr('Короткие каникулы')], ['summer', tr('Летние каникулы')]].map(([k, label]) => (
+              <Pressable
+                key={k}
+                accessibilityRole="button"
+                accessibilityState={{ selected: kind === k }}
+                onPress={() => setKind(k)}
+                style={[styles.subjectChip, kind === k && styles.kindActive]}
+              >
+                <Text style={[styles.subjectChipText, kind === k && { color: '#FFFFFF', fontWeight: '700' }]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={from}
+              onChangeText={(t) => { setFrom(t); setError(''); }}
+              placeholder={tr('с 22.12.2026')}
+              placeholderTextColor="#8A928E"
+              keyboardType="numbers-and-punctuation"
+              maxLength={10}
+            />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={to}
+              onChangeText={(t) => { setTo(t); setError(''); }}
+              placeholder={tr('по 06.01.2027')}
+              placeholderTextColor="#8A928E"
+              keyboardType="numbers-and-punctuation"
+              maxLength={10}
+            />
+          </View>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={addCustom} style={styles.saveButton}>
+            <Text style={styles.saveText}>{tr('Добавить каникулы')}</Text>
+          </Pressable>
+          <Text style={styles.link} onPress={() => { setCustom(false); setError(''); }} accessibilityRole="button">{tr('Отмена')}</Text>
+        </View>
+      )}
+      {!!error && <Text style={styles.error}>{error}</Text>}
+    </View>
+  );
+}
+
+export default function ScheduleScreen({ schedule, onSaveDay, holidays, onAddHoliday, onDeleteHoliday }) {
   const [day, setDay] = useState(nextSchoolDay().weekday);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
@@ -157,6 +290,8 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
       )}
 
       {!!error && <Text style={styles.error}>{error}</Text>}
+
+      {onAddHoliday && <Holidays holidays={holidays} onAdd={onAddHoliday} onDelete={onDeleteHoliday} />}
     </ScrollView>
   );
 }
@@ -164,6 +299,9 @@ export default function ScheduleScreen({ schedule, onSaveDay }) {
 const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 14 },
   h1: { fontSize: 24, fontWeight: '800', color: colors.text },
+  h2: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 10 },
+  holidayIcon: { fontSize: 22, width: 28, textAlign: 'center' },
+  kindActive: { backgroundColor: colors.green, borderColor: colors.green },
   muted: { fontSize: 14, color: colors.muted },
   small: { fontSize: 13, color: colors.muted },
   label: { fontSize: 15, fontWeight: '700', color: colors.text },

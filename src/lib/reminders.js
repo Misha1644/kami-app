@@ -32,7 +32,26 @@ export async function remindersEnabled() {
   }
 }
 
+// Каникулы ученика (задаются из App), чтобы на каникулах напоминание было про повторение.
+let HOLIDAYS = [];
+export function setReminderHolidays(list) {
+  HOLIDAYS = list || [];
+}
+function iso(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const onHoliday = (d) => HOLIDAYS.some((h) => iso(d) >= h.start_date && iso(d) <= h.end_date);
+
 function textFor(date, schedule) {
+  // Каникулы: в будний день каникул и на выходных, после которых каникулы продолжаются, хватит одного слова.
+  // Последние выходные перед учёбой — обычный текст ниже (урок к понедельнику).
+  const mon = new Date(date);
+  mon.setDate(mon.getDate() + ((8 - mon.getDay()) % 7 || 7)); // ближайший понедельник
+  const wdNow = date.getDay();
+  const weekendBlock = wdNow === 5 || wdNow === 6 || wdNow === 0;
+  if (weekendBlock ? onHoliday(mon) : onHoliday(date)) {
+    return tr('Каникулы! Повтори хотя бы одно слово — и огонёк не погаснет.');
+  }
   // Пятница и суббота: для серии хватит одного урока за выходные.
   const today = date.getDay();
   if (today === 5 || today === 6) {

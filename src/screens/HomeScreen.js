@@ -5,6 +5,7 @@ import Kami from '../components/Kami';
 import FactCard from '../components/FactCard';
 import Chest from '../components/Chest';
 import { milestones, claimableStreak, streakReward, rewardText } from '../components/Rewards';
+import { fmtDate, nextGrade, todayCodes } from '../data/holidays';
 import UserAvatar from '../components/UserAvatar';
 import Teacher from '../components/Teacher';
 import { teacherFor, TEACHERS } from '../data/teachers';
@@ -21,7 +22,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
   onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, exams = [], examsDone = {}, onOpenExams, onStartExam, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
-  rewards, onOpenStreakRewards, onOpenDaily,
+  rewards, onOpenStreakRewards, onOpenDaily, onStartHoliday,
   currentTopics, onOpenTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
@@ -60,7 +61,14 @@ export default function HomeScreen({
   if (streakInfo.today_done) mood = 'excited';
   const [riskLine] = useState(() => kamiSays('streakRisk'));
   const [doneLine] = useState(() => kamiSays('streakDone'));
-  if (hasSchedule && streakInfo.streak > 0) {
+  const holiday = streakInfo.holiday;
+  const resting = holiday && holiday.mode !== 'back_to_school'; // идут каникулы (не последние выходные)
+  if (resting) {
+    mood = streakInfo.today_done ? 'excited' : hello.mood;
+    bubble = streakInfo.today_done
+      ? tr('Огонёк на сегодня спасён. Отдыхай, ¡disfruta!')
+      : tr('Каникулы! Одно слово повторения — и огонёк цел.');
+  } else if (hasSchedule && streakInfo.streak > 0) {
     const risk = streakInfo.weekend ? tr('Выходные! Один урок до воскресенья — и огонёк цел.') : riskLine;
     bubble = `${streakInfo.today_done ? doneLine : risk} ${bubble}`;
   } else if (hasSchedule) {
@@ -147,14 +155,20 @@ export default function HomeScreen({
         </View>
         {!streakInfo.today_done && (
           <Text style={styles.hint}>
-            {streakInfo.weekend
-              ? tr('Выходные: хватит одного урока до конца воскресенья — и серия продлится на все три дня.')
-              : tr('Пройди сегодня хотя бы один урок до конца, чтобы продлить серию.')}
+            {streakInfo.need === 'word'
+              ? (streakInfo.weekend
+                ? tr('Каникулы: хватит повторить одно слово до конца воскресенья.')
+                : tr('Каникулы: повтори хотя бы одно слово, чтобы огонёк не погас.'))
+              : streakInfo.weekend
+                ? tr('Выходные: хватит одного урока до конца воскресенья — и серия продлится на все три дня.')
+                : tr('Пройди сегодня хотя бы один урок до конца, чтобы продлить серию.')}
           </Text>
         )}
         {streakInfo.today_done && (
           <Text style={styles.hintDone}>
-            {streakInfo.weekend ? tr('Выходные закрыты! Отдыхай — следующий урок в понедельник.') : tr('Серия на сегодня продлена!')}
+            {streakInfo.need === 'word'
+              ? tr('Огонёк спасён! Хороших каникул.')
+              : streakInfo.weekend ? tr('Выходные закрыты! Отдыхай — следующий урок в понедельник.') : tr('Серия на сегодня продлена!')}
           </Text>
         )}
         {!!streakInfo.used_freezes && (
@@ -170,6 +184,32 @@ export default function HomeScreen({
           <ProgressBar value={wordsToday / goal} />
         </View>
       </Card>
+
+      {holiday && (() => {
+        const until = fmtDate(holiday.end).slice(0, 5);
+        const subjectsToday = todayCodes(schedule).map((c) => subjectByCode(c).es).join(', ');
+        const card = {
+          review: { icon: '🎄', title: tr('Каникулы до {0}!', until), text: tr('Отдыхай! Чтобы огонёк не погас, хватит повторить одно слово в день.'), button: tr('Повторить') },
+          summer_review: { icon: '☀️', title: tr('Летнее повторение'), text: subjectsToday ? tr('По расписанию сегодня: {0}. Хватит одного слова, чтобы огонёк не погас.', subjectsToday) : tr('Повторяем всё, что было за год. Хватит одного слова, чтобы огонёк не погас.'), button: tr('Повторить') },
+          summer_prep: { icon: '🎒', title: nextGrade(student.grade) ? tr('Скоро {0}!', nextGrade(student.grade)) : tr('Скоро в школу!'), text: tr('Готовимся к новому классу: первые слова по сегодняшним предметам.'), button: tr('Начать') },
+          back_to_school: { icon: '🏫', title: tr('Каникулы заканчиваются!'), text: tr('В понедельник снова в школу. Пройди один урок к понедельнику — и огонёк продлится на все выходные.'), button: null },
+        }[holiday.mode];
+        if (!card) return null;
+        return (
+          <View style={styles.holidayCard}>
+            <Text style={styles.holidayIcon}>{card.icon}</Text>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.chestTitle}>{card.title}</Text>
+              <Text style={styles.small}>{card.text}</Text>
+            </View>
+            {card.button && onStartHoliday && (
+              <Pressable accessibilityRole="button" onPress={onStartHoliday} style={styles.reviewButton}>
+                <Text style={styles.reviewButtonText}>{card.button}</Text>
+              </Pressable>
+            )}
+          </View>
+        );
+      })()}
 
       {rewards && !rewards.daily.claimed_today && onOpenDaily && (
         <Pressable accessibilityRole="button" onPress={onOpenDaily} style={styles.dailyCard}>
@@ -377,6 +417,8 @@ const styles = StyleSheet.create({
   examCard: { gap: 10, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#7A5AF8', backgroundColor: '#F4F1FF' },
   examHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   examTitle: { fontSize: 16, fontWeight: '800', color: '#4A2DB3' },
+  holidayCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#84CAFF', backgroundColor: '#EFF8FF' },
+  holidayIcon: { fontSize: 32 },
   dailyCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#F5C443', backgroundColor: '#FFFBEB' },
   streakReward: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   streakRewardReady: { borderWidth: 2, borderColor: '#F79009', backgroundColor: '#FFF4E5' },

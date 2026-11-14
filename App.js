@@ -15,6 +15,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import ChestScreen from './src/screens/ChestScreen';
 import StreakRewardsScreen from './src/screens/StreakRewardsScreen';
 import { DailyRewardModal } from './src/components/Rewards';
+import { holidayWords, prepWords, nextGrade, HOLIDAY_TITLE } from './src/data/holidays';
 import FriendsScreen from './src/screens/FriendsScreen';
 import ExamScreen from './src/screens/ExamScreen';
 import { todayTask, isDoneToday, markDoneToday } from './src/lib/exams';
@@ -37,10 +38,10 @@ import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipItem, openChest, myCheers, setFriendsEnabled, CHEERS,
   loadExams, createExam, deleteExam, saveExamScore, loadSchedule, saveScheduleDay, updateStudent, startTrial,
-  completeLesson, loadPlan, loadRewards, claimDailyReward, claimStreakReward,
+  completeLesson, loadPlan, loadRewards, claimDailyReward, claimStreakReward, loadHolidays, addHoliday, deleteHoliday,
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
-import { remindersSupported, remindersEnabled, rescheduleReminders, setRemindersEnabled } from './src/lib/reminders';
+import { remindersSupported, remindersEnabled, rescheduleReminders, setRemindersEnabled, setReminderHolidays } from './src/lib/reminders';
 import { tr, setLang, getLang, uiLangFor, deviceLang } from './src/i18n';
 
 const TABS = [
@@ -74,6 +75,8 @@ export default function App() {
   const [examsDone, setExamsDone] = useState({}); // { [examId]: true } — сегодня уже готовился
   const [showExams, setShowExams] = useState(false);
   const [examSession, setExamSession] = useState(null); // { exam, mode, words }
+  const [holidays, setHolidays] = useState([]); // каникулы ученика
+  const [holidaySession, setHolidaySession] = useState(null); // { title, words, quiz } — каникулярное повторение
   const [newCheers, setNewCheers] = useState([]); // непрочитанные реакции от друзей
   const [rewards, setRewards] = useState(null); // { daily: { claimed_today, day }, streak_claimed: [...] }
   const [showDaily, setShowDaily] = useState(false);
@@ -88,6 +91,7 @@ export default function App() {
   const [currentTopics, setCurrentTopics] = useState({}); // { [код предмета]: id темы, которую проходят сейчас }
   const [topicsFor, setTopicsFor] = useState(null); // код предмета для экрана «Все темы»
   const [reminders, setReminders] = useState(false);
+  const needWord = useRef(false); // на каникулах огонёк спасает одно слово — обновим серию после ответа
   const pendingAnswer = useRef(Promise.resolve()); // последний ответ, ещё не записанный в базу // код предмета, для которого открыт экран «Мои слова»
   const [loadError, setLoadError] = useState('');
   // Язык интерфейса: до создания ученика — язык телефона (или выбранный на экране входа), потом — язык ученика.
@@ -163,6 +167,9 @@ export default function App() {
       }
     }).catch(() => {});
     myCheers(id).then((c) => setNewCheers(c.filter((x) => !x.seen))).catch(() => {});
+    const hol = await loadHolidays(id).catch(() => []);
+    setHolidays(hol);
+    setReminderHolidays(hol);
     loadExams(id).then(async (list) => {
       setExams(list);
       const done = {};
@@ -214,6 +221,9 @@ export default function App() {
   // Темы класса + сессия повторения + подготовка к контрольной.
   const lessonTopics = useMemo(() => {
     const list = [...allTopics, { id: 'review', subject: tr('Повторение'), title: tr('повторение'), titleRu: '', words: dueWords.map(gloss) }];
+    if (holidaySession) {
+      list.push({ id: 'holiday', subject: tr('Каникулы'), title: holidaySession.title, titleRu: '', words: holidaySession.words, custom: true });
+    }
     if (examSession) {
       const subj = subjectByCode(examSession.exam.subject_code);
       list.push({
@@ -222,7 +232,7 @@ export default function App() {
       });
     }
     return list;
-  }, [allTopics, dueWords, gloss, examSession]);
+  }, [allTopics, dueWords, gloss, examSession, holidaySession]);
 
   function startExam(exam) {
     const task = todayTask(exam, allTopics, learned);
@@ -252,9 +262,60 @@ export default function App() {
       setStudent((s) => ({ ...s, coins: res.coins }));
       setWordsToday(res.words_today);
       if (res.goal_bonus > 0) setGoalBanner(tr('Цель дня выполнена! +{0} монет', res.goal_bonus));
+      if (correct && needWord.current) {
+        needWord.current = false;
+        loadStreak(studentId).then(setStreakInfo).catch(() => {});
+      }
     },
     [studentId]
   );
+
+  useEffect(() => {
+    needWord.current = streakInfo?.need === 'word' && !streakInfo?.today_done;
+  }, [streakInfo]);
+
+  // Каникулы: добавить / удалить — и сразу пересчитать серию (правила на каникулах другие).
+  async function onAddHoliday(kind, start, end) {
+    const h = await addHoliday(studentId, kind, start, end);
+    const list = [...holidays, h].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    setHolidays(list);
+    setReminderHolidays(list);
+    if (reminders) rescheduleReminders(schedule).catch(() => {});
+    setStreakInfo(await loadStreak(studentId));
+  }
+
+  async function onDeleteHoliday(id) {
+    await deleteHoliday(id);
+    const list = holidays.filter((h) => h.id !== id);
+    setHolidays(list);
+    setReminderHolidays(list);
+    if (reminders) rescheduleReminders(schedule).catch(() => {});
+    setStreakInfo(await loadStreak(studentId));
+  }
+
+  // Каникулярное занятие: повторение, летнее повторение года по расписанию или подготовка к новому классу.
+  async function startHoliday() {
+    const mode = streakInfo?.holiday?.mode;
+    if (!mode || mode === 'back_to_school') return;
+    let words = [];
+    let quiz = true;
+    let title = HOLIDAY_TITLE[mode] ? HOLIDAY_TITLE[mode]() : tr('Повторение');
+    if (mode === 'summer_prep') {
+      const g = nextGrade(student?.grade);
+      if (g) {
+        const next = await loadTopics(g).catch(() => []);
+        words = prepWords(next, schedule).map(gloss);
+        quiz = false; // новые слова — сначала карточки
+      }
+      if (!words.length) title = HOLIDAY_TITLE.summer_review();
+    }
+    if (!words.length) {
+      words = holidayWords(mode === 'review' ? 'review' : 'summer_review', { topics: allTopics, learned, dueWords: dueWords.map(gloss), schedule });
+    }
+    if (!words.length) return;
+    setHolidaySession({ title, words, quiz });
+    setLessonTopic('holiday');
+  }
 
   async function onCompleteLesson() {
     await pendingAnswer.current; // сначала дождаться записи последнего ответа
@@ -353,6 +414,8 @@ export default function App() {
     setShowTask(false);
     setChestType(null);
     setRewards(null);
+    setHolidays([]);
+    setHolidaySession(null);
     setShowDaily(false);
     setShowStreakRewards(false);
     setShowFriends(false);
@@ -402,7 +465,7 @@ export default function App() {
       <LessonScreen
         topics={lessonTopics}
         topicId={lessonTopic}
-        review={lessonTopic === 'review'}
+        review={lessonTopic === 'review' || (lessonTopic === 'holiday' && !!holidaySession?.quiz)}
         test={lessonTopic === 'exam' && examSession?.mode !== 'practice'}
         onTestScore={async (score) => {
           if (!examSession) return;
@@ -419,9 +482,10 @@ export default function App() {
             setExamsDone((d) => ({ ...d, [examSession.exam.id]: true }));
             setExamSession(null);
           }
+          setHolidaySession(null);
           setLessonTopic(null);
         }}
-        onOpenChest={() => { setLessonTopic(null); setExamSession(null); setChestType('lesson'); }}
+        onOpenChest={() => { setLessonTopic(null); setExamSession(null); setHolidaySession(null); setChestType('lesson'); }}
       />
     );
   } else if (chestType) {
@@ -499,7 +563,7 @@ export default function App() {
   } else {
     showTabs = true;
     if (tab === 'schedule') {
-      screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} />;
+      screen = <ScheduleScreen schedule={schedule} onSaveDay={onSaveDay} holidays={holidays} onAddHoliday={onAddHoliday} onDeleteHoliday={onDeleteHoliday} />;
     } else if (tab === 'shop') {
       screen = (
         <ShopScreen
@@ -587,6 +651,7 @@ export default function App() {
           onOpenTopics={setTopicsFor}
           dueCount={dueWords.length}
           onStartReview={() => setLessonTopic('review')}
+          onStartHoliday={startHoliday}
           rewards={rewards}
           onOpenStreakRewards={() => setShowStreakRewards(true)}
           onOpenDaily={() => setShowDaily(true)}

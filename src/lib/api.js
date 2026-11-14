@@ -264,6 +264,27 @@ export async function openChest(studentId, type) {
   return data;
 }
 
+// Каникулы ученика: [{ id, kind: 'short' | 'summer', start_date, end_date }]
+export async function loadHolidays(studentId) {
+  const { data, error } = await supabase.from('student_holidays')
+    .select('id, kind, start_date, end_date').eq('student_id', studentId).order('start_date');
+  if (error) return [];
+  return data;
+}
+
+export async function addHoliday(studentId, kind, start, end) {
+  const { data, error } = await supabase.from('student_holidays')
+    .insert({ student_id: studentId, kind, start_date: start, end_date: end })
+    .select('id, kind, start_date, end_date').single();
+  if (error) throw new Error(tr('Не получилось сохранить каникулы. Проверь даты и интернет.'));
+  return data;
+}
+
+export async function deleteHoliday(id) {
+  const { error } = await supabase.from('student_holidays').delete().eq('id', id);
+  if (error) throw new Error(tr('Не получилось удалить. Попробуй ещё раз.'));
+}
+
 // Награды: ежедневная (календарь 1–7) и за серию (10, 50, 100, 200, 300, …).
 // { daily: { claimed_today, day }, streak_claimed: [10, 50, …] }
 export async function loadRewards(studentId) {
