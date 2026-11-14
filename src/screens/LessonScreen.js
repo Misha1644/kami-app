@@ -14,7 +14,7 @@ import { teacherFor, KAMI_TEACHER, pickLine } from '../data/teachers';
 import Teacher from '../components/Teacher';
 import Chest from '../components/Chest';
 import RewardReveal from '../components/RewardReveal';
-import { LessonProgress, FeedbackSheet, Bounce, playSfx } from '../components/LessonFx';
+import { LessonProgress, FeedbackSheet, Bounce, ComboCelebration, playSfx } from '../components/LessonFx';
 import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey } from '../lib/speech';
 import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
 import { tr } from '../i18n';
@@ -76,6 +76,9 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const [speakOff, setSpeakOff] = useState(prefs.speaking === false); // выключено в профиле или «не могу говорить сейчас»
   const [mistakes, setMistakes] = useState(0);
   const [combo, setCombo] = useState(0); // верных ответов подряд — для шкалы
+  const comboRef = useRef(0);
+  const [bestCombo, setBestCombo] = useState(0);
+  const [celebrate, setCelebrate] = useState(null); // { n, key } — празднование 5, 10, 15… подряд
   const [earned, setEarned] = useState(0);
   const earnedRef = useRef(0); // актуальное число монет для анимации в конце
   const [reveal, setReveal] = useState(null); // награда за урок большой анимацией
@@ -121,8 +124,17 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
 
   function record(ok) {
     setVerdict(ok ? 'right' : 'wrong');
-    setCombo((c) => (ok ? c + 1 : 0));
-    if (prefs.sfx !== false) playSfx(ok ? 'correct' : 'wrong');
+    const n = ok ? comboRef.current + 1 : 0;
+    comboRef.current = n;
+    setCombo(n);
+    setBestCombo((b) => Math.max(b, n));
+    const milestone = ok && n >= 5 && n % 5 === 0;
+    if (milestone) {
+      const key = Date.now();
+      setCelebrate({ n, key });
+      setTimeout(() => setCelebrate((c) => (c && c.key === key ? null : c)), 1700);
+    }
+    if (prefs.sfx !== false) playSfx(!ok ? 'wrong' : milestone ? 'combo' : 'correct');
     onAnswer(word.id, ok);
     if (ok) { earnedRef.current += 1; setEarned((c) => c + 1); }
     else setMistakes((m) => m + 1);
@@ -201,9 +213,19 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
         {teacher !== KAMI_TEACHER && <Text style={styles.teacherName}>{tr(teacher.name)} · {tr(teacher.who)}</Text>}
         <Text style={styles.mutedCenter}>{mistakes === 0 ? ending.perfect : review ? ending.review : ending.done}</Text>
         <Text style={styles.mutedCenter}>{tr('{0} Слов: {1}, ошибок: {2}.', review ? tr('Слова закреплены.') : `${topic.subject}: ${topic.title}.`, words.length, mistakes)}</Text>
-        <View style={styles.earned}>
-          <Coin size={22} />
-          <Text style={styles.earnedText}>+{earned} {plural(earned, tr('монета'), tr('монеты'), tr('монет'))}</Text>
+        <View style={styles.stats}>
+          <View style={[styles.stat, { borderColor: colors.greenBar }]}>
+            <Text style={[styles.statHead, { backgroundColor: colors.greenBar }]}>{tr('ТОЧНОСТЬ')}</Text>
+            <Text style={styles.statValue}>{Math.round(((words.length - Math.min(mistakes, words.length)) / Math.max(1, words.length)) * 100)}%</Text>
+          </View>
+          <View style={[styles.stat, { borderColor: colors.orange }]}>
+            <Text style={[styles.statHead, { backgroundColor: colors.orange }]}>{tr('ЛУЧШАЯ СЕРИЯ')}</Text>
+            <Text style={styles.statValue}>🔥 {bestCombo}</Text>
+          </View>
+          <View style={[styles.stat, { borderColor: '#F5B800' }]}>
+            <Text style={[styles.statHead, { backgroundColor: '#F5B800' }]}>{tr('МОНЕТЫ')}</Text>
+            <View style={styles.statRow}><Coin size={20} /><Text style={styles.statValue}>+{earned}</Text></View>
+          </View>
         </View>
         {gotChest && (
           <Pressable accessibilityRole="button" onPress={onOpenChest} style={styles.chestGift}>
@@ -351,6 +373,13 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
       )}
 
     </ScrollView>
+    {celebrate && (
+      <ComboCelebration
+        key={celebrate.key}
+        count={celebrate.n}
+        face={<Teacher teacher={teacher} size={72} kamiColor={kamiColor} mood="excited" />}
+      />
+    )}
     {showSheet && (
       <FeedbackSheet
         key={`${index}-${verdict}`}
@@ -676,6 +705,11 @@ const styles = StyleSheet.create({
   input: { minHeight: 52, borderWidth: 2, borderColor: '#C9D0CB', borderRadius: radius.md, paddingHorizontal: 14, fontSize: 18, backgroundColor: colors.card, color: colors.text },
   note: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
   small: { fontSize: 13, color: colors.muted },
+  stats: { flexDirection: 'row', gap: 8, alignSelf: 'stretch' },
+  stat: { flex: 1, borderWidth: 2, borderRadius: 14, overflow: 'hidden', alignItems: 'center', backgroundColor: colors.card },
+  statHead: { alignSelf: 'stretch', textAlign: 'center', paddingVertical: 4, fontSize: 10, fontWeight: '900', letterSpacing: 0.6, color: '#FFFFFF' },
+  statValue: { fontSize: 22, fontWeight: '900', color: colors.text, paddingVertical: 8 },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   kamiRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   notaCard: { alignItems: 'center', gap: 2, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignSelf: 'stretch' },
   notaValue: { fontSize: 44, fontWeight: '800', color: colors.text },

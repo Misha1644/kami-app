@@ -4,15 +4,20 @@ import { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 import { tr } from '../i18n';
+import { colors } from '../theme';
 
-const GREEN = '#58CC02';
-const GREEN_DARK = '#46A302';
-const ORANGE = '#FF9600';
+// Фирменные цвета Ками (не чужие).
+const GREEN = colors.green;
+const GREEN_DARK = colors.greenDark;
+const BAR = colors.greenBar;
+const ORANGE = colors.orange;
+const RED = '#D92D20';
 
 // ---------- звуки ответов ----------
 const SFX = {
   correct: require('../../assets/sfx/correct.m4a'),
   wrong: require('../../assets/sfx/wrong.m4a'),
+  combo: require('../../assets/sfx/combo.m4a'),
 };
 const players = {};
 export function playSfx(name) {
@@ -42,7 +47,7 @@ export function LessonProgress({ value, combo = 0 }) {
   return (
     <View style={{ flex: 1, gap: 2 }}>
       <View style={styles.track}>
-        <Animated.View style={[styles.fill, { width, backgroundColor: hot ? ORANGE : GREEN }]}>
+        <Animated.View style={[styles.fill, { width, backgroundColor: hot ? ORANGE : BAR }]}>
           <View style={styles.shine} />
         </Animated.View>
       </View>
@@ -81,6 +86,36 @@ export function Bounce({ kind, children, style }) {
   return <Animated.View style={[style, { transform }]}>{children}</Animated.View>;
 }
 
+// ---------- празднование серии: 5, 10, 15… верных подряд ----------
+const CHEERS = ['¡Increíble!', '¡Imparable!', '¡Fuego!', '¡Qué crack!', '¡Olé!', '¡Brutal!'];
+export function ComboCelebration({ count, face }) {
+  const a = useRef(new Animated.Value(0)).current;
+  const cheer = useRef(CHEERS[Math.floor(Math.random() * CHEERS.length)]).current;
+  useEffect(() => {
+    a.setValue(0);
+    Animated.sequence([
+      Animated.spring(a, { toValue: 1, friction: 4, tension: 110, useNativeDriver: false }),
+      Animated.delay(1000),
+      Animated.timing(a, { toValue: 2, duration: 280, useNativeDriver: false }),
+    ]).start();
+  }, []);
+  return (
+    <View pointerEvents="none" style={styles.comboLayer}>
+      <Animated.View
+        style={[styles.comboCard, {
+          opacity: a.interpolate({ inputRange: [0, 0.2, 1, 2], outputRange: [0, 1, 1, 0] }),
+          transform: [{ scale: a.interpolate({ inputRange: [0, 1, 2], outputRange: [0.3, 1, 1.15] }) }],
+        }]}
+      >
+        <Text style={styles.comboFire}>🔥</Text>
+        {face}
+        <Text style={styles.comboBig}>{tr('{0} подряд!', count)}</Text>
+        <Text style={styles.comboCheer}>{cheer}</Text>
+      </Animated.View>
+    </View>
+  );
+}
+
 // ---------- панель ответа снизу ----------
 export function FeedbackSheet({ ok, title, lines = [], extra, onNext }) {
   const y = useRef(new Animated.Value(1)).current;
@@ -102,19 +137,19 @@ export function FeedbackSheet({ ok, title, lines = [], extra, onNext }) {
       accessibilityLiveRegion="polite"
     >
       <View style={styles.sheetHead}>
-        <Animated.View style={[styles.badge, { backgroundColor: ok ? GREEN : '#FF4B4B', transform: [{ scale: icon }] }]}>
+        <Animated.View style={[styles.badge, { backgroundColor: ok ? GREEN : RED, transform: [{ scale: icon }] }]}>
           <Text style={styles.badgeText}>{ok ? '✓' : '✕'}</Text>
         </Animated.View>
-        <Text style={[styles.sheetTitle, { color: ok ? GREEN_DARK : '#EA2B2B' }]}>{title}</Text>
+        <Text style={[styles.sheetTitle, { color: ok ? GREEN_DARK : colors.danger }]}>{title}</Text>
         {extra}
       </View>
       {lines.filter(Boolean).map((l, i) => (
-        <Text key={i} style={[styles.sheetLine, { color: ok ? '#3F7A0A' : '#C21F1F' }]}>{l}</Text>
+        <Text key={i} style={[styles.sheetLine, { color: ok ? GREEN_DARK : colors.danger }]}>{l}</Text>
       ))}
       <Pressable
         accessibilityRole="button"
         onPress={onNext}
-        style={({ pressed }) => [styles.next, { backgroundColor: ok ? GREEN : '#FF4B4B', borderBottomColor: ok ? GREEN_DARK : '#D33131' }, pressed && styles.nextPressed]}
+        style={({ pressed }) => [styles.next, { backgroundColor: ok ? GREEN : RED, borderBottomColor: ok ? GREEN_DARK : colors.danger }, pressed && styles.nextPressed]}
       >
         <Text style={styles.nextText}>{tr('ДАЛЬШЕ')}</Text>
       </Pressable>
@@ -127,9 +162,14 @@ const styles = StyleSheet.create({
   fill: { height: 16, borderRadius: 8, minWidth: 16 },
   shine: { position: 'absolute', top: 3, left: 8, right: 8, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
   combo: { alignSelf: 'flex-start', fontSize: 12, fontWeight: '900', color: ORANGE },
+  comboLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  comboCard: { alignItems: 'center', gap: 4, paddingVertical: 18, paddingHorizontal: 28, borderRadius: 24, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: ORANGE, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+  comboFire: { fontSize: 54 },
+  comboBig: { fontSize: 30, fontWeight: '900', color: ORANGE },
+  comboCheer: { fontSize: 18, fontWeight: '800', color: colors.text },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 28, gap: 8, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
-  sheetOk: { backgroundColor: '#D7FFB8' },
-  sheetBad: { backgroundColor: '#FFDFE0' },
+  sheetOk: { backgroundColor: colors.greenLight, borderTopWidth: 2, borderColor: '#BFE3CE' },
+  sheetBad: { backgroundColor: colors.dangerLight, borderTopWidth: 2, borderColor: '#F7C1BB' },
   sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   badge: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },

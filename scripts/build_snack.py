@@ -61,7 +61,7 @@ MODULES = [
     ('src/components/RewardReveal.js', ['RewardReveal']),
     ('src/components/Rewards.js', ['DAILY', 'streakReward', 'milestones', 'claimableStreak', 'rewardText', 'DailyRewardModal']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
-    ('src/components/LessonFx.js', ['LessonProgress', 'FeedbackSheet', 'Bounce', 'playSfx']),
+    ('src/components/LessonFx.js', ['LessonProgress', 'FeedbackSheet', 'Bounce', 'ComboCelebration', 'playSfx']),
     ('src/screens/LessonScreen.js', ['LessonScreen']),
     ('src/screens/TaskScreen.js', ['TaskScreen']),
     ('src/screens/ProgressScreen.js', ['ProgressScreen']),

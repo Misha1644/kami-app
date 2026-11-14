@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Короткие звуки ответов для уроков (свои, сгенерированы для Ками):
   correct.m4a — два светлых звонких тона вверх;
-  wrong.m4a   — мягкий низкий «бум» вниз.
+  wrong.m4a   — мягкий низкий «бум» вниз;
+  combo.m4a   — четыре тона вверх (серия верных ответов).
 Запуск: python3 scripts/make_sfx.py → assets/sfx/*.m4a (нужны numpy, scipy, ffmpeg).
 """
 import os
@@ -32,6 +33,15 @@ def correct():
     return out
 
 
+def combo():
+    out = np.zeros(int(0.75 * SR))
+    for i, f in enumerate((1046.5, 1318.5, 1568.0, 2093.0)):   # C6 E6 G6 C7
+        n = tone(f, 0.5 if i == 3 else 0.2, 7 if i == 3 else 16)
+        s = int(i * 0.075 * SR)
+        out[s: s + len(n)] += n[: len(out) - s]
+    return out
+
+
 def wrong():
     t = np.arange(int(0.32 * SR)) / SR
     f = 220 - 90 * t / t[-1]              # плавно вниз
@@ -56,3 +66,4 @@ def save(name, x, level=0.7):
 if __name__ == '__main__':
     save('correct', correct(), 0.6)
     save('wrong', wrong(), 0.55)
+    save('combo', combo(), 0.6)
