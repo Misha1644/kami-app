@@ -50,6 +50,12 @@ function textFor(date, schedule) {
   return tr('Ками ждёт тебя! Пройди один урок, чтобы серия не сгорела.');
 }
 
+// В субботу и воскресенье — напомнить про ежедневную награду: календарь сбрасывается, если пропустить день.
+function rewardLine(date) {
+  const wd = date.getDay();
+  return wd === 6 || wd === 0 ? ' ' + tr('Не забудь забрать ежедневную награду!') : '';
+}
+
 // Перепланировать напоминания (вызывается при запуске и после изменения расписания).
 export async function rescheduleReminders(schedule) {
   if (!remindersSupported || !(await remindersEnabled())) return;
@@ -61,7 +67,7 @@ export async function rescheduleReminders(schedule) {
     d.setHours(HOUR, 0, 0, 0);
     if (d <= now) continue;
     await Notifications.scheduleNotificationAsync({
-      content: { title: tr('Ками 🦎'), body: tr('{0}\nФакт дня: {1}', textFor(d, schedule), factOfDay(d).t) },
+      content: { title: tr('Ками 🦎'), body: tr('{0}\nФакт дня: {1}', textFor(d, schedule) + rewardLine(d), factOfDay(d).t) },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
     });
   }
