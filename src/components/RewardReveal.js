@@ -28,7 +28,7 @@ function tint(price = 0, exclusive, pack) {
   return { ray: '#6FA8FF', glow: '#D6E6FF', label: '' };
 }
 
-const HEADLINE = { avatar: 'НОВЫЙ АВАТАР!', color: 'НОВЫЙ ЦВЕТ КАМИ!', bg: 'НОВЫЙ ФОН!' };
+const HEADLINE = { avatar: 'НОВЫЙ АВАТАР!', color: 'НОВЫЙ ЦВЕТ КАМИ!', bg: 'НОВЫЙ ФОН!', music: 'НОВАЯ МУЗЫКА!' };
 
 function Rays({ color, size }) {
   const c = size / 2;
@@ -106,6 +106,7 @@ function ItemArt({ item, kamiColor }) {
       </View>
     );
   }
+  if (item.kind === 'music') return <View style={styles.note}><Text style={styles.noteText}>♪</Text></View>;
   if (item.kind === 'avatar') return <UserAvatar value={item.value} size={130} kamiColor={kamiColor} />;
   if (item.kind === 'color') return <Kami size={150} color={item.value} />;
   return <BgSwatch value={item.value} style={styles.bg} />;
@@ -240,7 +241,7 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', showPri
                 )}
                 {!!error && <Text style={styles.error}>{error}</Text>}
                 <View style={styles.buttons}>
-                  {onEquip && item.kind !== 'pack' && (
+                  {onEquip && item.kind !== 'pack' && item.kind !== 'music' && (
                     <Button
                       title={item.kind === 'color' ? tr('Надеть на Ками') : tr('Поставить')}
                       onPress={async () => {
@@ -283,6 +284,8 @@ const styles = StyleSheet.create({
   priceText: { fontSize: 17, fontWeight: '800', color: '#FDE68A' },
   extra: { fontSize: 16, fontWeight: '700', color: '#FDE68A', textAlign: 'center' },
   pack: { alignItems: 'center', gap: 6 },
+  note: { width: 140, height: 140, borderRadius: 70, backgroundColor: '#7A5AF8', borderWidth: 5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  noteText: { fontSize: 84, fontWeight: '900', color: '#FFFFFF', marginTop: -8 },
   freeze: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#4A90D9', alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
   packRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   packText: { fontSize: 40, fontWeight: '900', color: '#FDE68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 0 },

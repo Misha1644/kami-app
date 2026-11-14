@@ -13,7 +13,7 @@ import { deleteAccount, loadWeeklyEmail, setWeeklyEmail } from '../lib/api';
 import { PLUS_ENABLED, SUPPORT_EMAIL } from '../config';
 import { tr, itemTitle, UI_LANGS, uiLangFor, setLang } from '../i18n';
 
-const DEFAULTS = new Set(['color-green', 'avatar-person', 'bg-default']);
+const DEFAULTS = new Set(['color-green', 'avatar-person', 'bg-default', 'music-kami']);
 const GOALS = [5, 10, 15, 20, 30];
 
 function Chips({ options, value, onChange }) {
@@ -246,6 +246,15 @@ export default function ProfileScreen({
       {/* Звук */}
       <Text style={styles.h2}>{tr('Звук и упражнения')}</Text>
       <Card style={{ gap: 14 }}>
+        <View style={{ gap: 8 }}>
+          <Text style={styles.label}>{tr('Музыка в меню')}</Text>
+          <Chips
+            options={[{ value: 'music-off', label: tr('Без музыки') }, ...ownedOf('music').map((i) => ({ value: i.id, label: '♪ ' + itemTitle(i) }))]}
+            value={student.music || 'music-off'}
+            onChange={(id) => act(() => onEquip(id))}
+          />
+          <Text style={styles.small}>{tr('Новую музыку можно купить в магазине.')}</Text>
+        </View>
         <SwitchRow title={tr('Озвучивать новые слова')} note={tr('Ками сам произносит слово на карточке')} value={prefs.autoplay} onChange={(v) => onSavePrefs({ ...prefs, autoplay: v })} />
         <SwitchRow title={tr('Медленный голос')} note={tr('Для начала так проще расслышать')} value={prefs.slowVoice} onChange={(v) => onSavePrefs({ ...prefs, slowVoice: v })} />
         <SwitchRow title={tr('Упражнения «Скажи вслух»')} note={tr('Выключи, если занимаешься там, где нельзя говорить')} value={prefs.speaking} onChange={(v) => onSavePrefs({ ...prefs, speaking: v })} />
@@ -337,6 +346,7 @@ const styles = StyleSheet.create({
   swatch: { width: 88, height: 56, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
   swatchText: { fontSize: 12, fontWeight: '700', color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  label: { fontSize: 15, fontWeight: '700', color: colors.text },
   chip: { minHeight: 40, minWidth: 48, paddingHorizontal: 14, borderRadius: radius.md, borderWidth: 1.5, borderColor: '#C9D0CB', alignItems: 'center', justifyContent: 'center' },
   chipActive: { borderColor: colors.green, backgroundColor: colors.greenLight },
   chipText: { fontSize: 14, color: colors.text },

@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 import { topics as localTopics } from '../data/content';
 import { tr } from '../i18n';
 
-const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg, chests_lesson, chests_skin, friends_enabled';
+const STUDENT_FIELDS = 'id, nickname, grade, native_lang, coins, streak_freezes, kami_color, daily_goal, avatar, bg, music, chests_lesson, chests_skin, friends_enabled';
 
 // Темы со словами. Если база недоступна — берём встроенный контент, чтобы приложение работало.
 // Язык озвучки слова: в Valencià слова валенсийские, остальное — испанский.

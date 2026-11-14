@@ -12,9 +12,13 @@ import { Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { tr, itemTitle } from '../i18n';
 import { plural } from '../data/content';
+import { togglePreview, stopPreview, usePreviewState } from '../lib/music';
 
 export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEquip, onOpenPlus, onOpenChest, refreshing, onRefresh }) {
   const [busy, setBusy] = useState(null);
+  const [listening, setListening] = useState(null); // трек, который сейчас слушаем
+  usePreviewState(setListening);
+  useEffect(() => () => stopPreview(), []); // ушли из магазина — прослушивание выключаем
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [reveal, setReveal] = useState(null); // купленная вещь — показываем большой анимацией
@@ -218,6 +222,48 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
         </Card>
       )}
 
+      {/* Музыка: всегда в продаже, играет в меню */}
+      <Text style={styles.h2}>{tr('🎵 Музыка')}</Text>
+      <Text style={styles.small}>{tr('Выбранная музыка играет в меню. На уроках — тишина. Нажми ▶, чтобы послушать.')}</Text>
+      <Card style={{ paddingVertical: 4 }}>
+        {shop.items.filter((i) => i.kind === 'music').sort((a, b) => a.price - b.price || a.sort - b.sort).map((item, idx, arr) => {
+          const owned = item.price === 0 || shop.owned.has(item.id);
+          const playing = student.music === item.id;
+          const legend = item.price >= 5000;
+          return (
+            <View key={item.id} style={[styles.musicRow, idx < arr.length - 1 && styles.musicBorder]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={listening === item.value ? tr('Остановить') : tr('Послушать {0}', itemTitle(item))}
+                onPress={() => togglePreview(item.value)}
+                style={[styles.listen, listening === item.value && styles.listenOn]}
+              >
+                <Text style={[styles.listenText, listening === item.value && { color: '#FFFFFF' }]}>{listening === item.value ? '■' : '▶'}</Text>
+              </Pressable>
+              <View style={{ flex: 1, gap: 2 }}>
+                {legend && <Text style={styles.legend}>{tr('ЛЕГЕНДАРНОЕ')}</Text>}
+                <Text style={styles.itemTitle} numberOfLines={1}>{itemTitle(item)}</Text>
+              </View>
+              {playing ? (
+                <Pressable accessibilityRole="button" disabled={busy === item.id} onPress={() => run(item.id, () => onEquip('music-off'), tr('Музыка выключена.'))} style={styles.equip}>
+                  <Text style={styles.equipText}>{tr('Играет ♪')}</Text>
+                </Pressable>
+              ) : owned ? (
+                <Pressable accessibilityRole="button" disabled={busy === item.id} onPress={() => run(item.id, () => onEquip(item.id), tr('Музыка включена!'))} style={styles.equip}>
+                  <Text style={styles.equipText}>{tr('Включить')}</Text>
+                </Pressable>
+              ) : (
+                <PriceButton
+                  price={item.price}
+                  disabled={busy === item.id || student.coins < item.price}
+                  onPress={() => { stopPreview(); run(item.id, () => onBuy(item.id), tr('Куплено!'), item); }}
+                />
+              )}
+            </View>
+          );
+        })}
+      </Card>
+
       {section('avatar', tr('Аватары'))}
       {section('color', tr('Цвет Ками'))}
       {section('bg', tr('Фоны'))}
@@ -316,6 +362,11 @@ const styles = StyleSheet.create({
   tagNew: { backgroundColor: '#F79009' },
   tagBack: { backgroundColor: '#1570EF' },
   tagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#FFFFFF' },
+  musicRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  musicBorder: { borderBottomWidth: 1, borderBottomColor: colors.track },
+  listen: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  listenOn: { backgroundColor: colors.green },
+  listenText: { fontSize: 16, fontWeight: '800', color: colors.green },
   legendCard: { borderColor: '#F5C443', borderWidth: 2, backgroundColor: '#FFFBEB' },
   legend: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#B54708' },
   colorCardWorn: { borderColor: colors.green, borderWidth: 2 },

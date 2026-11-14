@@ -16,6 +16,7 @@ import ChestScreen from './src/screens/ChestScreen';
 import StreakRewardsScreen from './src/screens/StreakRewardsScreen';
 import { DailyRewardModal } from './src/components/Rewards';
 import { holidayWords, prepWords, nextGrade, HOLIDAY_TITLE } from './src/data/holidays';
+import { useBackgroundMusic } from './src/lib/music';
 import FriendsScreen from './src/screens/FriendsScreen';
 import ExamScreen from './src/screens/ExamScreen';
 import { todayTask, isDoneToday, markDoneToday } from './src/lib/exams';
@@ -370,7 +371,7 @@ export default function App() {
 
   async function onBuy(itemId) {
     const res = await buyItem(studentId, itemId);
-    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color, avatar: res.avatar, bg: res.bg, chests_lesson: res.chests_lesson, chests_skin: res.chests_skin }));
+    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color, avatar: res.avatar, bg: res.bg, music: res.music, chests_lesson: res.chests_lesson, chests_skin: res.chests_skin }));
     setStreakInfo((info) => ({ ...info, freezes: res.freezes }));
     setShop(await loadShop(studentId));
   }
@@ -379,7 +380,8 @@ export default function App() {
   async function onEquip(itemId) {
     const kind = shop?.items.find((i) => i.id === itemId)?.kind;
     await equipItem(studentId, itemId);
-    const field = { color: 'kami_color', avatar: 'avatar', bg: 'bg' }[kind];
+    if (itemId === 'music-off') return setStudent((s) => ({ ...s, music: null }));
+    const field = { color: 'kami_color', avatar: 'avatar', bg: 'bg', music: 'music' }[kind];
     if (field) setStudent((s) => ({ ...s, [field]: itemId }));
   }
 
@@ -432,6 +434,8 @@ export default function App() {
   }
 
   const itemValue = (id) => shop?.items.find((i) => i.id === id)?.value;
+  // Фоновая музыка: выбранный трек играет в меню, на уроках — тишина.
+  useBackgroundMusic(student?.music ? itemValue(student.music) : null, !!studentId && !lessonTopic);
   const kamiColor = KAMI_COLORS[student?.kami_color] || (student && itemValue(student.kami_color)) || KAMI_COLORS['color-green'];
   const bg = parseBg((student && itemValue(student.bg)) || colors.bg);
   const avatarValue = (student && itemValue(student.avatar)) || 'person';

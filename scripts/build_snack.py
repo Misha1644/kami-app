@@ -26,6 +26,7 @@ MODULES = [
                              'KAMI_COLORS', 'WEEKDAYS', 'nextSchoolDay', 'plural',
                              'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom', 'customTopics']),
     ('src/data/holidays.js', ['VALENCIA_HOLIDAYS', 'fmtDate', 'parseDate', 'todayIso', 'suggestions', 'nextGrade', 'todayCodes', 'holidayWords', 'prepWords', 'HOLIDAY_TITLE']),
+    ('src/lib/music.js', ['useBackgroundMusic', 'togglePreview', 'stopPreview', 'usePreviewState', 'hasTrack']),
     ('src/components/Kami.js', ['Kami']),
     ('src/components/Teacher.js', ['Teacher']),
     ('src/components/Animals.js', ['ANIMALS', 'AnimalFace']),
@@ -132,6 +133,8 @@ def main():
         imports, body = split_imports(open(os.path.join(ROOT, path), encoding='utf-8').read())
         for stmt in imports:
             collect(stmt, path)
+        # в одном файле App.js ассеты лежат рядом: '../../assets/…' → './assets/…'
+        body = re.sub(r"require\('(?:\.\./)+assets/", "require('./assets/", body)
         body = re.sub(r"export default function ", "function ", body)
         body = re.sub(r"export default class ", "class ", body)
         body = re.sub(r"^export (async function|function|const) ", r"\1 ", body, flags=re.M)
