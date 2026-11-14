@@ -256,6 +256,7 @@ export default function ProfileScreen({
           <Text style={styles.small}>{tr('Новую музыку можно купить в магазине.')}</Text>
         </View>
         <SwitchRow title={tr('Озвучивать новые слова')} note={tr('Ками сам произносит слово на карточке')} value={prefs.autoplay} onChange={(v) => onSavePrefs({ ...prefs, autoplay: v })} />
+        <SwitchRow title={tr('Звуки ответов')} note={tr('Звонкий сигнал за верный ответ, мягкий — за ошибку')} value={prefs.sfx !== false} onChange={(v) => onSavePrefs({ ...prefs, sfx: v })} />
         <SwitchRow title={tr('Медленный голос')} note={tr('Для начала так проще расслышать')} value={prefs.slowVoice} onChange={(v) => onSavePrefs({ ...prefs, slowVoice: v })} />
         <SwitchRow title={tr('Упражнения «Скажи вслух»')} note={tr('Выключи, если занимаешься там, где нельзя говорить')} value={prefs.speaking} onChange={(v) => onSavePrefs({ ...prefs, speaking: v })} />
         {remindersSupported && (

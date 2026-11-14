@@ -61,6 +61,7 @@ MODULES = [
     ('src/components/RewardReveal.js', ['RewardReveal']),
     ('src/components/Rewards.js', ['DAILY', 'streakReward', 'milestones', 'claimableStreak', 'rewardText', 'DailyRewardModal']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
+    ('src/components/LessonFx.js', ['LessonProgress', 'FeedbackSheet', 'Bounce', 'playSfx']),
     ('src/screens/LessonScreen.js', ['LessonScreen']),
     ('src/screens/TaskScreen.js', ['TaskScreen']),
     ('src/screens/ProgressScreen.js', ['ProgressScreen']),
@@ -136,8 +137,8 @@ def main():
         # в одном файле App.js ассеты лежат рядом: '../../assets/…' → './assets/…'
         # Музыку в Snack берём по ссылке из GitHub (ветка skeleton) — не нужно загружать файлы в Snack,
         # а если ссылка недоступна, приложение не падает, просто без музыки. В настоящем приложении — require.
-        body = re.sub(r"require\('(?:\.\./)+assets/music/([\w.-]+)'\)",
-                      r"{ uri: 'https://raw.githubusercontent.com/Misha1644/kami-app/skeleton/assets/music/\1' }", body)
+        body = re.sub(r"require\('(?:\.\./)+assets/(music|sfx)/([\w.-]+)'\)",
+                      r"{ uri: 'https://raw.githubusercontent.com/Misha1644/kami-app/skeleton/assets/\1/\2' }", body)
         body = re.sub(r"require\('(?:\.\./)+assets/", "require('./assets/", body)
         body = re.sub(r"export default function ", "function ", body)
         body = re.sub(r"export default class ", "class ", body)

@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Coin } from '../components/icons';
-import { Button, Card, ProgressBar } from '../components/ui';
+import { Button, Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { plural } from '../data/content';
 import { kamiSays } from '../data/kami';
@@ -14,6 +14,7 @@ import { teacherFor, KAMI_TEACHER, pickLine } from '../data/teachers';
 import Teacher from '../components/Teacher';
 import Chest from '../components/Chest';
 import RewardReveal from '../components/RewardReveal';
+import { LessonProgress, FeedbackSheet, Bounce, playSfx } from '../components/LessonFx';
 import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey } from '../lib/speech';
 import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
 import { tr } from '../i18n';
@@ -74,6 +75,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const [gotChest, setGotChest] = useState(false); // за урок выдан сундук
   const [speakOff, setSpeakOff] = useState(prefs.speaking === false); // выключено в профиле или «не могу говорить сейчас»
   const [mistakes, setMistakes] = useState(0);
+  const [combo, setCombo] = useState(0); // верных ответов подряд — для шкалы
   const [earned, setEarned] = useState(0);
   const earnedRef = useRef(0); // актуальное число монет для анимации в конце
   const [reveal, setReveal] = useState(null); // награда за урок большой анимацией
@@ -119,6 +121,8 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
 
   function record(ok) {
     setVerdict(ok ? 'right' : 'wrong');
+    setCombo((c) => (ok ? c + 1 : 0));
+    if (prefs.sfx !== false) playSfx(ok ? 'correct' : 'wrong');
     onAnswer(word.id, ok);
     if (ok) { earnedRef.current += 1; setEarned((c) => c + 1); }
     else setMistakes((m) => m + 1);
@@ -225,15 +229,15 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const correctNow = verdict === 'right';
   const progress = (index + (phase === 'exercise' && answered ? 1 : 0)) / (words.length + (words.length >= 4 ? 1 : 0));
 
+  const showSheet = phase === 'exercise' && answered;
   return (
-    <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+    <View style={{ flex: 1 }}>
+    <ScrollView contentContainerStyle={[styles.wrap, showSheet && { paddingBottom: 240 }]} keyboardShouldPersistTaps="handled">
       <View style={styles.top}>
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <ProgressBar value={progress} height={10} />
-        </View>
+        <LessonProgress value={progress} combo={combo} />
         <Text style={styles.counter}>{index + 1}/{words.length}</Text>
       </View>
       <View style={styles.capsRow}>
@@ -263,7 +267,10 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
                 <SpeakButton text={word.es} lang={word.lang} />
               </View>
             </View>
-            <Text style={styles.translation}>{word.ru}</Text>
+            <View style={styles.translationBox}>
+              <Text style={styles.translationLabel}>{tr('Перевод')}</Text>
+              <Text style={styles.translation}>{word.ru}</Text>
+            </View>
             {!!word.teacher && (
               <View style={styles.teacherBox}>
                 <View style={styles.wordRow}>
@@ -343,23 +350,20 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
         </>
       )}
 
-      {phase === 'exercise' && answered && (
-        <>
-          <View style={styles.kamiRow}>
-            <Teacher teacher={teacher} size={64} kamiColor={kamiColor} mood={correctNow ? 'excited' : 'worried'} />
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.kamiText}>{correctNow ? praise : comfort}</Text>
-              {!correctNow && kind !== 'phrase' && <Text style={styles.kamiText}>{tr('Правильно: {0}. Вернёмся к нему в повторении.', word.es)}</Text>}
-              {!correctNow && kind === 'phrase' && <Text style={styles.kamiText}>{tr('Порядок слов другой. Послушай ещё раз — вернёмся к этому слову в повторении.')}</Text>}
-              {!correctNow && <Text style={styles.small}>{word.ru}</Text>}
-            </View>
-            <SpeakButton text={word.es} lang={word.lang} />
-          </View>
-          {kind === 'phrase' && <Text style={styles.small}>{tr('Фраза: «{0}»', word.teacher)}</Text>}
-          <Button title={tr('Дальше')} onPress={next} />
-        </>
-      )}
     </ScrollView>
+    {showSheet && (
+      <FeedbackSheet
+        key={`${index}-${verdict}`}
+        ok={correctNow}
+        title={correctNow ? praise : tr('Правильный ответ:')}
+        lines={correctNow
+          ? [typedResult === 'accents' ? tr('Только с ударением: {0}', word.es) : null]
+          : [kind === 'phrase' ? `«${word.teacher}»` : `${word.es} — ${word.ru}`, tr('Вернёмся к нему в повторении.')]}
+        extra={<SpeakButton text={kind === 'phrase' ? word.teacher : word.es} lang={word.lang} />}
+        onNext={next}
+      />
+    )}
+    </View>
   );
 }
 
@@ -525,17 +529,19 @@ function Options({ options, word, picked, onChoose }) {
       {options.map((o) => {
         const isRight = answered && o.id === word.id;
         const isWrongPick = answered && o.id === picked && o.id !== word.id;
+        const fx = o.id === picked ? (picked === word.id ? 'right' : 'wrong') : null;
         return (
-          <Pressable
-            key={o.id}
-            accessibilityRole="button"
-            onPress={() => onChoose(o.id)}
-            style={[styles.option, isRight && styles.optionRight, isWrongPick && styles.optionWrong]}
-          >
-            <Text style={[styles.optionText, isRight && { color: colors.greenDark, fontWeight: '700' }, isWrongPick && { color: colors.danger }]}>
-              {o.es}
-            </Text>
-          </Pressable>
+          <Bounce key={o.id} kind={fx}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onChoose(o.id)}
+              style={[styles.option, isRight && styles.optionRight, isWrongPick && styles.optionWrong]}
+            >
+              <Text style={[styles.optionText, isRight && { color: colors.greenDark, fontWeight: '700' }, isWrongPick && { color: colors.danger }]}>
+                {o.es}
+              </Text>
+            </Pressable>
+          </Bounce>
         );
       })}
     </View>
@@ -579,9 +585,7 @@ function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <ProgressBar value={matched.size / pairs.length} height={10} />
-        </View>
+        <LessonProgress value={matched.size / pairs.length} />
       </View>
       <Text style={styles.question}>{tr('Соедини пары')}</Text>
       <Text style={styles.small}>{tr('Нажми на испанское слово, потом на его перевод.')}</Text>
@@ -635,7 +639,9 @@ const styles = StyleSheet.create({
   caps: { fontSize: 13, fontWeight: '700', color: colors.muted },
   wordRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   word: { fontSize: 28, fontWeight: '800', color: colors.text, flexShrink: 1 },
-  translation: { fontSize: 16, color: colors.muted, marginTop: -6 },
+  translationBox: { backgroundColor: '#FFF4CC', borderLeftWidth: 5, borderLeftColor: '#F5B800', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
+  translationLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8, color: '#9A6B00', textTransform: 'uppercase' },
+  translation: { fontSize: 24, fontWeight: '800', color: '#1D2939' },
   teacherBox: { backgroundColor: colors.bg, borderRadius: 12, padding: 12, gap: 4 },
   teacherLabel: { fontSize: 13, fontWeight: '700', color: colors.muted },
   teacher: { fontSize: 15, lineHeight: 21, fontStyle: 'italic', color: colors.text },

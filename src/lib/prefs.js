@@ -7,6 +7,7 @@ export const DEFAULT_PREFS = {
   autoplay: true,     // сразу озвучивать новое слово
   speaking: true,     // упражнения «Скажи вслух»
   slowVoice: false,   // говорить медленнее
+  sfx: true,          // звуки верного / неверного ответа
 };
 
 export async function loadPrefs() {
