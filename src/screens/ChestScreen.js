@@ -1,6 +1,7 @@
 // Открытие сундука — рулетка как в CS: лента вещей прокручивается и останавливается
 // на выигрыше под жёлтым указателем. Что выпало, решает сервер (open_chest) ДО прокрутки;
-// лента вокруг выигрыша — просто для красоты. Шансы показаны внизу экрана.
+// лента вокруг выигрыша — просто для красоты. Шансы — по ссылке «Шансы выпадения» внизу экрана
+// (их обязательно показывать: правила App Store / Google Play для случайных наград).
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import Chest from '../components/Chest';
@@ -93,6 +94,7 @@ function Tile({ tile }) {
 
 export default function ChestScreen({ type, left, shopItems = [], onOpen, onEquip, onClose }) {
   const [phase, setPhase] = useState('ready'); // ready | spinning | opened
+  const [showOdds, setShowOdds] = useState(false);
   const [strip, setStrip] = useState([]);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -233,7 +235,15 @@ export default function ChestScreen({ type, left, shopItems = [], onOpen, onEqui
           <Button title={tr('Крутить ещё ({0})', remaining)} variant={item && !equipped ? 'secondary' : 'primary'} onPress={again} />
         )}
         {phase !== 'spinning' && <Button title={tr('Готово')} variant="secondary" onPress={onClose} />}
-        <Text style={styles.odds}>{tr(INFO[type].odds)}</Text>
+        <Text
+          style={styles.oddsLink}
+          onPress={() => setShowOdds((v) => !v)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showOdds }}
+        >
+          {tr('Шансы выпадения')} {showOdds ? '▴' : 'ⓘ'}
+        </Text>
+        {showOdds && <Text style={styles.odds}>{tr(INFO[type].odds)}</Text>}
       </View>
     </ScrollView>
   );
@@ -264,5 +274,6 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
   price: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   error: { fontSize: 14, color: colors.danger, textAlign: 'center' },
+  oddsLink: { fontSize: 13, fontWeight: '700', color: colors.muted, textAlign: 'center', paddingVertical: 8, textDecorationLine: 'underline' },
   odds: { fontSize: 12, color: colors.muted, textAlign: 'center', lineHeight: 17 },
 });
