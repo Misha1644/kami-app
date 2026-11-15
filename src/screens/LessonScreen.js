@@ -245,7 +245,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   }
 
   if (phase === 'match') {
-    return <MatchRound words={words} kamiColor={kamiColor} teacher={teacher} onDone={finish} onClose={onClose} />;
+    return <MatchRound words={words} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={onClose} />;
   }
 
   const correctNow = verdict === 'right';
@@ -353,8 +353,8 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
           <TextInput
             style={[
               styles.input,
-              typedResult === 'wrong' && { borderColor: colors.danger },
-              typedResult && typedResult !== 'wrong' && { borderColor: colors.green },
+              typedResult === 'wrong' && styles.inputWrong,
+              typedResult && typedResult !== 'wrong' && styles.inputRight,
             ]}
             value={typed}
             onChangeText={setTyped}
@@ -420,9 +420,9 @@ function PhraseTiles({ phrase, decoys, answered, onCheck }) {
             accessibilityRole="button"
             disabled={answered}
             onPress={() => setChosen((c) => c.filter((x) => x !== i))}
-            style={styles.tile}
+            style={[styles.tile, ok === true && styles.tileRight, ok === false && styles.tileWrong]}
           >
-            <Text style={styles.tileText}>{bank.find((b) => b.i === i).t}</Text>
+            <Text style={[styles.tileText, ok !== null && styles.optionTextOn]}>{bank.find((b) => b.i === i).t}</Text>
           </Pressable>
         ))}
       </View>
@@ -558,17 +558,30 @@ function Options({ options, word, picked, onChoose }) {
       {options.map((o) => {
         const isRight = answered && o.id === word.id;
         const isWrongPick = answered && o.id === picked && o.id !== word.id;
+        const pickedRight = isRight && picked === word.id; // выбрал верно — горит зелёным
+        const hint = isRight && !pickedRight; // ошибся — показываем, какой был верный
         const fx = o.id === picked ? (picked === word.id ? 'right' : 'wrong') : null;
+        const faded = answered && !isRight && !isWrongPick;
         return (
           <Bounce key={o.id} kind={fx}>
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ selected: o.id === picked }}
               onPress={() => onChoose(o.id)}
-              style={[styles.option, isRight && styles.optionRight, isWrongPick && styles.optionWrong]}
+              style={({ pressed }) => [
+                styles.option,
+                pickedRight && styles.optionRight,
+                hint && styles.optionHint,
+                isWrongPick && styles.optionWrong,
+                faded && { opacity: 0.4 },
+                pressed && !answered && styles.optionPressed,
+              ]}
             >
-              <Text style={[styles.optionText, isRight && { color: colors.greenDark, fontWeight: '700' }, isWrongPick && { color: colors.danger }]}>
+              <Text style={[styles.optionText, (pickedRight || isWrongPick) && styles.optionTextOn, hint && styles.optionTextHint]}>
                 {o.es}
               </Text>
+              {(pickedRight || hint) && <Text style={[styles.optionMark, hint && { color: colors.green }]}>✓</Text>}
+              {isWrongPick && <Text style={styles.optionMark}>✕</Text>}
             </Pressable>
           </Bounce>
         );
@@ -578,13 +591,15 @@ function Options({ options, word, picked, onChoose }) {
 }
 
 // «Соедини пары»: испанские слова слева, переводы справа.
-function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
+function MatchRound({ words, kamiColor, teacher, sfx, onDone, onClose }) {
   const pairs = useMemo(() => shuffle(words).slice(0, 5), [words]);
   const left = useMemo(() => shuffle(pairs), [pairs]);
   const right = useMemo(() => shuffle(pairs), [pairs]);
   const [selected, setSelected] = useState(null);
   const [matched, setMatched] = useState(new Set());
   const [wrong, setWrong] = useState(null);
+  const [wrongLeft, setWrongLeft] = useState(null);
+  const [just, setJust] = useState(null); // только что найденная пара — горит зелёным
   const [matchLine] = useState(() => kamiSays('match'));
 
   function pickLeft(id) {
@@ -602,9 +617,15 @@ function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
       next.add(id);
       setMatched(next);
       setSelected(null);
+      setWrong(null);
+      setJust(id);
+      setTimeout(() => setJust((j) => (j === id ? null : j)), 500);
+      if (sfx) playSfx('correct');
       if (next.size === pairs.length) setTimeout(onDone, 400);
     } else {
       setWrong(id);
+      setWrongLeft(selected);
+      if (sfx) playSfx('wrong');
     }
   }
 
@@ -627,9 +648,9 @@ function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
                 key={w.id}
                 accessibilityRole="button"
                 onPress={() => pickLeft(w.id)}
-                style={[styles.matchItem, selected === w.id && styles.matchSelected, done && styles.matchDone]}
+                style={[styles.matchItem, selected === w.id && styles.matchSelected, wrong && wrongLeft === w.id && selected === w.id && styles.matchWrong, done && (just === w.id ? styles.matchJust : styles.matchDone)]}
               >
-                <Text style={[styles.matchText, done && styles.matchDoneText]}>{w.es}</Text>
+                <Text style={[styles.matchText, done && styles.matchDoneText, ((done && just === w.id) || (wrong && wrongLeft === w.id && selected === w.id)) && styles.optionTextOn]}>{w.es}</Text>
               </Pressable>
             );
           })}
@@ -642,9 +663,9 @@ function MatchRound({ words, kamiColor, teacher, onDone, onClose }) {
                 key={w.id}
                 accessibilityRole="button"
                 onPress={() => pickRight(w.id)}
-                style={[styles.matchItem, wrong === w.id && styles.matchWrong, done && styles.matchDone]}
+                style={[styles.matchItem, wrong === w.id && styles.matchWrong, done && (just === w.id ? styles.matchJust : styles.matchDone)]}
               >
-                <Text style={[styles.matchText, done && styles.matchDoneText]}>{w.ru}</Text>
+                <Text style={[styles.matchText, done && styles.matchDoneText, ((done && just === w.id) || wrong === w.id) && styles.optionTextOn]}>{w.ru}</Text>
               </Pressable>
             );
           })}
@@ -678,10 +699,12 @@ const styles = StyleSheet.create({
   speakText: { fontSize: 20 },
   speakPair: { flexDirection: 'row', gap: 8 },
   slots: { minHeight: 64, flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 10, alignItems: 'center', borderBottomWidth: 2, borderColor: '#C9D0CB' },
-  slotsRight: { borderColor: colors.green },
-  slotsWrong: { borderColor: colors.danger },
+  slotsRight: { borderColor: colors.green, borderBottomWidth: 3 },
+  slotsWrong: { borderColor: colors.danger, borderBottomWidth: 3 },
   bank: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
   tile: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: radius.md, borderWidth: 1.5, borderBottomWidth: 3, borderColor: '#C9D0CB', backgroundColor: colors.card },
+  tileRight: { backgroundColor: colors.greenBar, borderColor: colors.greenDark },
+  tileWrong: { backgroundColor: '#D92D20', borderColor: '#912018' },
   tileUsed: { backgroundColor: '#E9ECEA', borderColor: '#E9ECEA' },
   tileText: { fontSize: 16, color: colors.text },
   mic: { alignSelf: 'center', minWidth: 200, minHeight: 64, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, borderRadius: 999, backgroundColor: colors.green },
@@ -698,10 +721,17 @@ const styles = StyleSheet.create({
   slowSpeak: { minHeight: 44, paddingHorizontal: 14, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.green, justifyContent: 'center' },
   slowText: { fontSize: 14, fontWeight: '700', color: colors.green },
   question: { fontSize: 18, fontWeight: '700', color: colors.text },
-  option: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 1.5, borderColor: '#C9D0CB', backgroundColor: colors.card },
-  optionRight: { borderWidth: 2, borderColor: colors.green, backgroundColor: colors.greenLight },
-  optionWrong: { borderWidth: 2, borderColor: colors.danger, backgroundColor: colors.dangerLight },
-  optionText: { fontSize: 16, color: colors.text },
+  option: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 2, borderBottomWidth: 4, borderColor: '#D0D5DD', backgroundColor: colors.card },
+  optionPressed: { borderBottomWidth: 2, transform: [{ translateY: 2 }] },
+  optionRight: { backgroundColor: colors.greenBar, borderColor: colors.greenDark },
+  optionHint: { backgroundColor: colors.greenLight, borderColor: colors.green },
+  optionWrong: { backgroundColor: '#D92D20', borderColor: '#912018' },
+  optionText: { fontSize: 17, color: colors.text, flexShrink: 1 },
+  optionTextOn: { color: '#FFFFFF', fontWeight: '800' },
+  optionTextHint: { color: colors.greenDark, fontWeight: '800' },
+  optionMark: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', marginLeft: 8 },
+  inputRight: { borderColor: colors.green, borderWidth: 3, backgroundColor: colors.greenLight, color: colors.greenDark, fontWeight: '800' },
+  inputWrong: { borderColor: colors.danger, borderWidth: 3, backgroundColor: colors.dangerLight, color: colors.danger, fontWeight: '800', textDecorationLine: 'line-through' },
   input: { minHeight: 52, borderWidth: 2, borderColor: '#C9D0CB', borderRadius: radius.md, paddingHorizontal: 14, fontSize: 18, backgroundColor: colors.card, color: colors.text },
   note: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
   small: { fontSize: 13, color: colors.muted },
@@ -727,9 +757,10 @@ const styles = StyleSheet.create({
   earnedText: { fontSize: 18, fontWeight: '800', color: '#7A5200' },
   matchCols: { flexDirection: 'row', gap: 10 },
   matchCol: { flex: 1, gap: 10 },
-  matchItem: { minHeight: 56, justifyContent: 'center', paddingHorizontal: 10, borderRadius: radius.md, borderWidth: 1.5, borderColor: '#C9D0CB', backgroundColor: colors.card },
-  matchSelected: { borderWidth: 2, borderColor: colors.green, backgroundColor: colors.greenLight },
-  matchWrong: { borderWidth: 2, borderColor: colors.danger, backgroundColor: colors.dangerLight },
+  matchItem: { minHeight: 56, justifyContent: 'center', paddingHorizontal: 10, borderRadius: radius.md, borderWidth: 2, borderBottomWidth: 4, borderColor: '#D0D5DD', backgroundColor: colors.card },
+  matchSelected: { borderWidth: 2, borderColor: '#1570EF', backgroundColor: '#EFF8FF' },
+  matchWrong: { borderWidth: 2, borderColor: '#912018', backgroundColor: '#D92D20' },
+  matchJust: { borderWidth: 2, borderColor: colors.greenDark, backgroundColor: colors.greenBar },
   matchDone: { opacity: 0.35, borderColor: colors.green },
   matchText: { fontSize: 15, color: colors.text },
   matchDoneText: { color: colors.greenDark },
