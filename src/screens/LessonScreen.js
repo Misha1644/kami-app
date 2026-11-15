@@ -14,8 +14,10 @@ import { teacherFor, KAMI_TEACHER, pickLine } from '../data/teachers';
 import Teacher from '../components/Teacher';
 import Chest from '../components/Chest';
 import RewardReveal from '../components/RewardReveal';
-import { LessonProgress, FeedbackSheet, Bounce, ComboCelebration, playSfx } from '../components/LessonFx';
-import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey } from '../lib/speech';
+import { LessonProgress, FeedbackSheet, Bounce, ComboCelebration, AlmostBanner, playSfx } from '../components/LessonFx';
+import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey, isNearTyped, isNearPhrase } from '../lib/speech';
+import PhraseBuilder from '../components/PhraseBuilder';
+import haptic from '../lib/haptics';
 import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
 import { tr } from '../i18n';
 
@@ -79,6 +81,9 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const comboRef = useRef(0);
   const [bestCombo, setBestCombo] = useState(0);
   const [celebrate, setCelebrate] = useState(null); // { n, key } — празднование 5, 10, 15… подряд
+  const [almost, setAlmost] = useState(false); // «Почти получилось!» — показать подсказку
+  const [retried, setRetried] = useState(false); // вторая попытка уже дана на этом задании
+  const [dragLock, setDragLock] = useState(false); // тащим слово — экран не прокручивается
   const [earned, setEarned] = useState(0);
   const earnedRef = useRef(0); // актуальное число монет для анимации в конце
   const [reveal, setReveal] = useState(null); // награда за урок большой анимацией
@@ -135,13 +140,23 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
       setTimeout(() => setCelebrate((c) => (c && c.key === key ? null : c)), 1700);
     }
     if (prefs.sfx !== false) playSfx(!ok ? 'wrong' : milestone ? 'combo' : 'correct');
+    if (ok) haptic.success(); else haptic.error();
+    setAlmost(false);
     onAnswer(word.id, ok);
     if (ok) { earnedRef.current += 1; setEarned((c) => c + 1); }
     else setMistakes((m) => m + 1);
   }
 
+  // Ошибка на одну букву / одно слово: «Почти получилось!» и вторая попытка (один раз на задание).
+  function giveSecondTry() {
+    setRetried(true);
+    setAlmost(true);
+    haptic.lift();
+  }
+
   function choose(id) {
     if (answered) return;
+    haptic.tap();
     setPicked(id);
     record(id === word.id);
   }
@@ -149,6 +164,11 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   function checkTypedAnswer() {
     if (answered || !typed.trim()) return;
     const r = checkTyped(typed, word.es);
+    if (r === 'wrong' && !retried && isNearTyped(typed, word.es)) {
+      setTypedResult('almost');
+      giveSecondTry();
+      return;
+    }
     setTypedResult(r);
     record(r !== 'wrong');
   }
@@ -175,6 +195,8 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     setTyped('');
     setTypedResult(null);
     setVerdict(null);
+    setAlmost(false);
+    setRetried(false);
     if (index + 1 < words.length) {
       setIndex(index + 1);
       setPhase(quiz ? 'exercise' : 'learn');
@@ -254,7 +276,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const showSheet = phase === 'exercise' && answered;
   return (
     <View style={{ flex: 1 }}>
-    <ScrollView contentContainerStyle={[styles.wrap, showSheet && { paddingBottom: 240 }]} keyboardShouldPersistTaps="handled">
+    <ScrollView scrollEnabled={!dragLock} contentContainerStyle={[styles.wrap, showSheet && { paddingBottom: 240 }]} keyboardShouldPersistTaps="handled">
       <View style={styles.top}>
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
           <Text style={styles.closeText}>✕</Text>
@@ -336,7 +358,18 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
         <>
           <Text style={styles.question}>{tr('Послушай учителя и собери фразу')}</Text>
           <ListenButtons text={word.teacher} lang={word.lang} />
-          <PhraseTiles key={word.id} phrase={word.teacher} decoys={decoys} answered={answered} onCheck={(ok) => !answered && record(ok)} />
+          <PhraseTiles
+            key={word.id}
+            phrase={word.teacher}
+            decoys={decoys}
+            answered={answered}
+            retried={retried}
+            onAlmost={giveSecondTry}
+            onEdit={() => setAlmost(false)}
+            onDragging={setDragLock}
+            onCheck={(ok) => !answered && record(ok)}
+          />
+          {almost && <AlmostBanner text={tr('Одно слово не на месте или лишнее. Поправь и проверь ещё раз.')} />}
         </>
       )}
 
@@ -354,10 +387,11 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
             style={[
               styles.input,
               typedResult === 'wrong' && styles.inputWrong,
-              typedResult && typedResult !== 'wrong' && styles.inputRight,
+              typedResult === 'almost' && styles.inputAlmost,
+              (typedResult === 'exact' || typedResult === 'accents') && styles.inputRight,
             ]}
             value={typed}
-            onChangeText={setTyped}
+            onChangeText={(t) => { setTyped(t); if (typedResult === 'almost') { setTypedResult(null); setAlmost(false); } }}
             editable={!answered}
             autoCapitalize="none"
             autoCorrect={false}
@@ -366,6 +400,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
             returnKeyType="done"
             onSubmitEditing={checkTypedAnswer}
           />
+          {almost && <AlmostBanner text={tr('Ошибка в одной букве. Посмотри внимательно и попробуй ещё раз.')} />}
           {!answered && <Button title={tr('Проверить')} onPress={checkTypedAnswer} disabled={!typed.trim()} />}
           {typedResult === 'accents' && <Text style={styles.note}>{tr('Верно! Только с ударением: {0}', word.es)}</Text>}
           <Text style={styles.small}>{tr('Артикль (el, la) писать не обязательно.')}</Text>
@@ -396,54 +431,24 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   );
 }
 
-// «Собери фразу»: нажимай на слова по порядку; нажатие на выбранное слово возвращает его.
-function PhraseTiles({ phrase, decoys, answered, onCheck }) {
+// «Собери фразу»: плитки можно нажимать или перетаскивать (см. PhraseBuilder).
+function PhraseTiles({ phrase, decoys, answered, retried, onAlmost, onEdit, onDragging, onCheck }) {
   const tokens = useMemo(() => phraseTokens(phrase), [phrase]);
   const bank = useMemo(() => shuffle([...tokens, ...decoys].map((t, i) => ({ i, t }))), [tokens, decoys]);
-  const [chosen, setChosen] = useState([]); // индексы плиток из bank
-  const [ok, setOk] = useState(null);
-
-  function check() {
-    const got = chosen.map((i) => tokenKey(bank.find((b) => b.i === i).t)).join(' ');
-    const want = tokens.map(tokenKey).join(' ');
-    setOk(got === want);
-    onCheck(got === want);
-  }
-
   return (
-    <View style={{ gap: 12 }}>
-      <View style={[styles.slots, ok === true && styles.slotsRight, ok === false && styles.slotsWrong]}>
-        {chosen.length === 0 && <Text style={styles.small}>{tr('Нажимай на слова по порядку')}</Text>}
-        {chosen.map((i) => (
-          <Pressable
-            key={i}
-            accessibilityRole="button"
-            disabled={answered}
-            onPress={() => setChosen((c) => c.filter((x) => x !== i))}
-            style={[styles.tile, ok === true && styles.tileRight, ok === false && styles.tileWrong]}
-          >
-            <Text style={[styles.tileText, ok !== null && styles.optionTextOn]}>{bank.find((b) => b.i === i).t}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={styles.bank}>
-        {bank.map(({ i, t }) => {
-          const used = chosen.includes(i);
-          return (
-            <Pressable
-              key={i}
-              accessibilityRole="button"
-              disabled={used || answered}
-              onPress={() => setChosen((c) => [...c, i])}
-              style={[styles.tile, used && styles.tileUsed]}
-            >
-              <Text style={[styles.tileText, used && { color: 'transparent' }]}>{t}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      {!answered && <Button title={tr('Проверить')} onPress={check} disabled={chosen.length === 0} />}
-    </View>
+    <PhraseBuilder
+      tokens={tokens}
+      bank={bank}
+      answered={answered}
+      onDragging={onDragging}
+      onEdit={onEdit}
+      check={(got, want) => {
+        if (got.map(tokenKey).join(' ') === want.map(tokenKey).join(' ')) return 'right';
+        if (!retried && isNearPhrase(got, want)) { onAlmost(); return 'almost'; }
+        return 'wrong';
+      }}
+      onCheck={onCheck}
+    />
   );
 }
 
@@ -730,6 +735,7 @@ const styles = StyleSheet.create({
   optionTextOn: { color: '#FFFFFF', fontWeight: '800' },
   optionTextHint: { color: colors.greenDark, fontWeight: '800' },
   optionMark: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', marginLeft: 8 },
+  inputAlmost: { borderColor: '#F79009', borderWidth: 3, backgroundColor: '#FFFAEB' },
   inputRight: { borderColor: colors.green, borderWidth: 3, backgroundColor: colors.greenLight, color: colors.greenDark, fontWeight: '800' },
   inputWrong: { borderColor: colors.danger, borderWidth: 3, backgroundColor: colors.dangerLight, color: colors.danger, fontWeight: '800', textDecorationLine: 'line-through' },
   input: { minHeight: 52, borderWidth: 2, borderColor: '#C9D0CB', borderRadius: radius.md, paddingHorizontal: 14, fontSize: 18, backgroundColor: colors.card, color: colors.text },

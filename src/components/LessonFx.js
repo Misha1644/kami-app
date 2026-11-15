@@ -116,6 +116,27 @@ export function ComboCelebration({ count, face }) {
   );
 }
 
+// ---------- «Почти получилось!» — вторая попытка ----------
+export function AlmostBanner({ text }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    a.setValue(0);
+    Animated.spring(a, { toValue: 1, friction: 5, tension: 120, useNativeDriver: false }).start();
+  }, [text]);
+  return (
+    <Animated.View
+      accessibilityLiveRegion="polite"
+      style={[styles.almost, { opacity: a, transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}
+    >
+      <Text style={styles.almostIcon}>💡</Text>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.almostTitle}>{tr('Почти получилось!')}</Text>
+        <Text style={styles.almostText}>{text}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 // ---------- панель ответа снизу ----------
 export function FeedbackSheet({ ok, title, lines = [], extra, onNext }) {
   const y = useRef(new Animated.Value(1)).current;
@@ -162,6 +183,10 @@ const styles = StyleSheet.create({
   fill: { height: 16, borderRadius: 8, minWidth: 16 },
   shine: { position: 'absolute', top: 3, left: 8, right: 8, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
   combo: { alignSelf: 'flex-start', fontSize: 12, fontWeight: '900', color: ORANGE },
+  almost: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, backgroundColor: '#FFFAEB', borderWidth: 2, borderColor: '#F79009' },
+  almostIcon: { fontSize: 26 },
+  almostTitle: { fontSize: 17, fontWeight: '900', color: '#B54708' },
+  almostText: { fontSize: 14, color: '#93370D' },
   comboLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   comboCard: { alignItems: 'center', gap: 4, paddingVertical: 18, paddingHorizontal: 28, borderRadius: 24, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: ORANGE, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   comboFire: { fontSize: 54 },

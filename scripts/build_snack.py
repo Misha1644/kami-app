@@ -38,7 +38,7 @@ MODULES = [
     ('src/components/ErrorBoundary.js', ['ErrorBoundary']),
     ('src/components/ParentalGate.js', ['ParentalGate']),
     ('src/lib/supabase.js', ['SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'supabase']),
-    ('src/lib/speech.js', ['setVoiceSlow', 'speak', 'checkTyped', 'checkSpoken', 'phraseTokens', 'tokenKey']),
+    ('src/lib/speech.js', ['setVoiceSlow', 'speak', 'checkTyped', 'checkSpoken', 'phraseTokens', 'tokenKey', 'editDistance', 'isNearTyped', 'isNearPhrase']),
     ('src/lib/exams.js', ['daysUntil', 'whenText', 'examWords', 'todayTask', 'isDoneToday', 'markDoneToday', 'isoDay']),
     ('src/lib/prefs.js', ['DEFAULT_PREFS', 'loadPrefs', 'savePrefs']),
     ('src/lib/voice.js', ['useVoiceRecorder', 'canAutoCheck', 'recognizeOnce']),
@@ -61,7 +61,9 @@ MODULES = [
     ('src/components/RewardReveal.js', ['RewardReveal']),
     ('src/components/Rewards.js', ['DAILY', 'streakReward', 'milestones', 'claimableStreak', 'rewardText', 'DailyRewardModal']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
-    ('src/components/LessonFx.js', ['LessonProgress', 'FeedbackSheet', 'Bounce', 'ComboCelebration', 'playSfx']),
+    ('src/lib/haptics.js', ['haptic']),
+    ('src/components/PhraseBuilder.js', ['PhraseBuilder']),
+    ('src/components/LessonFx.js', ['LessonProgress', 'FeedbackSheet', 'Bounce', 'ComboCelebration', 'AlmostBanner', 'playSfx']),
     ('src/screens/LessonScreen.js', ['LessonScreen']),
     ('src/screens/TaskScreen.js', ['TaskScreen']),
     ('src/screens/ProgressScreen.js', ['ProgressScreen']),
@@ -141,6 +143,7 @@ def main():
                       r"{ uri: 'https://raw.githubusercontent.com/Misha1644/kami-app/skeleton/assets/\1/\2' }", body)
         body = re.sub(r"require\('(?:\.\./)+assets/", "require('./assets/", body)
         body = re.sub(r"export default function ", "function ", body)
+        body = re.sub(r"^export default [A-Za-z_$][\w$]*;\s*$", "", body, flags=re.M)
         body = re.sub(r"export default class ", "class ", body)
         body = re.sub(r"^export (async function|function|const) ", r"\1 ", body, flags=re.M)
         alias_lines = ''.join(f"const {local} = {orig};\n" for orig, local in aliases.get(path, []))
