@@ -22,7 +22,7 @@ const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
   onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, exams = [], examsDone = {}, onOpenExams, onStartExam, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
-  rewards, onOpenStreakRewards, onOpenDaily, onStartHoliday,
+  rewards, onOpenStreakRewards, onOpenDaily, onStartHoliday, onOpenClassroom, onOpenLeague, league,
   currentTopics, onOpenTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
@@ -210,6 +210,36 @@ export default function HomeScreen({
           </View>
         );
       })()}
+
+      {onOpenLeague && league?.enabled && (() => {
+        const me = (league.table || []).findIndex((r) => r.me);
+        const prize = league.last_week?.reward;
+        return (
+          <Pressable accessibilityRole="button" onPress={onOpenLeague} style={[styles.extraCard, styles.leagueCard]}>
+            <Text style={styles.extraIcon}>{prize ? '🎁' : '🏆'}</Text>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.chestTitle}>{prize ? tr('Награда лиги ждёт!') : tr('Лига друзей')}</Text>
+              <Text style={styles.small}>
+                {(league.table || []).length > 1
+                  ? tr('Ты на {0}-м месте из {1} на этой неделе', me + 1, league.table.length)
+                  : tr('Соревнуйся с друзьями каждую неделю')}
+              </Text>
+            </View>
+            <Text style={styles.chestArrow}>›</Text>
+          </Pressable>
+        );
+      })()}
+
+      {onOpenClassroom && (
+        <Pressable accessibilityRole="button" onPress={onOpenClassroom} style={styles.extraCard}>
+          <Text style={styles.extraIcon}>🏫</Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.chestTitle}>{tr('Фразы для школы')}</Text>
+            <Text style={styles.small}>{tr('«Можно выйти?», «Что задали?» — самое нужное на уроке и перемене')}</Text>
+          </View>
+          <Text style={styles.chestArrow}>›</Text>
+        </Pressable>
+      )}
 
       {rewards && !rewards.daily.claimed_today && onOpenDaily && (
         <Pressable accessibilityRole="button" onPress={onOpenDaily} style={styles.dailyCard}>
@@ -417,6 +447,9 @@ const styles = StyleSheet.create({
   examCard: { gap: 10, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#7A5AF8', backgroundColor: '#F4F1FF' },
   examHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   examTitle: { fontSize: 16, fontWeight: '800', color: '#4A2DB3' },
+  extraCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#B2CCFF', backgroundColor: '#F5F8FF' },
+  extraIcon: { fontSize: 32 },
+  leagueCard: { borderColor: '#F5C443', backgroundColor: '#FFFBEB' },
   holidayCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#84CAFF', backgroundColor: '#EFF8FF' },
   holidayIcon: { fontSize: 32 },
   dailyCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, borderWidth: 2, borderColor: '#F5C443', backgroundColor: '#FFFBEB' },

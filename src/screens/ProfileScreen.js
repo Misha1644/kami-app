@@ -59,7 +59,7 @@ export default function ProfileScreen({
   student, plan, shop, kamiColor, streak, todayDone, learnedTotal,
   prefs, onSavePrefs, onEquip, onChangeGrade, onUpdateStudent,
   reminders, remindersSupported, onToggleReminders,
-  onOpenPlus, onOpenPrivacy, onOpenShop, onOpenFriends, onToggleFriends, onSignOut, refreshing, onRefresh,
+  onOpenPlus, onOpenPrivacy, onOpenParent, onOpenShop, onOpenFriends, onToggleFriends, onSignOut, refreshing, onRefresh,
 }) {
   const [error, setError] = useState('');
   const [adult, setAdult] = useState('closed'); // closed | gate | open
@@ -288,6 +288,7 @@ export default function ProfileScreen({
       {adult === 'gate' && <ParentalGate onPass={() => setAdult('open')} onCancel={() => setAdult('closed')} />}
       {adult === 'open' && (
         <Card style={{ gap: 10 }}>
+          {onOpenParent && <Button title={tr('Как дела у ребёнка')} onPress={onOpenParent} />}
           {PLUS_ENABLED && (
             <SwitchRow
               title={tr('Отчёт на почту')}

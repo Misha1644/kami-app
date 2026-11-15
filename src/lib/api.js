@@ -309,6 +309,19 @@ export async function claimStreakReward(studentId, days) {
   return data;
 }
 
+// «Фразы для школы»: ответы дают монеты, урок — сундук, огонёк не продлевается (миграция 034).
+export async function recordExtraAnswer(studentId, correct) {
+  const { data, error } = await supabase.rpc('record_extra_answer', { p_student: studentId, p_correct: correct });
+  if (error) return null;
+  return data;
+}
+
+export async function completeExtraLesson(studentId) {
+  const { data, error } = await supabase.rpc('complete_extra_lesson', { p_student: studentId });
+  if (error) return null;
+  return data;
+}
+
 export async function completeLesson(studentId) {
   const { data, error } = await supabase.rpc('complete_lesson', { p_student: studentId });
   if (error) return null;
@@ -419,6 +432,18 @@ export async function friendAction(studentId, otherId, action) {
   const { error } = await supabase.rpc('friend_action', { p_student: studentId, p_other: otherId, p_action: action });
   if (error) throw friendError(error);
 }
+// ----- Лига друзей (миграция 035) -----
+export async function loadLeague(studentId) {
+  const { data, error } = await supabase.rpc('league_status', { p_student: studentId });
+  if (error) return null;
+  return data;
+}
+export async function claimLeagueReward(studentId) {
+  const { data, error } = await supabase.rpc('claim_league_reward', { p_student: studentId });
+  if (error) throw new Error(tr('Не получилось забрать награду. Попробуй ещё раз.'));
+  return data;
+}
+
 export async function listFriends(studentId) {
   const { data, error } = await supabase.rpc('list_friends', { p_student: studentId });
   if (error) throw friendError(error);

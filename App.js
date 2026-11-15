@@ -17,6 +17,11 @@ import StreakRewardsScreen from './src/screens/StreakRewardsScreen';
 import { DailyRewardModal } from './src/components/Rewards';
 import { holidayWords, prepWords, nextGrade, HOLIDAY_TITLE } from './src/data/holidays';
 import { useBackgroundMusic } from './src/lib/music';
+import { CLASSROOM_TOPICS, isClassroomTopic } from './src/data/classroom';
+import ClassroomScreen from './src/screens/ClassroomScreen';
+import LeagueScreen from './src/screens/LeagueScreen';
+import ParentScreen from './src/screens/ParentScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import ExamScreen from './src/screens/ExamScreen';
 import { todayTask, isDoneToday, markDoneToday } from './src/lib/exams';
@@ -39,7 +44,7 @@ import {
   getStudent, loadTopics, loadLearned, loadStreak, recordAnswer, loadWordsToday,
   loadShop, buyItem, equipItem, openChest, myCheers, setFriendsEnabled, CHEERS,
   loadExams, createExam, deleteExam, saveExamScore, loadSchedule, saveScheduleDay, updateStudent, startTrial,
-  completeLesson, loadPlan, loadRewards, claimDailyReward, claimStreakReward, loadHolidays, addHoliday, deleteHoliday,
+  completeLesson, recordExtraAnswer, completeExtraLesson, loadPlan, loadRewards, claimDailyReward, claimStreakReward, loadHolidays, addHoliday, deleteHoliday, loadLeague, claimLeagueReward,
   updateGrade, loadDueWords, taskHelpAvailable,
 } from './src/lib/api';
 import { remindersSupported, remindersEnabled, rescheduleReminders, setRemindersEnabled, setReminderHolidays } from './src/lib/reminders';
@@ -76,6 +81,12 @@ export default function App() {
   const [examsDone, setExamsDone] = useState({}); // { [examId]: true } — сегодня уже готовился
   const [showExams, setShowExams] = useState(false);
   const [examSession, setExamSession] = useState(null); // { exam, mode, words }
+  const [showClassroom, setShowClassroom] = useState(false); // «Фразы для школы»
+  const [showLeague, setShowLeague] = useState(false); // лига друзей
+  const [showParent, setShowParent] = useState(false); // «Как дела у ребёнка»
+  const [onboarding, setOnboarding] = useState(false); // первые 2 минуты
+  const [firstLesson, setFirstLesson] = useState(false);
+  const [league, setLeague] = useState(null);
   const [holidays, setHolidays] = useState([]); // каникулы ученика
   const [holidaySession, setHolidaySession] = useState(null); // { title, words, quiz } — каникулярное повторение
   const [newCheers, setNewCheers] = useState([]); // непрочитанные реакции от друзей
@@ -158,6 +169,7 @@ export default function App() {
       remindersEnabled(),
     ]);
     setDueWords(due);
+    loadLeague(id).then(setLeague);
     loadRewards(id).then((r) => {
       if (!r) return;
       setRewards(r);
@@ -181,6 +193,10 @@ export default function App() {
     setReminders(remOn);
     if (remOn) rescheduleReminders(sch).catch(() => {});
     setLearned(learnedStd);
+    // Знакомство — только новому ученику (ещё ни одного выученного слова) и один раз.
+    if (!Object.keys(learnedStd).length) {
+      AsyncStorage.getItem(`kami.onboarded.${id}`).then((v) => { if (!v) setOnboarding(true); }).catch(() => {});
+    }
     setStreakInfo(info);
     setStudent((s) => (s ? { ...s, streak_freezes: info.freezes } : s));
     setWordsToday(today);
@@ -219,9 +235,20 @@ export default function App() {
     return t ? { ...w, ru: t } : w;
   }, [en, uiLang]);
   const allTopics = useMemo(() => (en ? topics.map((t) => ({ ...t, titleRu: (uiLang === 'ar' && t.titleAr) || t.titleEn || t.titleRu, words: t.words.map(gloss) })) : topics), [topics, en, gloss, uiLang]);
+  // Тема для самого первого урока: первая тема, где есть хотя бы 3 слова.
+  const firstTopic = useMemo(() => allTopics.find((t) => !t.custom && t.words.length >= 3) || null, [allTopics]);
+  function finishOnboarding(start) {
+    if (studentId) AsyncStorage.setItem(`kami.onboarded.${studentId}`, '1').catch(() => {});
+    setOnboarding(false);
+    if (start && firstTopic) { setFirstLesson(true); setLessonTopic('first'); }
+  }
   // Темы класса + сессия повторения + подготовка к контрольной.
   const lessonTopics = useMemo(() => {
     const list = [...allTopics, { id: 'review', subject: tr('Повторение'), title: tr('повторение'), titleRu: '', words: dueWords.map(gloss) }];
+    list.push(...CLASSROOM_TOPICS.map((t) => ({ ...t, titleRu: (uiLang === 'ar' && t.titleAr) || (en && t.titleEn) || t.titleRu, words: t.words.map(gloss) })));
+    if (firstLesson && firstTopic) {
+      list.push({ ...firstTopic, id: 'first', words: firstTopic.words.slice(0, 3) });
+    }
     if (holidaySession) {
       list.push({ id: 'holiday', subject: tr('Каникулы'), title: holidaySession.title, titleRu: '', words: holidaySession.words, custom: true });
     }
@@ -233,7 +260,7 @@ export default function App() {
       });
     }
     return list;
-  }, [allTopics, dueWords, gloss, examSession, holidaySession]);
+  }, [allTopics, dueWords, gloss, examSession, holidaySession, en, uiLang, firstLesson, firstTopic]);
 
   function startExam(exam) {
     const task = todayTask(exam, allTopics, learned);
@@ -255,6 +282,14 @@ export default function App() {
 
   const onAnswer = useCallback(
     async (wordId, correct) => {
+      // «Фразы для школы» — отдельный счёт: монеты есть, огонёк не продлевается.
+      if (isClassroomTopic(wordId)) {
+        const request = recordExtraAnswer(studentId, correct);
+        pendingAnswer.current = request;
+        const res = await request;
+        if (res) setStudent((s) => ({ ...s, coins: res.coins }));
+        return;
+      }
       if (correct) setLearned((prev) => ({ ...prev, [wordId]: true }));
       const request = recordAnswer(studentId, wordId, correct);
       pendingAnswer.current = request;
@@ -318,8 +353,13 @@ export default function App() {
     setLessonTopic('holiday');
   }
 
-  async function onCompleteLesson() {
+  async function onCompleteLesson(topicId) {
     await pendingAnswer.current; // сначала дождаться записи последнего ответа
+    if (isClassroomTopic(topicId)) {
+      const extra = await completeExtraLesson(studentId);
+      if (extra?.chest) setStudent((s) => ({ ...s, chests_lesson: (s.chests_lesson || 0) + 1 }));
+      return extra;
+    }
     const res = await completeLesson(studentId);
     if (res?.chest) setStudent((s) => ({ ...s, chests_lesson: (s.chests_lesson || 0) + 1 }));
     setStreakInfo(await loadStreak(studentId));
@@ -418,6 +458,12 @@ export default function App() {
     setRewards(null);
     setHolidays([]);
     setHolidaySession(null);
+    setShowClassroom(false);
+    setShowLeague(false);
+    setLeague(null);
+    setShowParent(false);
+    setOnboarding(false);
+    setFirstLesson(false);
     setShowDaily(false);
     setShowStreakRewards(false);
     setShowFriends(false);
@@ -487,9 +533,10 @@ export default function App() {
             setExamSession(null);
           }
           setHolidaySession(null);
+          setFirstLesson(false);
           setLessonTopic(null);
         }}
-        onOpenChest={() => { setLessonTopic(null); setExamSession(null); setHolidaySession(null); setChestType('lesson'); }}
+        onOpenChest={() => { setLessonTopic(null); setExamSession(null); setHolidaySession(null); setFirstLesson(false); setChestType('lesson'); }}
       />
     );
   } else if (chestType) {
@@ -502,6 +549,52 @@ export default function App() {
         onOpen={onOpenChest}
         onEquip={onEquip}
         onClose={() => setChestType(null)}
+      />
+    );
+  } else if (onboarding && !lessonTopic) {
+    screen = (
+      <OnboardingScreen
+        student={student}
+        kamiColor={kamiColor}
+        firstTopic={firstTopic}
+        onStart={() => finishOnboarding(true)}
+        onSkip={() => finishOnboarding(false)}
+      />
+    );
+  } else if (showParent) {
+    screen = (
+      <ParentScreen
+        student={student}
+        topics={allTopics}
+        learned={learned}
+        streakInfo={streakInfo}
+        exams={exams}
+        plan={plan}
+        onOpenPlus={() => { setShowParent(false); openPlus(); }}
+        onBack={() => setShowParent(false)}
+      />
+    );
+  } else if (showLeague) {
+    screen = (
+      <LeagueScreen
+        league={league}
+        onReload={() => loadLeague(studentId).then(setLeague)}
+        onClaim={async () => {
+          const res = await claimLeagueReward(studentId);
+          setStudent((s) => ({ ...s, chests_skin: res.chests_skin, chests_lesson: res.chests_lesson }));
+          setLeague((l) => (l ? { ...l, last_week: { ...l.last_week, reward: null } } : l));
+          return res;
+        }}
+        onOpenFriends={() => { setShowLeague(false); setShowFriends(true); }}
+        onBack={() => setShowLeague(false)}
+      />
+    );
+  } else if (showClassroom) {
+    screen = (
+      <ClassroomScreen
+        gloss={gloss}
+        onStart={(id) => setLessonTopic(id)}
+        onBack={() => setShowClassroom(false)}
       />
     );
   } else if (showStreakRewards) {
@@ -619,6 +712,7 @@ export default function App() {
           onToggleReminders={onToggleReminders}
           onOpenPlus={openPlus}
           onOpenPrivacy={() => setShowPrivacy(true)}
+          onOpenParent={() => setShowParent(true)}
           onOpenShop={() => setTab('shop')}
           onOpenFriends={() => setShowFriends(true)}
           onToggleFriends={async (on) => { await setFriendsEnabled(studentId, on); setStudent((s) => ({ ...s, friends_enabled: on })); }}
@@ -656,6 +750,9 @@ export default function App() {
           dueCount={dueWords.length}
           onStartReview={() => setLessonTopic('review')}
           onStartHoliday={startHoliday}
+          onOpenClassroom={() => setShowClassroom(true)}
+          league={student.friends_enabled ? league : null}
+          onOpenLeague={student.friends_enabled ? () => setShowLeague(true) : null}
           rewards={rewards}
           onOpenStreakRewards={() => setShowStreakRewards(true)}
           onOpenDaily={() => setShowDaily(true)}
