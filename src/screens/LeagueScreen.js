@@ -34,7 +34,7 @@ export default function LeagueScreen({ league, onReload, onClaim, onOpenFriends,
   if (!league.enabled) {
     return (
       <ScrollView contentContainerStyle={styles.wrap}>
-        <Pressable accessibilityRole="button" onPress={onBack} style={styles.back}><Text style={styles.backText}>‹ {tr('Назад')}</Text></Pressable>
+        {onBack && <Pressable accessibilityRole="button" onPress={onBack} style={styles.back}><Text style={styles.backText}>‹ {tr('Назад')}</Text></Pressable>}
         <Text style={styles.h1}>🏆 {tr('Лига друзей')}</Text>
         <Text style={styles.small}>{tr('Друзья выключены в разделе «Для взрослых». Попроси родителей включить их.')}</Text>
       </ScrollView>
@@ -71,7 +71,7 @@ export default function LeagueScreen({ league, onReload, onClaim, onOpenFriends,
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       {reveal && <RewardReveal item={reveal} intro="box" onClose={() => setReveal(null)} />}
-      <Pressable accessibilityRole="button" onPress={onBack} style={styles.back}><Text style={styles.backText}>‹ {tr('Назад')}</Text></Pressable>
+      {onBack && <Pressable accessibilityRole="button" onPress={onBack} style={styles.back}><Text style={styles.backText}>‹ {tr('Назад')}</Text></Pressable>}
       <Text style={styles.h1}>🏆 {tr('Лига друзей')}</Text>
       <Text style={styles.small}>
         {tr('Кто за неделю даст больше верных ответов. До конца недели: {0} {1}.', left, plural(left, tr('день'), tr('дня'), tr('дней')))}

@@ -20,6 +20,15 @@ export function TabIcon({ name, color, size = 24 }) {
           <Path d="M9 8 V6 A3 3 0 0 1 15 6 V8" {...p} />
         </>
       )}
+      {name === 'league' && (
+        <>
+          <Path d="M7 4 H17 V9 A5 5 0 0 1 7 9 Z" {...p} />
+          <Path d="M7 6 H4 A3 3 0 0 0 7 11" {...p} />
+          <Path d="M17 6 H20 A3 3 0 0 1 17 11" {...p} />
+          <Line x1={12} y1={14} x2={12} y2={18} {...p} />
+          <Path d="M8 21 H16 L15 18 H9 Z" {...p} />
+        </>
+      )}
       {name === 'progress' && (
         <>
           <Line x1={5} y1={20} x2={5} y2={13} {...p} />

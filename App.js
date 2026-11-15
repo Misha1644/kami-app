@@ -54,6 +54,7 @@ const TABS = [
   { key: 'home', label: 'Сегодня' },
   { key: 'schedule', label: 'Расписание' },
   { key: 'shop', label: 'Магазин' },
+  { key: 'league', label: 'Лига' },
   { key: 'progress', label: 'Успехи' },
   { key: 'profile', label: 'Профиль' },
 ];
@@ -237,6 +238,12 @@ export default function App() {
   const allTopics = useMemo(() => (en ? topics.map((t) => ({ ...t, titleRu: (uiLang === 'ar' && t.titleAr) || t.titleEn || t.titleRu, words: t.words.map(gloss) })) : topics), [topics, en, gloss, uiLang]);
   // Тема для самого первого урока: первая тема, где есть хотя бы 3 слова.
   const firstTopic = useMemo(() => allTopics.find((t) => !t.custom && t.words.length >= 3) || null, [allTopics]);
+  async function claimLeague() {
+    const res = await claimLeagueReward(studentId);
+    setStudent((s) => ({ ...s, chests_skin: res.chests_skin, chests_lesson: res.chests_lesson }));
+    setLeague((l) => (l ? { ...l, last_week: { ...l.last_week, reward: null } } : l));
+    return res;
+  }
   function finishOnboarding(start) {
     if (studentId) AsyncStorage.setItem(`kami.onboarded.${studentId}`, '1').catch(() => {});
     setOnboarding(false);
@@ -579,12 +586,7 @@ export default function App() {
       <LeagueScreen
         league={league}
         onReload={() => loadLeague(studentId).then(setLeague)}
-        onClaim={async () => {
-          const res = await claimLeagueReward(studentId);
-          setStudent((s) => ({ ...s, chests_skin: res.chests_skin, chests_lesson: res.chests_lesson }));
-          setLeague((l) => (l ? { ...l, last_week: { ...l.last_week, reward: null } } : l));
-          return res;
-        }}
+        onClaim={claimLeague}
         onOpenFriends={() => { setShowLeague(false); setShowFriends(true); }}
         onBack={() => setShowLeague(false)}
       />
@@ -676,6 +678,15 @@ export default function App() {
           onRefresh={refresh}
         />
       );
+    } else if (tab === 'league' && student.friends_enabled) {
+      screen = (
+        <LeagueScreen
+          league={league}
+          onReload={() => loadLeague(studentId).then(setLeague)}
+          onClaim={claimLeague}
+          onOpenFriends={() => setShowFriends(true)}
+        />
+      );
     } else if (tab === 'progress') {
       screen = (
         <ProgressScreen
@@ -752,7 +763,7 @@ export default function App() {
           onStartHoliday={startHoliday}
           onOpenClassroom={() => setShowClassroom(true)}
           league={student.friends_enabled ? league : null}
-          onOpenLeague={student.friends_enabled ? () => setShowLeague(true) : null}
+          onOpenLeague={student.friends_enabled ? () => setTab('league') : null}
           rewards={rewards}
           onOpenStreakRewards={() => setShowStreakRewards(true)}
           onOpenDaily={() => setShowDaily(true)}
@@ -778,7 +789,7 @@ export default function App() {
         )}
         {showTabs && (
           <View style={styles.tabs}>
-            {TABS.map((t) => {
+            {TABS.filter((t) => t.key !== 'league' || student?.friends_enabled).map((t) => {
               const active = t.key === tab;
               return (
                 <Pressable
@@ -796,6 +807,7 @@ export default function App() {
                   ) : (
                     <TabIcon name={t.key} color={active ? colors.green : colors.muted} />
                   )}
+                  {t.key === 'league' && !!league?.last_week?.reward && <View style={styles.tabDot} />}
                   <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>{tr(t.label)}</Text>
                 </Pressable>
               );
@@ -817,5 +829,6 @@ const styles = StyleSheet.create({
   tabAvatar: { borderRadius: 14, borderWidth: 2, borderColor: 'transparent' },
   tabAvatarActive: { borderColor: colors.green },
   tabText: { fontSize: 11, color: colors.muted },
+  tabDot: { position: 'absolute', top: 2, right: '28%', width: 10, height: 10, borderRadius: 5, backgroundColor: '#F04438', borderWidth: 2, borderColor: '#FFFFFF' },
   tabTextActive: { color: colors.green, fontWeight: '700' },
 });

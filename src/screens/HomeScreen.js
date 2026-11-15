@@ -211,7 +211,7 @@ export default function HomeScreen({
         );
       })()}
 
-      {onOpenLeague && league?.enabled && (() => {
+      {onOpenLeague && league?.enabled && !!league.last_week?.reward && (() => {
         const me = (league.table || []).findIndex((r) => r.me);
         const prize = league.last_week?.reward;
         return (
