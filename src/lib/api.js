@@ -433,6 +433,17 @@ export async function friendAction(studentId, otherId, action) {
   if (error) throw friendError(error);
 }
 // ----- Лига друзей (миграция 035) -----
+// ----- «Что проходим в школе» (миграция 037) -----
+export async function loadCurrentTopics(studentId) {
+  const { data, error } = await supabase.rpc('get_current_topics', { p_student: studentId });
+  if (error) return null;
+  return data || {};
+}
+export async function saveCurrentTopic(studentId, subjectCode, topicId) {
+  const { error } = await supabase.rpc('set_current_topic', { p_student: studentId, p_subject: subjectCode, p_topic: topicId });
+  if (error) throw new Error(tr('Не получилось сохранить тему. Проверь интернет.'));
+}
+
 export async function loadLeague(studentId) {
   const { data, error } = await supabase.rpc('league_status', { p_student: studentId });
   if (error) return null;

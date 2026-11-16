@@ -140,7 +140,7 @@ function Holidays({ holidays = [], onAdd, onDelete }) {
   );
 }
 
-export default function ScheduleScreen({ schedule, onSaveDay, holidays, onAddHoliday, onDeleteHoliday }) {
+export default function ScheduleScreen({ onOpenCurrentTopics, schedule, onSaveDay, holidays, onAddHoliday, onDeleteHoliday }) {
   const [day, setDay] = useState(nextSchoolDay().weekday);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
@@ -177,6 +177,16 @@ export default function ScheduleScreen({ schedule, onSaveDay, holidays, onAddHol
     <ScrollView contentContainerStyle={styles.wrap}>
       <Text style={styles.h1}>{tr('Расписание')}</Text>
       <Text style={styles.muted}>{tr('Внеси уроки — и Ками будет готовить тебя к завтрашним предметам.')}</Text>
+      {onOpenCurrentTopics && (
+        <Pressable accessibilityRole="button" onPress={onOpenCurrentTopics} style={styles.topicsLink}>
+          <Text style={styles.topicsIcon}>📚</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.subject}>{tr('Что проходим в школе')}</Text>
+            <Text style={styles.muted}>{tr('Отметь текущую тему по каждому предмету')}</Text>
+          </View>
+          <Text style={styles.topicsArrow}>›</Text>
+        </Pressable>
+      )}
 
       <View style={styles.days} accessibilityRole="tablist">
         {WEEKDAYS.map((label, i) => {
@@ -298,6 +308,9 @@ export default function ScheduleScreen({ schedule, onSaveDay, holidays, onAddHol
 
 const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 14 },
+  topicsLink: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenLight },
+  topicsIcon: { fontSize: 28 },
+  topicsArrow: { fontSize: 24, color: colors.green },
   h1: { fontSize: 24, fontWeight: '800', color: colors.text },
   h2: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 10 },
   holidayIcon: { fontSize: 22, width: 28, textAlign: 'center' },

@@ -23,7 +23,7 @@ export default function HomeScreen({
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
   onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, exams = [], examsDone = {}, onOpenExams, onStartExam, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
   rewards, onOpenStreakRewards, onOpenDaily, onStartHoliday, onOpenClassroom, onOpenLeague, league,
-  currentTopics, onOpenTopics, dueCount, onStartReview,
+  currentTopics, onOpenTopics, onOpenCurrentTopics, dueCount, onStartReview,
 }) {
   const next = nextSchoolDay();
   const codes = schedule[next.weekday] || [];
@@ -362,6 +362,17 @@ export default function HomeScreen({
 
       {!hasSchedule && <Button title={tr('Заполнить расписание')} variant="secondary" onPress={onOpenSchedule} />}
 
+      {hasSchedule && onOpenCurrentTopics && shownCodes.length > 0 && !shownCodes.some((c) => currentTopics?.[c]) && (
+        <Pressable accessibilityRole="button" onPress={() => onOpenCurrentTopics()} style={styles.topicsBanner}>
+          <Text style={styles.extraIcon}>📚</Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.chestTitle}>{tr('Какие темы сейчас в классе?')}</Text>
+            <Text style={styles.small}>{tr('У каждой школы своя программа. Отметь темы — и я буду готовить именно к ним.')}</Text>
+          </View>
+          <Text style={styles.chestArrow}>›</Text>
+        </Pressable>
+      )}
+
       <Text style={styles.h2}>{hasSchedule ? tr('{0} в школе', next.label) : tr('Темы')}</Text>
       {hasSchedule && subjects.length === 0 && (
         <Text style={styles.muted}>{tr('В расписании на этот день пусто.')}</Text>
@@ -387,9 +398,17 @@ export default function HomeScreen({
             )}
             {blocks.map((t) => {
               const done = learnedCount(t, learned);
+              const chosen = currentTopics?.[code] === t.id;
               return (
                 <View key={t.id} style={{ gap: 6 }}>
                   <Text style={styles.muted}>{tr('Тема: {0} · {1}', t.title, t.titleRu)}</Text>
+                  {onOpenCurrentTopics && (
+                    <Text style={styles.small} onPress={() => onOpenCurrentTopics(code)} accessibilityRole="button">
+                      {chosen
+                        ? (done === t.words.length ? tr('✓ Всё выучено! В школе уже новая тема? Сменить ›') : tr('Проходим сейчас · сменить ›'))
+                        : tr('По порядку программы · в школе другая тема? ›')}
+                    </Text>
+                  )}
                   <ProgressBar value={done / t.words.length} />
                   <View style={styles.rowBetween}>
                     <Text style={styles.small}>{tr('{0} из {1} слов', done, t.words.length)}</Text>
@@ -449,6 +468,7 @@ const styles = StyleSheet.create({
   examTitle: { fontSize: 16, fontWeight: '800', color: '#4A2DB3' },
   extraCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#B2CCFF', backgroundColor: '#F5F8FF' },
   extraIcon: { fontSize: 32 },
+  topicsBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.green, backgroundColor: colors.greenLight },
   leagueCard: { borderColor: '#F5C443', backgroundColor: '#FFFBEB' },
   holidayCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 2, borderColor: '#84CAFF', backgroundColor: '#EFF8FF' },
   holidayIcon: { fontSize: 32 },
