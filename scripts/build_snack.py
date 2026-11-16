@@ -65,7 +65,6 @@ MODULES = [
     ('src/screens/LeagueScreen.js', ['LeagueScreen']),
     ('src/screens/ParentScreen.js', ['ParentScreen']),
     ('src/screens/OnboardingScreen.js', ['OnboardingScreen']),
-    ('src/screens/CurrentTopicsScreen.js', ['CurrentTopicsScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
     ('src/lib/haptics.js', ['haptic']),
     ('src/components/PhraseBuilder.js', ['PhraseBuilder']),

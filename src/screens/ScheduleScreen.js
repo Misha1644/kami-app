@@ -140,9 +140,10 @@ function Holidays({ holidays = [], onAdd, onDelete }) {
   );
 }
 
-export default function ScheduleScreen({ onOpenCurrentTopics, schedule, onSaveDay, holidays, onAddHoliday, onDeleteHoliday }) {
+export default function ScheduleScreen({ topics = [], currentTopics = {}, onSetTopic, schedule, onSaveDay, holidays, onAddHoliday, onDeleteHoliday }) {
   const [day, setDay] = useState(nextSchoolDay().weekday);
   const [adding, setAdding] = useState(false);
+  const [picking, setPicking] = useState(null); // номер урока, у которого раскрыт выбор темы
   const [error, setError] = useState('');
   const [customName, setCustomName] = useState('');
   const [typing, setTyping] = useState(false);
@@ -177,15 +178,8 @@ export default function ScheduleScreen({ onOpenCurrentTopics, schedule, onSaveDa
     <ScrollView contentContainerStyle={styles.wrap}>
       <Text style={styles.h1}>{tr('Расписание')}</Text>
       <Text style={styles.muted}>{tr('Внеси уроки — и Ками будет готовить тебя к завтрашним предметам.')}</Text>
-      {onOpenCurrentTopics && (
-        <Pressable accessibilityRole="button" onPress={onOpenCurrentTopics} style={styles.topicsLink}>
-          <Text style={styles.topicsIcon}>📚</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.subject}>{tr('Что проходим в школе')}</Text>
-            <Text style={styles.muted}>{tr('Отметь текущую тему по каждому предмету')}</Text>
-          </View>
-          <Text style={styles.topicsArrow}>›</Text>
-        </Pressable>
+      {onSetTopic && topics.length > 0 && (
+        <Text style={styles.hint}>📚 {tr('Нажми на урок, чтобы выбрать тему, которую сейчас проходите в классе.')}</Text>
       )}
 
       <View style={styles.days} accessibilityRole="tablist">
@@ -197,7 +191,7 @@ export default function ScheduleScreen({ onOpenCurrentTopics, schedule, onSaveDa
               key={label}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
-              onPress={() => { setDay(wd); setAdding(false); setTyping(false); }}
+              onPress={() => { setDay(wd); setAdding(false); setTyping(false); setPicking(null); }}
               style={[styles.day, active && styles.dayActive]}
             >
               <Text style={[styles.dayText, active && styles.dayTextActive]}>{label}</Text>
@@ -211,21 +205,67 @@ export default function ScheduleScreen({ onOpenCurrentTopics, schedule, onSaveDa
         {lessons.length === 0 && <Text style={[styles.muted, { paddingVertical: 14 }]}>{tr('Уроков пока нет.')}</Text>}
         {lessons.map((code, i) => {
           const s = subjectByCode(code);
+          const list = topics.filter((t) => t.subjectCode === code);
+          const chosen = list.find((t) => t.id === currentTopics[code]);
+          const canPick = !!onSetTopic && list.length > 0;
+          const open = picking === i && canPick;
           return (
-            <View key={`${code}-${i}`} style={[styles.lesson, i < lessons.length - 1 && styles.lessonBorder]}>
-              <Text style={styles.num}>{i + 1}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.subject}>{s.es}</Text>
-                <Text style={styles.small}>{tr(s.ru)}</Text>
+            <View key={`${code}-${i}`} style={i < lessons.length - 1 && styles.lessonBorder}>
+              <View style={styles.lesson}>
+                <Text style={styles.num}>{i + 1}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={canPick ? tr('Выбрать тему: {0}', s.es) : s.es}
+                  disabled={!canPick}
+                  onPress={() => setPicking(open ? null : i)}
+                  style={{ flex: 1, minHeight: 44, justifyContent: 'center' }}
+                >
+                  <Text style={styles.subject}>{s.es}</Text>
+                  {canPick ? (
+                    <Text style={[styles.small, chosen && styles.topicChosen]} numberOfLines={1}>
+                      {chosen ? `📚 ${chosen.title}` : tr('Тема не выбрана — нажми')} {open ? '▾' : '›'}
+                    </Text>
+                  ) : (
+                    <Text style={styles.small}>{tr(s.ru)}</Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={tr('Убрать урок {0}', s.es)}
+                  onPress={() => { update(lessons.filter((_, j) => j !== i)); setPicking(null); }}
+                  style={styles.remove}
+                >
+                  <Text style={styles.removeText}>✕</Text>
+                </Pressable>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={tr('Убрать урок {0}', s.es)}
-                onPress={() => update(lessons.filter((_, j) => j !== i))}
-                style={styles.remove}
-              >
-                <Text style={styles.removeText}>✕</Text>
-              </Pressable>
+              {open && (
+                <View style={styles.topicList}>
+                  <Text style={styles.small}>{tr('Что сейчас проходите по предмету {0}?', s.es)}</Text>
+                  {list.map((t) => {
+                    const on = t.id === currentTopics[code];
+                    return (
+                      <Pressable
+                        key={t.id}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: on }}
+                        onPress={() => { onSetTopic(code, t.id); setPicking(null); }}
+                        style={[styles.topicItem, on && styles.topicItemOn]}
+                      >
+                        <Text style={[styles.topicTitle, on && { color: '#FFFFFF' }]}>{on ? '✓ ' : ''}{t.title}</Text>
+                        {!!t.titleRu && <Text style={[styles.small, on && { color: '#E6F4EC' }]}>{t.titleRu}</Text>}
+                      </Pressable>
+                    );
+                  })}
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: !chosen }}
+                    onPress={() => { onSetTopic(code, null); setPicking(null); }}
+                    style={[styles.topicItem, styles.topicUnknown]}
+                  >
+                    <Text style={styles.topicTitle}>{!chosen ? '✓ ' : ''}{tr('Не знаю — по порядку программы')}</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           );
         })}
@@ -308,9 +348,13 @@ export default function ScheduleScreen({ onOpenCurrentTopics, schedule, onSaveDa
 
 const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 14 },
-  topicsLink: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.green, backgroundColor: colors.greenLight },
-  topicsIcon: { fontSize: 28 },
-  topicsArrow: { fontSize: 24, color: colors.green },
+  hint: { fontSize: 14, color: colors.greenDark, backgroundColor: colors.greenLight, padding: 12, borderRadius: radius.md, lineHeight: 20 },
+  topicChosen: { color: colors.greenDark, fontWeight: '700' },
+  topicList: { gap: 6, paddingBottom: 12, paddingLeft: 36 },
+  topicItem: { padding: 12, minHeight: 48, borderRadius: radius.md, backgroundColor: colors.bg, justifyContent: 'center' },
+  topicItemOn: { backgroundColor: colors.green },
+  topicUnknown: { borderWidth: 1, borderColor: colors.border, backgroundColor: 'transparent' },
+  topicTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   h1: { fontSize: 24, fontWeight: '800', color: colors.text },
   h2: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 10 },
   holidayIcon: { fontSize: 22, width: 28, textAlign: 'center' },

@@ -22,7 +22,6 @@ import ClassroomScreen from './src/screens/ClassroomScreen';
 import LeagueScreen from './src/screens/LeagueScreen';
 import ParentScreen from './src/screens/ParentScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
-import CurrentTopicsScreen from './src/screens/CurrentTopicsScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import ExamScreen from './src/screens/ExamScreen';
 import { todayTask, isDoneToday, markDoneToday } from './src/lib/exams';
@@ -85,7 +84,6 @@ export default function App() {
   const [examSession, setExamSession] = useState(null); // { exam, mode, words }
   const [showClassroom, setShowClassroom] = useState(false); // «Фразы для школы»
   const [showLeague, setShowLeague] = useState(false); // лига друзей
-  const [currentPicker, setCurrentPicker] = useState(null); // «Что проходим в школе»: true или код предмета
   const [showParent, setShowParent] = useState(false); // «Как дела у ребёнка»
   const [onboarding, setOnboarding] = useState(false); // первые 2 минуты
   const [firstLesson, setFirstLesson] = useState(false);
@@ -422,13 +420,6 @@ export default function App() {
       setCurrentTopics(prev);
     }
   }
-  // Предметы для выбора тем: из расписания (в порядке недели), иначе все предметы класса.
-  const pickerCodes = useMemo(() => {
-    const fromSchedule = [...new Set(Object.keys(schedule).sort().flatMap((d) => schedule[d] || []))];
-    const all = [...new Set(allTopics.map((t) => t.subjectCode))];
-    const list = fromSchedule.filter((c) => all.includes(c));
-    return list.length ? list : all;
-  }, [schedule, allTopics]);
 
   async function onChangeGrade(grade) {
     await updateGrade(studentId, grade);
@@ -493,7 +484,6 @@ export default function App() {
     setShowLeague(false);
     setLeague(null);
     setShowParent(false);
-    setCurrentPicker(null);
     setOnboarding(false);
     setFirstLesson(false);
     setShowDaily(false);
@@ -593,19 +583,6 @@ export default function App() {
         onSkip={() => finishOnboarding(false)}
       />
     );
-  } else if (currentPicker) {
-    screen = (
-      <CurrentTopicsScreen
-        topics={allTopics}
-        learned={learned}
-        current={currentTopics}
-        codes={pickerCodes}
-        focus={typeof currentPicker === 'string' ? currentPicker : null}
-        kamiColor={kamiColor}
-        onSet={setCurrentTopic}
-        onBack={() => setCurrentPicker(null)}
-      />
-    );
   } else if (showParent) {
     screen = (
       <ParentScreen
@@ -700,7 +677,7 @@ export default function App() {
   } else {
     showTabs = true;
     if (tab === 'schedule') {
-      screen = <ScheduleScreen onOpenCurrentTopics={() => setCurrentPicker(true)} schedule={schedule} onSaveDay={onSaveDay} holidays={holidays} onAddHoliday={onAddHoliday} onDeleteHoliday={onDeleteHoliday} />;
+      screen = <ScheduleScreen topics={allTopics} currentTopics={currentTopics} onSetTopic={setCurrentTopic} schedule={schedule} onSaveDay={onSaveDay} holidays={holidays} onAddHoliday={onAddHoliday} onDeleteHoliday={onDeleteHoliday} />;
     } else if (tab === 'shop') {
       screen = (
         <ShopScreen
@@ -796,7 +773,7 @@ export default function App() {
           onRefresh={refresh}
           currentTopics={currentTopics}
           onOpenTopics={setTopicsFor}
-          onOpenCurrentTopics={(code) => setCurrentPicker(code || true)}
+          onOpenCurrentTopics={() => setTab('schedule')}
           dueCount={dueWords.length}
           onStartReview={() => setLessonTopic('review')}
           onStartHoliday={startHoliday}
