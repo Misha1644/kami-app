@@ -64,6 +64,8 @@ export default function PlusScreen({ plan, onBack, onStartTrial }) {
           <Text style={styles.small}>
             {plan.source === 'comp'
               ? tr('Бессрочно — подарок от разработчика.')
+              : plan.source === 'free_period'
+                ? tr('Сейчас Ками Плюс бесплатно для всех — до {0}.', new Date(plan.expiresAt).toLocaleDateString('ru-RU'))
               : plan.source === 'trial'
                 ? tr('Пробный период до {0}. Потом отчёты закроются, а уроки останутся бесплатными.', new Date(plan.expiresAt).toLocaleDateString('ru-RU'))
               : plan.expiresAt

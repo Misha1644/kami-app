@@ -116,6 +116,8 @@ export default function ProfileScreen({
 
   const planLine = !plan.plus
     ? null
+    : plan.source === 'free_period'
+      ? tr('Плюс бесплатно до {0}', new Date(plan.expiresAt).toLocaleDateString('ru-RU'))
     : plan.source === 'trial'
       ? tr('Пробный Плюс до {0}', new Date(plan.expiresAt).toLocaleDateString('ru-RU'))
       : tr('Ками Плюс');
