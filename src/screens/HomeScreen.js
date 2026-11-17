@@ -20,6 +20,7 @@ import { tr } from '../i18n';
 const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HomeScreen({
+  savedLessons,
   musicOn, onToggleMusic,
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
   onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, exams = [], examsDone = {}, onOpenExams, onStartExam, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
@@ -426,7 +427,7 @@ export default function HomeScreen({
                   <View style={styles.rowBetween}>
                     <Text style={styles.small}>{tr('{0} из {1} слов', done, t.words.length)}</Text>
                     <Text style={styles.link} onPress={() => onStartTopic(t.id)} accessibilityRole="button">
-                      {done === t.words.length ? tr('Повторить') : tr('Учить')}
+                      {savedLessons?.[t.id] ? tr('Продолжить ›') : done === t.words.length ? tr('Повторить') : tr('Учить')}
                     </Text>
                   </View>
                 </View>

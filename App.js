@@ -84,6 +84,7 @@ export default function App() {
   const [examSession, setExamSession] = useState(null); // { exam, mode, words }
   const [showClassroom, setShowClassroom] = useState(false); // «Фразы для школы»
   const [showLeague, setShowLeague] = useState(false); // лига друзей
+  const [savedLessons, setSavedLessons] = useState({}); // уроки, которые можно продолжить
   const [showParent, setShowParent] = useState(false); // «Как дела у ребёнка»
   const [onboarding, setOnboarding] = useState(false); // первые 2 минуты
   const [firstLesson, setFirstLesson] = useState(false);
@@ -202,6 +203,11 @@ export default function App() {
     setReminders(remOn);
     if (remOn) rescheduleReminders(sch).catch(() => {});
     setLearned(learnedStd);
+    // Какие уроки остались незаконченными (для кнопки «Продолжить»).
+    AsyncStorage.getAllKeys().then((keys) => {
+      const ids = keys.filter((k) => k.startsWith('kami.lesson.')).map((k) => k.slice('kami.lesson.'.length));
+      setSavedLessons(Object.fromEntries(ids.map((x) => [x, true])));
+    }).catch(() => {});
     // Знакомство — только новому ученику (ещё ни одного выученного слова) и один раз.
     if (!Object.keys(learnedStd).length) {
       AsyncStorage.getItem(`kami.onboarded.${id}`).then((v) => { if (!v) setOnboarding(true); }).catch(() => {});
@@ -549,6 +555,7 @@ export default function App() {
         kamiColor={kamiColor}
         prefs={prefs}
         learned={learned}
+        onSavedChange={(id, on) => setSavedLessons((m) => (!!m[id] === on ? m : { ...m, [id]: on }))}
         onAnswer={onAnswer}
         onComplete={onCompleteLesson}
         onClose={() => {
@@ -753,6 +760,7 @@ export default function App() {
     } else {
       screen = (
         <HomeScreen
+          savedLessons={savedLessons}
           musicOn={student?.music ? prefs.music !== false : null}
           onToggleMusic={() => onSavePrefs({ ...prefs, music: prefs.music === false })}
           topics={allTopics}

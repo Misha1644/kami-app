@@ -116,7 +116,7 @@ function ListenButtons({ text, lang }) {
   );
 }
 
-export default function LessonScreen({ topics, topicId, review, test, kamiColor, prefs = {}, learned, onAnswer, onComplete, onClose, onOpenChest, onTestScore }) {
+export default function LessonScreen({ topics, topicId, review, test, kamiColor, prefs = {}, learned, onSavedChange, onAnswer, onComplete, onClose, onOpenChest, onTestScore }) {
   // test — пробная контрольная: без карточек и «найди пару», в конце оценка от 0 до 10.
   const quiz = review || test;
   const topic = topics.find((t) => t.id === topicId);
@@ -187,8 +187,9 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   // Запоминаем место после каждого шага; урок закончен — забываем.
   useEffect(() => {
     if (!ready || !resumable) return;
-    if (phase === 'done') { AsyncStorage.removeItem(saveKey).catch(() => {}); return; }
+    if (phase === 'done') { AsyncStorage.removeItem(saveKey).catch(() => {}); onSavedChange?.(topicId, false); return; }
     if (index === 0 && phase === 'learn') return;
+    onSavedChange?.(topicId, true);
     AsyncStorage.setItem(saveKey, JSON.stringify({
       ids: words.map((w) => w.id), index, phase, offset, mistakes, bestCombo, earned: earnedRef.current, at: Date.now(),
     })).catch(() => {});
@@ -196,6 +197,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
 
   function restart() {
     AsyncStorage.removeItem(saveKey).catch(() => {});
+    onSavedChange?.(topicId, false);
     setResumed(null);
     setIndex(0);
     setPhase('learn');
