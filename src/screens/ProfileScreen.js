@@ -255,7 +255,7 @@ export default function ProfileScreen({
             value={student.music || 'music-off'}
             onChange={(id) => act(() => onEquip(id))}
           />
-          <Text style={styles.small}>{tr('Новую музыку можно купить в магазине.')}</Text>
+          <Text style={styles.small}>{tr('Новую музыку можно купить в магазине. Быстро выключить — кнопка ♪ на главной; в беззвучном режиме iPhone музыка молчит.')}</Text>
         </View>
         <SwitchRow title={tr('Озвучивать новые слова')} note={tr('Ками сам произносит слово на карточке')} value={prefs.autoplay} onChange={(v) => onSavePrefs({ ...prefs, autoplay: v })} />
         <SwitchRow title={tr('Звуки ответов')} note={tr('Звонкий сигнал за верный ответ, мягкий — за ошибку')} value={prefs.sfx !== false} onChange={(v) => onSavePrefs({ ...prefs, sfx: v })} />

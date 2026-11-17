@@ -8,6 +8,7 @@ export const DEFAULT_PREFS = {
   speaking: true,     // упражнения «Скажи вслух»
   slowVoice: false,   // говорить медленнее
   sfx: true,          // звуки верного / неверного ответа
+  music: true,        // фоновая музыка в меню (быстрая кнопка 🔇 на главной)
 };
 
 export async function loadPrefs() {

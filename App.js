@@ -445,6 +445,8 @@ export default function App() {
     if (itemId === 'music-off') return setStudent((s) => ({ ...s, music: null }));
     const field = { color: 'kami_color', avatar: 'avatar', bg: 'bg', music: 'music' }[kind];
     if (field) setStudent((s) => ({ ...s, [field]: itemId }));
+    // Выбрали трек — значит, музыку хотят слышать: снимаем быстрое «🔇».
+    if (kind === 'music' && prefs.music === false) onSavePrefs({ ...prefs, music: true });
   }
 
   async function onUpdateStudent(fields) {
@@ -503,7 +505,7 @@ export default function App() {
 
   const itemValue = (id) => shop?.items.find((i) => i.id === id)?.value;
   // Фоновая музыка: выбранный трек играет в меню, на уроках — тишина.
-  useBackgroundMusic(student?.music ? itemValue(student.music) : null, !!studentId && !lessonTopic);
+  useBackgroundMusic(student?.music && prefs.music !== false ? itemValue(student.music) : null, !!studentId && !lessonTopic);
   const kamiColor = KAMI_COLORS[student?.kami_color] || (student && itemValue(student.kami_color)) || KAMI_COLORS['color-green'];
   const bg = parseBg((student && itemValue(student.bg)) || colors.bg);
   const avatarValue = (student && itemValue(student.avatar)) || 'person';
@@ -750,6 +752,8 @@ export default function App() {
     } else {
       screen = (
         <HomeScreen
+          musicOn={student?.music ? prefs.music !== false : null}
+          onToggleMusic={() => onSavePrefs({ ...prefs, music: prefs.music === false })}
           topics={allTopics}
           student={student}
           kamiColor={kamiColor}

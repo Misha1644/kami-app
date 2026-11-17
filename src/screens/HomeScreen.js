@@ -20,6 +20,7 @@ import { tr } from '../i18n';
 const DAY_LETTERS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HomeScreen({
+  musicOn, onToggleMusic,
   topics, student, kamiColor, learned, streakInfo, wordsToday, goalBanner, schedule,
   onStartTopic, onOpenTask, onOpenSchedule, onOpenChest, exams = [], examsDone = {}, onOpenExams, onStartExam, newCheers = [], cheerLabels = {}, onOpenFriends, refreshing, onRefresh,
   rewards, onOpenStreakRewards, onOpenDaily, onStartHoliday, onOpenClassroom, onOpenLeague, league,
@@ -92,6 +93,18 @@ export default function HomeScreen({
           >
             {refreshing ? <ActivityIndicator size="small" color={colors.green} /> : <Text style={styles.refreshText}>↻</Text>}
           </Pressable>
+          {musicOn != null && onToggleMusic && (
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: musicOn }}
+              accessibilityLabel={musicOn ? tr('Выключить музыку') : tr('Включить музыку')}
+              onPress={onToggleMusic}
+              hitSlop={6}
+              style={styles.refresh}
+            >
+              <Text style={styles.refreshText}>{musicOn ? '♪' : '🔇'}</Text>
+            </Pressable>
+          )}
           {/* Огонёк серый, пока сегодня не пройден урок; загорается после урока. */}
           <View
             style={[styles.chip, { backgroundColor: streakInfo.today_done ? colors.orangeLight : '#EEF0F2' }]}
