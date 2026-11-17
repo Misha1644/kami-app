@@ -15,10 +15,10 @@ import Teacher from '../components/Teacher';
 import Chest from '../components/Chest';
 import RewardReveal from '../components/RewardReveal';
 import { LessonProgress, FeedbackSheet, Bounce, ComboCelebration, AlmostBanner, playSfx } from '../components/LessonFx';
-import { speak, checkTyped, checkSpoken, phraseTokens, tokenKey, isNearTyped, isNearPhrase } from '../lib/speech';
+import { speak, checkTyped, spokenMatch, phraseTokens, tokenKey, isNearTyped, isNearPhrase } from '../lib/speech';
 import PhraseBuilder from '../components/PhraseBuilder';
 import haptic from '../lib/haptics';
-import { useVoiceRecorder, canAutoCheck, recognizeOnce } from '../lib/voice';
+import { useVoiceRecorder, canAutoCheck, recognizeLive } from '../lib/voice';
 import { tr } from '../i18n';
 
 const KINDS = ['choose', 'listen', 'speak', 'type', 'phrase', 'dictation'];
@@ -458,26 +458,50 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
   const auto = canAutoCheck();
   const voice = useVoiceRecorder();
   const [listening, setListening] = useState(false);
-  const [heard, setHeard] = useState(null);
+  const [lit, setLit] = useState([]); // какие слова уже прозвучали верно — загораются, как в Duolingo
+  const [miss, setMiss] = useState(false); // «не то» — пауза перед следующей попыткой
   const [tries, setTries] = useState(0);
   const [autoFailed, setAutoFailed] = useState(false);
   const useAuto = auto && !autoFailed;
+  const tokens = useMemo(() => word.es.split(/\s+/).filter(Boolean), [word.es]);
+  const MAX_TRIES = 3;
+
+  // Новое слово — всё сначала.
+  useEffect(() => { setLit([]); setMiss(false); setTries(0); }, [word.id]);
 
   async function sayIt() {
     setListening(true);
-    setHeard(null);
+    setMiss(false);
+    setLit([]);
+    let best = [];
+    const light = (text) => {
+      const m = spokenMatch(text, word.es);
+      // Слово, загоревшееся раз, не гаснет (распознавание по ходу может «передумывать»).
+      best = m.matched.map((x, i) => x || !!best[i]);
+      setLit(best);
+      return m.ok;
+    };
     try {
-      const variants = await recognizeOnce(word.lang);
-      const ok = variants.some((v) => checkSpoken(v, word.es));
-      setHeard(variants[0] || '');
-      if (ok) onResult(true);
-      else if (tries >= 1) onResult(false);
-      setTries((t) => t + 1);
+      const variants = await recognizeLive(word.lang, { onPartial: light, isDone: (t) => spokenMatch(t, word.es).ok });
+      const ok = variants.some((v) => light(v));
+      setListening(false);
+      if (ok) {
+        setLit(tokens.map(() => true));
+        onResult(true);
+        return;
+      }
+      const n = tries + 1;
+      setTries(n);
+      if (n >= MAX_TRIES) { onResult(false); return; }
+      // Не то — ничего не загорается; через секунду можно ещё раз.
+      setLit([]);
+      setMiss(true);
+      setTimeout(() => setMiss(false), 1200);
     } catch (e) {
+      setListening(false);
       if (String(e.message).includes('not-allowed') || String(e.message).includes('unsupported')) setAutoFailed(true);
-      else setHeard('');
+      else { setMiss(true); setTimeout(() => setMiss(false), 1200); }
     }
-    setListening(false);
   }
 
   return (
@@ -485,7 +509,17 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
       <Text style={styles.question}>{tr('Скажи вслух')}</Text>
       <Card style={{ gap: 6, padding: 16 }}>
         <View style={styles.wordRow}>
-          <Text style={styles.word}>{word.es}</Text>
+          {useAuto ? (
+            <Text style={styles.word} accessibilityLabel={word.es}>
+              {tokens.map((t, i) => (
+                <Text key={i} style={lit[i] || answered ? styles.spokenOn : listening ? styles.spokenWait : null}>
+                  {t}{i < tokens.length - 1 ? ' ' : ''}
+                </Text>
+              ))}
+            </Text>
+          ) : (
+            <Text style={styles.word}>{word.es}</Text>
+          )}
           <View style={styles.speakPair}>
             <SpeakButton text={word.es} lang={word.lang} slow />
             <SpeakButton text={word.es} lang={word.lang} label={tr('Послушать Ками')} />
@@ -499,16 +533,18 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={tr('Нажми и скажи слово')}
-            disabled={listening || answered}
+            disabled={listening || answered || miss}
             onPress={sayIt}
-            style={[styles.mic, listening && styles.micOn, answered && { opacity: 0.5 }]}
+            style={[styles.mic, listening && styles.micOn, (answered || miss) && { opacity: 0.5 }]}
           >
             <Text style={styles.micIcon}>🎤</Text>
-            <Text style={styles.micText}>{listening ? tr('Слушаю…') : tr('Нажми и скажи')}</Text>
+            <Text style={styles.micText}>
+              {listening ? tr('Слушаю…') : tries > 0 ? tr('Ещё попытка') : tr('Нажми и скажи')}
+            </Text>
           </Pressable>
-          {heard !== null && !answered && (
-            <Text style={styles.note}>
-              {heard ? tr('Я услышал: «{0}». Попробуй ещё раз!', heard) : tr('Ничего не расслышал — скажи погромче.')}
+          {!answered && tries > 0 && !listening && (
+            <Text style={styles.small}>
+              {miss ? tr('Не совсем. Послушай Ками и попробуй ещё раз…') : tr('Попытка {0} из {1}', tries + 1, MAX_TRIES)}
             </Text>
           )}
         </>
@@ -740,6 +776,8 @@ const styles = StyleSheet.create({
   inputWrong: { borderColor: colors.danger, borderWidth: 3, backgroundColor: colors.dangerLight, color: colors.danger, fontWeight: '800', textDecorationLine: 'line-through' },
   input: { minHeight: 52, borderWidth: 2, borderColor: '#C9D0CB', borderRadius: radius.md, paddingHorizontal: 14, fontSize: 18, backgroundColor: colors.card, color: colors.text },
   note: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
+  spokenOn: { color: colors.green },
+  spokenWait: { color: '#9AA49F' },
   small: { fontSize: 13, color: colors.muted },
   stats: { flexDirection: 'row', gap: 8, alignSelf: 'stretch' },
   stat: { flex: 1, borderWidth: 2, borderRadius: 14, overflow: 'hidden', alignItems: 'center', backgroundColor: colors.card },

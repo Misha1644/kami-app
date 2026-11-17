@@ -44,6 +44,45 @@ export function recognizeOnce(lang = 'es-ES') {
   });
 }
 
+// Распознавание «вживую»: onPartial получает услышанное по ходу речи (для подсветки слов).
+// isDone(text) → true — можно заканчивать сразу (всё нужное уже сказано).
+// Возвращает все варианты услышанного (окончательные и последний промежуточный).
+export function recognizeLive(lang = 'es-ES', { onPartial, isDone } = {}) {
+  const Recognition = webRecognition();
+  if (!Recognition) return Promise.reject(new Error('unsupported'));
+  return new Promise((resolve, reject) => {
+    const r = new Recognition();
+    r.lang = lang;
+    r.interimResults = true;
+    r.continuous = false;
+    r.maxAlternatives = 5;
+    let done = false;
+    let last = '';
+    const alts = new Set();
+    const finish = () => { if (!done) { done = true; if (last) alts.add(last); resolve([...alts]); } };
+    r.onresult = (e) => {
+      let text = '';
+      for (let i = 0; i < e.results.length; i++) {
+        const res = e.results[i];
+        text += (text ? ' ' : '') + res[0].transcript;
+        if (res.isFinal) for (let a = 0; a < res.length; a++) alts.add(res[a].transcript);
+      }
+      last = text;
+      onPartial?.(text);
+      if (isDone?.(text)) { try { r.stop(); } catch (err) { /* ignore */ } finish(); }
+    };
+    r.onerror = (e) => {
+      if (done) return;
+      if (e.error === 'no-speech' || e.error === 'aborted') { finish(); return; }
+      done = true;
+      reject(new Error(e.error || 'error'));
+    };
+    r.onend = finish;
+    try { r.start(); } catch (err) { done = true; reject(err); }
+    setTimeout(() => { try { r.stop(); } catch (err) { /* ignore */ } }, 8000); // не слушать вечно
+  });
+}
+
 // Запись своего голоса и прослушивание.
 export function useVoiceRecorder() {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);

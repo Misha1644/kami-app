@@ -58,12 +58,29 @@ export function editDistance(a, b) {
 }
 
 // «Почти получилось» для письменного ответа: ошибка в одной букве (в словах от 8 букв — до двух).
+// 17 ноя: мягче — переставленные соседние буквы считаются одной ошибкой; во фразе из нескольких
+// слов допускается по ошибке в каждом слове; в длинных словах — до 2–3 букв.
+function typoDistance(a, b) {
+  let d = editDistance(a, b);
+  // перестановка соседних букв («fraccoines») — одна ошибка, а не две
+  if (a.length === b.length) {
+    const diff = [];
+    for (let i = 0; i < a.length && diff.length <= 2; i++) if (a[i] !== b[i]) diff.push(i);
+    if (diff.length === 2 && diff[1] === diff[0] + 1 && a[diff[0]] === b[diff[1]] && a[diff[1]] === b[diff[0]]) d = 1;
+  }
+  return d;
+}
+const typoLimit = (len) => (len >= 12 ? 3 : len >= 7 ? 2 : len >= 2 ? 1 : 0);
+
 export function isNearTyped(answer, correct) {
   const a = stripAccents(base(answer || ''));
   const c = stripAccents(base(correct || ''));
-  if (!a || c.length < 3) return false;
-  const d = editDistance(a, c);
-  return d > 0 && d <= (c.length >= 8 ? 2 : 1);
+  if (!a || !c || a === c) return false;
+  if (typoDistance(a, c) <= typoLimit(c.length)) return true;
+  // фраза: слово за словом, в каждом — небольшая опечатка
+  const aw = a.split(' ');
+  const cw = c.split(' ');
+  return cw.length > 1 && aw.length === cw.length && aw.every((w, i) => typoDistance(w, cw[i]) <= typoLimit(cw[i].length));
 }
 
 // «Почти получилось» для фразы из плиток: одно слово не то / лишнее / пропущено,
@@ -80,13 +97,58 @@ export function isNearPhrase(got, want) {
   return false;
 }
 
-// Проверка сказанного вслух: распознанная фраза засчитывается, если в ней есть нужное слово
-// (без учёта ударений, артиклей и знаков).
+// ----- Проверка сказанного вслух (17 ноя: щадящая, как в Duolingo) -----
+// Сравниваем по словам, «на слух»: без ударений и знаков; b/v, ll/y, c/z/s, немая h и т. п. — одно и то же;
+// в длинных словах прощается одна-две буквы; артикли и лишние слова не мешают; цифры = слова.
+const NUMS = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez',
+  'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte'];
+const OPTIONAL = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo', 'de', 'del', 'al', 'y', 'e', 'a']);
+
+function sound(w) {
+  let s = stripAccents(w.toLowerCase()).replace(/[^a-zñ0-9]/g, '');
+  if (/^\d+$/.test(s) && NUMS[+s]) s = NUMS[+s];
+  return s
+    .replace(/h/g, '').replace(/v/g, 'b').replace(/ll/g, 'y').replace(/z/g, 's')
+    .replace(/c([ei])/g, 's$1').replace(/qu/g, 'k').replace(/c/g, 'k').replace(/x/g, 'ks')
+    .replace(/g([ei])/g, 'j$1').replace(/(.)\1/g, '$1');
+}
+
+function wordsOf(text) {
+  return (text || '').split(/[\s,.;:!¡?¿«»"()\-]+/).map(sound).filter(Boolean);
+}
+
+function sameWord(a, b) {
+  if (a === b) return true;
+  const d = editDistance(a, b);
+  return b.length >= 8 ? d <= 2 : b.length >= 4 ? d <= 1 : false;
+}
+
+// Какие слова нужной фразы уже прозвучали (по порядку). Для подсветки «как в Duolingo».
+export function spokenMatch(heard, correct) {
+  const target = (correct || '').split(/\s+/).filter(Boolean);
+  const want = target.map(sound);
+  const got = wordsOf(heard);
+  const matched = want.map(() => false);
+  let j = 0;
+  for (let i = 0; i < want.length && j <= got.length; i++) {
+    if (!want[i]) { matched[i] = true; continue; }
+    // ищем слово дальше по услышанному (лишние слова пропускаем), но не дальше 3 слов вперёд
+    for (let k = j; k < Math.min(got.length, j + 4); k++) {
+      if (sameWord(got[k], want[i]) || (k + 1 < got.length && sameWord(got[k] + got[k + 1], want[i]))) {
+        matched[i] = true;
+        j = k + 1;
+        break;
+      }
+    }
+  }
+  const needed = want.map((w, i) => !OPTIONAL.has(w) || want.length === 1 ? i : -1).filter((i) => i >= 0);
+  const okNeeded = needed.filter((i) => matched[i]).length;
+  const ok = needed.length > 0 && (okNeeded === needed.length || (needed.length >= 5 && okNeeded / needed.length >= 0.8));
+  return { target, matched, ok };
+}
+
 export function checkSpoken(heard, correct) {
-  const h = stripAccents(base(heard || ''));
-  const c = stripAccents(base(correct));
-  if (!h || !c) return false;
-  return h === c || ` ${h} `.includes(` ${c} `);
+  return spokenMatch(heard, correct).ok;
 }
 
 // Фраза для «собери из плиток»: слова по порядку и их нормализованный вид для сравнения.
