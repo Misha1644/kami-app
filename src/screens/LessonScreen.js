@@ -5,6 +5,7 @@
 // Режим повторения (review) пропускает карточки и сразу проверяет.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Coin } from '../components/icons';
 import { Button, Card } from '../components/ui';
 import { colors, radius } from '../theme';
@@ -99,10 +100,58 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     review: kamiSays('reviewDone'),
   }), [teacher]);
 
-  const word = words[index];
+  // Продолжить урок с того места, где вышел (17 ноя). Только обычные уроки — не повторение и не контрольная.
+  const resumable = !quiz && !['first', 'holiday'].includes(topicId);
+  const saveKey = `kami.lesson.${topicId}`;
+  const signature = useMemo(() => words.map((w) => w.id).join(','), [words]);
+  const [ready, setReady] = useState(!resumable);
+  const [resumed, setResumed] = useState(null); // номер слова, с которого продолжили — для плашки
 
   // Тип упражнения для слова: по кругу, со случайным сдвигом в начале урока.
-  const offset = useMemo(() => Math.floor(Math.random() * KINDS.length), []);
+  const [offset, setOffset] = useState(() => Math.floor(Math.random() * KINDS.length));
+
+  useEffect(() => {
+    if (!resumable) return;
+    AsyncStorage.getItem(saveKey).then((raw) => {
+      const s = raw ? JSON.parse(raw) : null;
+      const fresh = s && s.sig === signature && Date.now() - s.at < 3 * 86400000 && s.index < words.length;
+      if (fresh && (s.index > 0 || s.phase !== 'learn')) {
+        setIndex(s.index);
+        setPhase(s.phase === 'match' ? 'match' : s.phase === 'exercise' ? 'exercise' : 'learn');
+        setOffset(s.offset || 0);
+        setMistakes(s.mistakes || 0);
+        setBestCombo(s.bestCombo || 0);
+        earnedRef.current = s.earned || 0;
+        setEarned(s.earned || 0);
+        setResumed(s.index + 1);
+        setTimeout(() => setResumed(null), 5000);
+      }
+    }).catch(() => {}).finally(() => setReady(true));
+  }, []);
+
+  // Запоминаем место после каждого шага; урок закончен — забываем.
+  useEffect(() => {
+    if (!ready || !resumable) return;
+    if (phase === 'done') { AsyncStorage.removeItem(saveKey).catch(() => {}); return; }
+    if (index === 0 && phase === 'learn') return;
+    AsyncStorage.setItem(saveKey, JSON.stringify({
+      sig: signature, index, phase, offset, mistakes, bestCombo, earned: earnedRef.current, at: Date.now(),
+    })).catch(() => {});
+  }, [ready, phase, index]);
+
+  function restart() {
+    AsyncStorage.removeItem(saveKey).catch(() => {});
+    setResumed(null);
+    setIndex(0);
+    setPhase('learn');
+    setMistakes(0);
+    setBestCombo(0);
+    earnedRef.current = 0;
+    setEarned(0);
+    setVerdict(null);
+  }
+
+  const word = words[index];
   let kind = KINDS[(index + offset) % KINDS.length];
   if (kind === 'speak' && speakOff) kind = 'choose';
   if (kind === 'phrase' && !phraseOk(word)) kind = 'listen';
@@ -114,9 +163,10 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
 
   // Озвучка: на карточке и в «услышь и выбери» слово звучит сразу.
   useEffect(() => {
+    if (!ready) return;
     if ((phase === 'learn' && prefs.autoplay !== false) || (phase === 'exercise' && (kind === 'listen' || kind === 'dictation'))) speak(word.es, { lang: word.lang });
     if (phase === 'exercise' && kind === 'phrase') speak(word.teacher, { lang: word.lang });
-  }, [phase, index, kind, word]);
+  }, [ready, phase, index, kind, word]);
 
   // Чужие слова для плиток-обманок во «собери фразу».
   const decoys = useMemo(() => {
@@ -266,6 +316,8 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     );
   }
 
+  if (!ready) return <View style={styles.wrap} />;
+
   if (phase === 'match') {
     return <MatchRound words={words} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={onClose} />;
   }
@@ -290,6 +342,13 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
           {test ? tr('ПРОБНАЯ КОНТРОЛЬНАЯ · {0}', topic.subject.toUpperCase()) : review ? tr('ПОВТОРЕНИЕ') : `${topic.subject.toUpperCase()} · ${topic.title.toUpperCase()}`}
         </Text>
       </View>
+
+      {!!resumed && (
+        <View style={styles.resumeBar}>
+          <Text style={[styles.small, { flex: 1 }]}>{tr('Продолжаем с {0}-го слова', resumed)}</Text>
+          <Text style={styles.link} onPress={restart} accessibilityRole="button">{tr('Начать заново')}</Text>
+        </View>
+      )}
 
       {phase === 'learn' && index === 0 && (
         <View style={styles.helloRow}>
@@ -776,6 +835,7 @@ const styles = StyleSheet.create({
   inputWrong: { borderColor: colors.danger, borderWidth: 3, backgroundColor: colors.dangerLight, color: colors.danger, fontWeight: '800', textDecorationLine: 'line-through' },
   input: { minHeight: 52, borderWidth: 2, borderColor: '#C9D0CB', borderRadius: radius.md, paddingHorizontal: 14, fontSize: 18, backgroundColor: colors.card, color: colors.text },
   note: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
+  resumeBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.greenLight },
   spokenOn: { color: colors.green },
   spokenWait: { color: '#9AA49F' },
   small: { fontSize: 13, color: colors.muted },
