@@ -39,6 +39,7 @@ export default function AuthScreen({ lang = 'ru', onLang }) {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   // Новый код — не чаще раза в минуту (защита от спама; на сервере Supabase тоже 60 с на адрес).
   const [waitUntil, setWaitUntil] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -207,16 +208,32 @@ export default function AuthScreen({ lang = 'ru', onLang }) {
         {needsPassword && (
           <View style={{ gap: 6 }}>
             <Text style={styles.label}>{mode === 'reset' ? tr('Новый пароль') : tr('Пароль')}</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete={mode === 'signIn' ? 'password' : 'new-password'}
-              textContentType={mode === 'signIn' ? 'password' : 'newPassword'}
-              placeholder={tr('Минимум 8 символов')}
-              placeholderTextColor="#8A928E"
-            />
+            <View style={styles.passRow}>
+              <TextInput
+                style={[styles.input, { flex: 1, paddingRight: 52 }]}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPass}
+                autoCapitalize="none"
+                autoComplete={mode === 'signIn' ? 'password' : 'new-password'}
+                textContentType={mode === 'signIn' ? 'password' : 'newPassword'}
+                placeholder={tr('Минимум 8 символов')}
+                placeholderTextColor="#8A928E"
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={showPass ? tr('Скрыть пароль') : tr('Показать пароль')}
+                onPress={() => setShowPass((v) => !v)}
+                style={styles.eye}
+              >
+                <Text style={{ fontSize: 20 }}>{showPass ? '🙈' : '👁'}</Text>
+              </Pressable>
+            </View>
+            {mode !== 'signIn' && (
+              <Text style={[styles.passHint, password.length >= 8 && { color: colors.green }]}>
+                {password.length >= 8 ? tr('✓ Пароль подходит') : tr('Ещё {0} символов (минимум 8)', 8 - password.length)}
+              </Text>
+            )}
           </View>
         )}
 
@@ -292,6 +309,9 @@ const styles = StyleSheet.create({
   inlineLink: { color: colors.green, fontWeight: '700' },
   error: { color: colors.danger, fontSize: 14 },
   info: { color: colors.greenDark, fontSize: 14 },
-  switch: { color: colors.green, fontWeight: '700', fontSize: 15, textAlign: 'center', paddingVertical: 8 },
+  switch: { color: colors.green, fontWeight: '700', fontSize: 15, textAlign: 'center', paddingVertical: 12, minHeight: 44 },
+  passRow: { flexDirection: 'row', alignItems: 'center' },
+  eye: { position: 'absolute', right: 4, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  passHint: { fontSize: 13, color: colors.muted },
   privacy: { color: colors.muted, fontSize: 13, textAlign: 'center', textDecorationLine: 'underline', paddingVertical: 8 },
 });

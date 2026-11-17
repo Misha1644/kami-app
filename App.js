@@ -22,6 +22,7 @@ import ClassroomScreen from './src/screens/ClassroomScreen';
 import LeagueScreen from './src/screens/LeagueScreen';
 import ParentScreen from './src/screens/ParentScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import Skeleton from './src/components/Skeleton';
 import FriendsScreen from './src/screens/FriendsScreen';
 import ExamScreen from './src/screens/ExamScreen';
 import { todayTask, isDoneToday, markDoneToday } from './src/lib/exams';
@@ -55,7 +56,6 @@ const TABS = [
   { key: 'schedule', label: 'Расписание' },
   { key: 'shop', label: 'Магазин' },
   { key: 'league', label: 'Лига' },
-  { key: 'progress', label: 'Успехи' },
   { key: 'profile', label: 'Профиль' },
 ];
 
@@ -84,6 +84,7 @@ export default function App() {
   const [examSession, setExamSession] = useState(null); // { exam, mode, words }
   const [showClassroom, setShowClassroom] = useState(false); // «Фразы для школы»
   const [showLeague, setShowLeague] = useState(false); // лига друзей
+  const [showProgress, setShowProgress] = useState(false); // «Мои успехи» — из Профиля
   const [savedLessons, setSavedLessons] = useState({}); // уроки, которые можно продолжить
   const [showParent, setShowParent] = useState(false); // «Как дела у ребёнка»
   const [onboarding, setOnboarding] = useState(false); // первые 2 минуты
@@ -492,6 +493,7 @@ export default function App() {
     setShowLeague(false);
     setLeague(null);
     setShowParent(false);
+    setShowProgress(false);
     setOnboarding(false);
     setFirstLesson(false);
     setShowDaily(false);
@@ -519,7 +521,7 @@ export default function App() {
   let screen;
   let showTabs = false;
   if (session === undefined || (session && student === undefined && !loadError)) {
-    screen = <View style={styles.center}><ActivityIndicator color={colors.green} size="large" /></View>;
+    screen = session ? <Skeleton /> : <View style={styles.center}><ActivityIndicator color={colors.green} size="large" /></View>;
   } else if (!session) {
     screen = <AuthScreen lang={preLang} onLang={setPreLang} />;
   } else if (loadError) {
@@ -712,9 +714,10 @@ export default function App() {
           onOpenFriends={() => setShowFriends(true)}
         />
       );
-    } else if (tab === 'progress') {
+    } else if (tab === 'profile' && showProgress) {
       screen = (
         <ProgressScreen
+          onBack={() => setShowProgress(false)}
           topics={allTopics}
           exams={exams}
           student={student}
@@ -749,6 +752,7 @@ export default function App() {
           onOpenPlus={openPlus}
           onOpenPrivacy={() => setShowPrivacy(true)}
           onOpenParent={() => setShowParent(true)}
+          onOpenProgress={() => setShowProgress(true)}
           onOpenShop={() => setTab('shop')}
           onOpenFriends={() => setShowFriends(true)}
           onToggleFriends={async (on) => { await setFriendsEnabled(studentId, on); setStudent((s) => ({ ...s, friends_enabled: on })); }}
@@ -826,7 +830,7 @@ export default function App() {
                   accessibilityRole="tab"
                   accessibilityLabel={tr(t.label)}
                   accessibilityState={{ selected: active }}
-                  onPress={() => setTab(t.key)}
+                  onPress={() => { if (t.key === tab) setShowProgress(false); setTab(t.key); }}
                   style={styles.tab}
                 >
                   {t.key === 'profile' && avatarValue !== 'person' ? (

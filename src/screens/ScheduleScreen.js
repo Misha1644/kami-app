@@ -388,6 +388,6 @@ const styles = StyleSheet.create({
   input: { minHeight: 50, borderWidth: 1.5, borderColor: '#C9D0CB', borderRadius: radius.md, paddingHorizontal: 14, fontSize: 16, backgroundColor: colors.card, color: colors.text },
   saveButton: { minHeight: 50, borderRadius: radius.md, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   saveText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
-  link: { fontSize: 15, fontWeight: '700', color: colors.green, paddingVertical: 8 },
+  link: { fontSize: 15, fontWeight: '700', color: colors.green, paddingVertical: 12 },
   error: { color: colors.danger, fontSize: 14 },
 });

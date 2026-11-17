@@ -46,6 +46,22 @@ function pickLessonWords(all, learned, plain) {
   return list;
 }
 
+// Подтверждение выхода из урока.
+function ExitDialog({ resumable, onStay, onLeave }) {
+  return (
+    <View style={styles.dialogWrap} accessibilityViewIsModal>
+      <View style={styles.dialog}>
+        <Text style={styles.dialogTitle}>{tr('Выйти из урока?')}</Text>
+        <Text style={styles.dialogText}>
+          {resumable ? tr('Прогресс сохранится — потом продолжишь с этого места.') : tr('Это повторение придётся начать заново.')}
+        </Text>
+        <Button title={tr('Продолжить урок')} onPress={onStay} />
+        <Button title={tr('Выйти')} variant="secondary" onPress={onLeave} />
+      </View>
+    </View>
+  );
+}
+
 // Фраза учителя, где каждое слово можно нажать и увидеть перевод (как в Duolingo).
 function TapPhrase({ text, glossary, style }) {
   const tokens = useMemo(() => phraseTokens(text), [text]);
@@ -144,6 +160,9 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const [earned, setEarned] = useState(0);
   const earnedRef = useRef(0); // актуальное число монет для анимации в конце
   const missedRef = useRef(new Set()); // слова с ошибкой — повторим в конце
+  const doneSteps = useRef(new Set()); // номера слов, на задания которых уже ответили
+  const [askExit, setAskExit] = useState(false);
+  const [showExample, setShowExample] = useState(false);
   const redoneRef = useRef(false);
   const [reveal, setReveal] = useState(null); // награда за урок большой анимацией
   // Реплики Ками: новые на каждое слово, но не меняются при перерисовке.
@@ -255,6 +274,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     if (ok) haptic.success(); else haptic.error();
     setAlmost(false);
     onAnswer(word.id, ok);
+    doneSteps.current.add(index); // на это задание уже ответили — при возврате назад не отвечаем повторно
     if (ok) { earnedRef.current += 1; setEarned((c) => c + 1); }
     else { setMistakes((m) => m + 1); if (!test) missedRef.current.add(word.id); }
   }
@@ -302,6 +322,22 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
       .catch(() => showReward(false));
   }
 
+  // Выход: если урок уже начат — спросить (прогресс сохранится).
+  function requestClose() {
+    if (index === 0 && phase === 'learn') { onClose(); return; }
+    setAskExit(true);
+  }
+
+  // Назад, к предыдущему шагу. На уже отвеченные задания не отвечаем повторно — только смотрим карточку.
+  const canBack = !quiz && !(phase === 'exercise' && verdict !== null) && (phase === 'exercise' || index > 0);
+  function goBack() {
+    if (!canBack) return;
+    setPicked(null); setTyped(''); setTypedResult(null); setVerdict(null); setAlmost(false); setRetried(false);
+    setShowExample(false);
+    if (phase === 'exercise') setPhase('learn');
+    else { setIndex(index - 1); setPhase('learn'); }
+  }
+
   function next() {
     // Ошибки — ещё раз в конце урока (как в Duolingo), один раз: так слово всё же можно выучить в этом уроке.
     const redo = index + 1 >= words.length && !test && !redoneRef.current
@@ -317,6 +353,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     setVerdict(null);
     setAlmost(false);
     setRetried(false);
+    setShowExample(false);
     if (redo.length) {
       setIndex(index + 1);
       setPhase('exercise'); // повтор ошибок — сразу упражнение, без карточки
@@ -392,7 +429,12 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   if (!ready) return <View style={styles.wrap} />;
 
   if (phase === 'match') {
-    return <MatchRound start={words.length / (words.length + 1)} words={uniq} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={onClose} />;
+    return (
+      <View style={{ flex: 1 }}>
+        <MatchRound start={words.length / (words.length + 1)} words={uniq} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={() => setAskExit(true)} />
+        {askExit && <ExitDialog resumable={resumable} onStay={() => setAskExit(false)} onLeave={onClose} />}
+      </View>
+    );
   }
 
   const correctNow = verdict === 'right';
@@ -403,12 +445,17 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     <View style={{ flex: 1 }}>
     <ScrollView scrollEnabled={!dragLock} contentContainerStyle={[styles.wrap, showSheet && { paddingBottom: 240 }]} keyboardShouldPersistTaps="handled">
       <View style={styles.top}>
-        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
+        <Pressable onPress={requestClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
         <LessonProgress value={progress} combo={combo} />
         <Text style={styles.counter}>{index + 1}/{words.length}</Text>
       </View>
+      {canBack && (
+        <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel={tr('Назад к предыдущему шагу')} hitSlop={6} style={styles.backStep}>
+          <Text style={styles.backStepText}>‹ {phase === 'exercise' ? tr('К карточке слова') : tr('Предыдущее слово')}</Text>
+        </Pressable>
+      )}
       <View style={styles.capsRow}>
         <Teacher teacher={teacher} size={28} kamiColor={kamiColor} />
         <Text style={[styles.caps, { flex: 1 }]}>
@@ -447,7 +494,12 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
               <Text style={styles.translationLabel}>{tr('Перевод')}</Text>
               <Text style={styles.translation}>{word.ru}</Text>
             </View>
-            {!!word.teacher && word.teacher !== word.es && isShortPhrase(word.teacher) && (
+            {!!word.teacher && word.teacher !== word.es && isShortPhrase(word.teacher) && !showExample && (
+              <Pressable accessibilityRole="button" onPress={() => setShowExample(true)} style={styles.exampleButton}>
+                <Text style={styles.exampleButtonText}>💬 {topic.custom ? tr('Пример') : tr('Как скажет учитель')} ›</Text>
+              </Pressable>
+            )}
+            {!!word.teacher && word.teacher !== word.es && isShortPhrase(word.teacher) && showExample && (
               <View style={styles.teacherBox}>
                 <View style={styles.wordRow}>
                   <Text style={styles.teacherLabel}>{topic.custom ? tr('Пример') : tr('Как скажет учитель')}</Text>
@@ -457,7 +509,12 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
               </View>
             )}
           </Card>
-          <Button title={tr('Понятно, проверь меня')} onPress={() => setPhase('exercise')} />
+          {doneSteps.current.has(index) ? (
+            // Вернулись назад к слову, на которое уже ответили, — просто идём дальше.
+            <Button title={tr('Дальше')} onPress={() => { setShowExample(false); setIndex(index + 1 < words.length ? index + 1 : index); setPhase(index + 1 < words.length ? 'learn' : 'exercise'); }} />
+          ) : (
+            <Button title={tr('Понятно, проверь меня')} onPress={() => setPhase('exercise')} />
+          )}
         </>
       )}
 
@@ -554,11 +611,12 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
         title={correctNow ? praise : tr('Правильный ответ:')}
         lines={correctNow
           ? [typedResult === 'accents' ? tr('Только с ударением: {0}', word.es) : null]
-          : [kind === 'phrase' ? `«${word.teacher}»` : `${word.es} — ${word.ru}`, tr('Вернёмся к нему в повторении.')]}
+          : [kind === 'phrase' ? `«${word.teacher}»` : `${word.es} — ${word.ru}`, (!test && !redoneRef.current ? tr('Повторим его в конце урока.') : tr('Вернёмся к нему в повторении.'))]}
         extra={<SpeakButton text={kind === 'phrase' ? word.teacher : word.es} lang={word.lang} />}
         onNext={next}
       />
     )}
+    {askExit && <ExitDialog resumable={resumable} onStay={() => setAskExit(false)} onLeave={onClose} />}
     </View>
   );
 }
@@ -718,7 +776,7 @@ function SpeakExercise({ word, answered, onResult, onSkip }) {
       )}
 
       {!answered && (
-        <Text style={styles.link} onPress={onSkip} accessibilityRole="button">{tr('Не могу говорить сейчас')}</Text>
+        <Button title={`🔇 ${tr('Не могу говорить сейчас')}`} variant="secondary" onPress={onSkip} />
       )}
     </View>
   );
@@ -857,6 +915,14 @@ const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 16, flexGrow: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  backStep: { alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center', marginTop: -6 },
+  backStepText: { fontSize: 14, fontWeight: '700', color: colors.muted },
+  exampleButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: radius.md, backgroundColor: colors.bg, alignSelf: 'flex-start' },
+  exampleButtonText: { fontSize: 15, fontWeight: '700', color: colors.greenDark },
+  dialogWrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 24 },
+  dialog: { backgroundColor: colors.card, borderRadius: radius.xl, padding: 20, gap: 12 },
+  dialogTitle: { fontSize: 20, fontWeight: '900', color: colors.text },
+  dialogText: { fontSize: 15, color: colors.muted, lineHeight: 21 },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   closeText: { fontSize: 20, color: colors.muted },
   counter: { fontSize: 14, fontWeight: '700', color: colors.muted },
@@ -894,7 +960,7 @@ const styles = StyleSheet.create({
   compareRow: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
   compareBtn: { minHeight: 48, minWidth: 110, paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   compareText: { fontSize: 16, fontWeight: '700', color: colors.greenDark },
-  link: { fontSize: 15, fontWeight: '700', color: colors.muted, textAlign: 'center', paddingVertical: 8 },
+  link: { fontSize: 15, fontWeight: '700', color: colors.muted, textAlign: 'center', paddingVertical: 12 },
   listenRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
   bigSpeak: { width: 96, height: 96, borderRadius: 48, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   bigSpeakText: { fontSize: 40 },

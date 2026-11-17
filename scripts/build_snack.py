@@ -65,6 +65,7 @@ MODULES = [
     ('src/screens/ClassroomScreen.js', ['ClassroomScreen']),
     ('src/screens/LeagueScreen.js', ['LeagueScreen']),
     ('src/screens/ParentScreen.js', ['ParentScreen']),
+    ('src/components/Skeleton.js', ['Skeleton']),
     ('src/screens/OnboardingScreen.js', ['OnboardingScreen']),
     ('src/screens/HomeScreen.js', ['HomeScreen']),
     ('src/lib/haptics.js', ['haptic']),

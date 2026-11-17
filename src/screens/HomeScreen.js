@@ -1,6 +1,6 @@
 // Главная: серия, монеты, цель дня и подготовка к следующему учебному дню по расписанию.
 import { useState } from 'react';
-import { ScrollView, View, Text, Pressable, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, RefreshControl, StyleSheet } from 'react-native';
 import Kami from '../components/Kami';
 import FactCard from '../components/FactCard';
 import Chest from '../components/Chest';
@@ -77,6 +77,158 @@ export default function HomeScreen({
     bubble = `${hello.text} ${bubble}`;
   }
 
+  // ----- Карточки-«напоминалки»: над уроком показываем не больше двух самых срочных, остальное — ниже. -----
+  const examNext = exams.find((e) => daysUntil(e.exam_date) >= 0);
+  const examSoon = examNext && daysUntil(examNext.exam_date) <= 3;
+  const streakReady = rewards ? claimableStreak(streakInfo.streak, rewards.streak_claimed).length > 0 : false;
+  const promos = [
+    (student.chests_lesson > 0 || student.chests_skin > 0) && 'chest',
+    rewards && !rewards.daily.claimed_today && onOpenDaily && 'daily',
+    streakReady && onOpenStreakRewards && 'streakReward',
+    onOpenLeague && league?.enabled && !!league.last_week?.reward && 'league',
+    examSoon && 'exam',
+    newCheers.length > 0 && 'cheer',
+    dueCount > 0 && 'review',
+    hasSchedule && onOpenCurrentTopics && shownCodes.length > 0 && !shownCodes.some((c) => currentTopics?.[c]) && 'topics',
+  ].filter(Boolean);
+  const top = promos.slice(0, 2);
+  const rest = promos.slice(2);
+
+  // Урок на сегодня: до 6 новых слов первой незаконченной темы (так же выбирает и сам урок).
+  const heroTopic = firstUnfinished;
+  const heroLeft = heroTopic ? heroTopic.words.length - learnedCount(heroTopic, learned) : 0;
+  const heroWords = heroTopic ? Math.min(6, heroLeft || 6) : 0;
+  const heroMinutes = Math.max(2, Math.round(heroWords * 0.8));
+  const heroSaved = heroTopic && savedLessons?.[heroTopic.id];
+
+  const promo = (key) => {
+    switch (key) {
+      case 'chest': return (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onOpenChest(student.chests_lesson > 0 ? 'lesson' : 'skin')}
+          style={styles.chestCard}
+        >
+          <Chest type={student.chests_lesson > 0 ? 'lesson' : 'skin'} size={56} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.chestTitle}>
+              {student.chests_lesson > 0 ? tr('Сундуки за уроки: {0}', student.chests_lesson) : tr('Сундуки со скинами: {0}', student.chests_skin)}
+            </Text>
+            <Text style={styles.small}>{tr('Нажми, чтобы открыть')}</Text>
+          </View>
+          <Text style={styles.chestArrow}>›</Text>
+        </Pressable>
+      );
+      case 'daily': return (
+        <Pressable accessibilityRole="button" onPress={onOpenDaily} style={styles.dailyCard}>
+          <Coin size={36} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.chestTitle}>{tr('Ежедневная награда ждёт!')}</Text>
+            <Text style={styles.small}>{tr('День {0} из 7 · нажми, чтобы забрать', rewards.daily.day)}</Text>
+          </View>
+          <Text style={styles.chestArrow}>›</Text>
+        </Pressable>
+      );
+      case 'streakReward': return (() => {
+        const ready = claimableStreak(streakInfo.streak, rewards.streak_claimed);
+        const next = milestones(streakInfo.streak).find((d) => d > streakInfo.streak);
+        const prev = [0, ...milestones(streakInfo.streak)].filter((d) => d <= streakInfo.streak).pop();
+        const r = next && streakReward(next);
+        return (
+          <Pressable accessibilityRole="button" onPress={onOpenStreakRewards} style={[styles.streakReward, ready.length > 0 && styles.streakRewardReady]}>
+            <Flame size={30} />
+            <View style={{ flex: 1, gap: 4 }}>
+              {ready.length > 0 ? (
+                <>
+                  <Text style={styles.chestTitle}>{tr('Награда за {0} {1} серии!', ready[0], plural(ready[0], tr('день'), tr('дня'), tr('дней')))}</Text>
+                  <Text style={styles.small}>{tr('Нажми, чтобы забрать')}</Text>
+                </>
+              ) : r ? (
+                <>
+                  <Text style={styles.chestTitle}>{tr('Награда за {0} {1}', next, plural(next, tr('день'), tr('дня'), tr('дней')))}</Text>
+                  <Text style={styles.small} numberOfLines={1}>{r.item ? tr('эксклюзивная вещь') + ' + ' : ''}{rewardText(r)}</Text>
+                  <ProgressBar value={(streakInfo.streak - prev) / (next - prev)} />
+                </>
+              ) : null}
+            </View>
+            <Text style={styles.chestArrow}>›</Text>
+          </Pressable>
+        );
+      })();
+      case 'league': return (() => {
+        const me = (league.table || []).findIndex((r) => r.me);
+        const prize = league.last_week?.reward;
+        return (
+          <Pressable accessibilityRole="button" onPress={onOpenLeague} style={[styles.extraCard, styles.leagueCard]}>
+            <Text style={styles.extraIcon}>{prize ? '🎁' : '🏆'}</Text>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.chestTitle}>{prize ? tr('Награда лиги ждёт!') : tr('Лига друзей')}</Text>
+              <Text style={styles.small}>
+                {(league.table || []).length > 1
+                  ? tr('Ты на {0}-м месте из {1} на этой неделе', me + 1, league.table.length)
+                  : tr('Соревнуйся с друзьями каждую неделю')}
+              </Text>
+            </View>
+            <Text style={styles.chestArrow}>›</Text>
+          </Pressable>
+        );
+      })();
+      case 'exam': return (() => {
+        const next = examNext;
+        if (!next) return null;
+        const days = daysUntil(next.exam_date);
+        const done = examsDone[next.id];
+        const task = days === 0 ? tr('Быстрое повторение') : days === 1 ? tr('Пробная контрольная') : tr('Подготовка: 10 слов');
+        return (
+          <View style={styles.examCard}>
+            <View style={styles.examHead}>
+              <Teacher teacher={teacherFor(next.subject_code)} size={44} kamiColor={kamiColor} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.examTitle}>📝 {subjectByCode(next.subject_code).es} — {whenText(days)}</Text>
+                <Text style={styles.small}>
+                  {days === 0 ? tr('¡Suerte! Ты готовился — всё получится.') : done ? tr('На сегодня готово ✓ Завтра продолжим.') : tr('Сегодня: {0}', task.toLowerCase())}
+                </Text>
+              </View>
+            </View>
+            {!done && <Button title={task} onPress={() => onStartExam(next)} />}
+            <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">{tr('Все контрольные')}</Text>
+          </View>
+        );
+      })();
+      case 'cheer': return (
+        <Pressable accessibilityRole="button" onPress={onOpenFriends} style={styles.cheerCard}>
+          <UserAvatar value={newCheers[0].avatar} size={44} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cheerTitle}>{newCheers[0].from}: {cheerLabels[newCheers[0].cheer]}</Text>
+            <Text style={styles.small}>{tr('{0}Нажми, чтобы ответить', newCheers.length > 1 ? tr('И ещё {0} от друзей · ', newCheers.length - 1) : '')}</Text>
+          </View>
+        </Pressable>
+      );
+      case 'review': return (
+        <Card style={styles.review}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.reviewTitle}>{tr('Повторение: {0} {1}', dueCount, plural(dueCount, tr('слово'), tr('слова'), tr('слов')))}</Text>
+            <Text style={styles.small}>{tr('Слова, которые пора освежить, чтобы не забылись.')}</Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={onStartReview} style={styles.reviewButton}>
+            <Text style={styles.reviewButtonText}>{tr('Повторить')}</Text>
+          </Pressable>
+        </Card>
+      );
+      case 'topics': return (
+        <Pressable accessibilityRole="button" onPress={() => onOpenCurrentTopics()} style={styles.topicsBanner}>
+          <Text style={styles.extraIcon}>📚</Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.chestTitle}>{tr('Какие темы сейчас в классе?')}</Text>
+            <Text style={styles.small}>{tr('У каждой школы своя программа. Отметь темы — и я буду готовить именно к ним.')}</Text>
+          </View>
+          <Text style={styles.chestArrow}>›</Text>
+        </Pressable>
+      );
+      default: return null;
+    }
+  };
+
   return (
     <ScrollView
       contentContainerStyle={styles.wrap}
@@ -85,15 +237,6 @@ export default function HomeScreen({
       <View style={styles.header}>
         <Text style={styles.hello} numberOfLines={1}>Hola, {student.nickname}!</Text>
         <View style={styles.chips}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={tr('Обновить')}
-            onPress={onRefresh}
-            disabled={refreshing}
-            style={styles.refresh}
-          >
-            {refreshing ? <ActivityIndicator size="small" color={colors.green} /> : <Text style={styles.refreshText}>↻</Text>}
-          </Pressable>
           {musicOn != null && onToggleMusic && (
             <Pressable
               accessibilityRole="switch"
@@ -198,8 +341,8 @@ export default function HomeScreen({
           <ProgressBar value={wordsToday / goal} />
         </View>
       </Card>
-
-      {holiday && (() => {
+      {holiday && !resting && (
+        (() => {
         const until = fmtDate(holiday.end).slice(0, 5);
         const subjectsToday = todayCodes(schedule).map((c) => subjectByCode(c).es).join(', ');
         const card = {
@@ -223,27 +366,136 @@ export default function HomeScreen({
             )}
           </View>
         );
-      })()}
-
-      {onOpenLeague && league?.enabled && !!league.last_week?.reward && (() => {
-        const me = (league.table || []).findIndex((r) => r.me);
-        const prize = league.last_week?.reward;
+      })()
+      )}
+      {/* Главное действие — сразу под серией. */}
+      {!hasSchedule ? (
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>📅 {tr('Давай заполним расписание')}</Text>
+          <Text style={styles.heroText}>{tr('Одна минута — и я буду готовить тебя именно к завтрашним урокам.')}</Text>
+          <Button title={tr('Заполнить расписание')} onPress={onOpenSchedule} />
+        </View>
+      ) : resting ? (
+        (() => {
+        const until = fmtDate(holiday.end).slice(0, 5);
+        const subjectsToday = todayCodes(schedule).map((c) => subjectByCode(c).es).join(', ');
+        const card = {
+          review: { icon: '🎄', title: tr('Каникулы до {0}!', until), text: tr('Отдыхай! Чтобы огонёк не погас, хватит повторить одно слово в день.'), button: tr('Повторить') },
+          summer_review: { icon: '☀️', title: tr('Летнее повторение'), text: subjectsToday ? tr('По расписанию сегодня: {0}. Хватит одного слова, чтобы огонёк не погас.', subjectsToday) : tr('Повторяем всё, что было за год. Хватит одного слова, чтобы огонёк не погас.'), button: tr('Повторить') },
+          summer_prep: { icon: '🎒', title: nextGrade(student.grade) ? tr('Скоро {0}!', nextGrade(student.grade)) : tr('Скоро в школу!'), text: tr('Готовимся к новому классу: первые слова по сегодняшним предметам.'), button: tr('Начать') },
+          back_to_school: { icon: '🏫', title: tr('Каникулы заканчиваются!'), text: tr('В понедельник снова в школу. Пройди один урок к понедельнику — и огонёк продлится на все выходные.'), button: null },
+        }[holiday.mode];
+        if (!card) return null;
         return (
-          <Pressable accessibilityRole="button" onPress={onOpenLeague} style={[styles.extraCard, styles.leagueCard]}>
-            <Text style={styles.extraIcon}>{prize ? '🎁' : '🏆'}</Text>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.chestTitle}>{prize ? tr('Награда лиги ждёт!') : tr('Лига друзей')}</Text>
-              <Text style={styles.small}>
-                {(league.table || []).length > 1
-                  ? tr('Ты на {0}-м месте из {1} на этой неделе', me + 1, league.table.length)
-                  : tr('Соревнуйся с друзьями каждую неделю')}
-              </Text>
+          <View style={styles.holidayCard}>
+            <Text style={styles.holidayIcon}>{card.icon}</Text>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.chestTitle}>{card.title}</Text>
+              <Text style={styles.small}>{card.text}</Text>
             </View>
-            <Text style={styles.chestArrow}>›</Text>
-          </Pressable>
+            {card.button && onStartHoliday && (
+              <Pressable accessibilityRole="button" onPress={onStartHoliday} style={styles.reviewButton}>
+                <Text style={styles.reviewButtonText}>{card.button}</Text>
+              </Pressable>
+            )}
+          </View>
         );
-      })()}
+      })()
+      ) : heroTopic ? (
+        <Pressable accessibilityRole="button" onPress={() => onStartTopic(heroTopic.id)} style={styles.hero}>
+          <Text style={styles.heroLabel}>{streakInfo.today_done ? tr('Ещё урок?') : tr('Урок на сегодня')}</Text>
+          <Text style={styles.heroTitle} numberOfLines={2}>{subjectByCode(heroTopic.subjectCode).es}: {heroTopic.title}</Text>
+          <Text style={styles.heroText}>
+            {tr('{0} {1} · ~{2} мин', heroWords, plural(heroWords, tr('слово'), tr('слова'), tr('слов')), heroMinutes)}
+          </Text>
+          <Button title={heroSaved ? tr('Продолжить урок') : tr('Начать урок')} onPress={() => onStartTopic(heroTopic.id)} />
+        </Pressable>
+      ) : null}
 
+      {top.map((k) => <View key={k}>{promo(k)}</View>)}
+
+      {hasSchedule && (
+        <>
+          <Text style={styles.h2}>{tr('{0} в школе', next.label)}</Text>
+          {subjects.length === 0 && <Text style={styles.muted}>{tr('В расписании на этот день пусто.')}</Text>}
+          {shownCodes.map((code) => {
+            const subj = subjectByCode(code);
+            const t = currentFor(code);
+            if (!t) {
+              return (
+                <Card key={code} style={styles.subjectRow}>
+                  <Teacher teacher={teacherFor(code)} size={36} kamiColor={kamiColor} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subject}>{subj.es}</Text>
+                    <Text style={styles.small}>
+                      {subj.custom ? tr('Свой предмет — готовых слов для него нет.') : tr('Слова по этому предмету скоро появятся.')}
+                    </Text>
+                  </View>
+                </Card>
+              );
+            }
+            const done = learnedCount(t, learned);
+            const all = done === t.words.length;
+            return (
+              // Вся карточка — одна большая кнопка «учить»; тема меняется отдельной ссылкой.
+              <Pressable key={code} accessibilityRole="button" accessibilityLabel={tr('Учить: {0}', subj.es)} onPress={() => onStartTopic(t.id)} style={styles.subjectCard}>
+                <View style={styles.subjectRow}>
+                  <Teacher teacher={teacherFor(code)} size={40} kamiColor={kamiColor} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subject}>{subj.es}</Text>
+                    <Text style={styles.small} numberOfLines={1}>{t.title}{t.titleRu ? ` · ${t.titleRu}` : ''}</Text>
+                  </View>
+                  <Text style={styles.subjectGo}>{savedLessons?.[t.id] ? tr('Продолжить') : all ? tr('Повторить') : tr('Учить')} ›</Text>
+                </View>
+                <ProgressBar value={done / t.words.length} />
+                <View style={styles.rowBetween}>
+                  <Text style={styles.small}>{all ? tr('✓ Тема выучена') : tr('{0} из {1} слов', done, t.words.length)}</Text>
+                  {onOpenCurrentTopics && (
+                    <Pressable accessibilityRole="button" onPress={() => onOpenCurrentTopics(code)} hitSlop={8} style={styles.smallButton}>
+                      <Text style={styles.smallButtonText}>{all ? tr('Новая тема в школе? ›') : tr('Сменить тему ›')}</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+        </>
+      )}
+
+      {!hasSchedule && shownCodes.length > 0 && (
+        <>
+          <Text style={styles.h2}>{tr('Темы')}</Text>
+          {shownTopics.map((t) => (
+            <Pressable key={t.id} accessibilityRole="button" onPress={() => onStartTopic(t.id)} style={styles.subjectCard}>
+              <View style={styles.subjectRow}>
+                <Teacher teacher={teacherFor(t.subjectCode)} size={36} kamiColor={kamiColor} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subject}>{subjectByCode(t.subjectCode).es}</Text>
+                  <Text style={styles.small} numberOfLines={1}>{t.title}</Text>
+                </View>
+                <Text style={styles.subjectGo}>{tr('Учить')} ›</Text>
+              </View>
+            </Pressable>
+          ))}
+        </>
+      )}
+
+      {/* Ниже — всё остальное: спокойно, без спешки. */}
+      {rest.map((k) => <View key={k}>{promo(k)}</View>)}
+
+      <View style={styles.kamiRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={tr('Нажми на Ками — он что-нибудь расскажет')}
+          onPress={() => setTapLine(kamiFact())}
+        >
+          <Kami size={88} color={kamiColor} mood={tapLine ? 'excited' : mood} />
+        </Pressable>
+        <Pressable style={styles.bubble} onPress={() => setTapLine(kamiFact())} accessibilityRole="button">
+          <Text style={styles.bubbleText}>{tapLine || bubble}</Text>
+          <Text style={styles.bubbleHint}>{tapLine ? tr('Нажми ещё — расскажу другое') : tr('Нажми на меня!')}</Text>
+        </Pressable>
+      </View>
       {onOpenClassroom && (
         <Pressable accessibilityRole="button" onPress={onOpenClassroom} style={styles.extraCard}>
           <Text style={styles.extraIcon}>🏫</Text>
@@ -254,19 +506,7 @@ export default function HomeScreen({
           <Text style={styles.chestArrow}>›</Text>
         </Pressable>
       )}
-
-      {rewards && !rewards.daily.claimed_today && onOpenDaily && (
-        <Pressable accessibilityRole="button" onPress={onOpenDaily} style={styles.dailyCard}>
-          <Coin size={36} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.chestTitle}>{tr('Ежедневная награда ждёт!')}</Text>
-            <Text style={styles.small}>{tr('День {0} из 7 · нажми, чтобы забрать', rewards.daily.day)}</Text>
-          </View>
-          <Text style={styles.chestArrow}>›</Text>
-        </Pressable>
-      )}
-
-      {rewards && onOpenStreakRewards && (() => {
+      {!streakReady && rewards && onOpenStreakRewards && (() => {
         const ready = claimableStreak(streakInfo.streak, rewards.streak_claimed);
         const next = milestones(streakInfo.streak).find((d) => d > streakInfo.streak);
         const prev = [0, ...milestones(streakInfo.streak)].filter((d) => d <= streakInfo.streak).pop();
@@ -293,36 +533,8 @@ export default function HomeScreen({
         );
       })()}
 
-      {dueCount > 0 && (
-        <Card style={styles.review}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.reviewTitle}>{tr('Повторение: {0} {1}', dueCount, plural(dueCount, tr('слово'), tr('слова'), tr('слов')))}</Text>
-            <Text style={styles.small}>{tr('Слова, которые пора освежить, чтобы не забылись.')}</Text>
-          </View>
-          <Pressable accessibilityRole="button" onPress={onStartReview} style={styles.reviewButton}>
-            <Text style={styles.reviewButtonText}>{tr('Повторить')}</Text>
-          </Pressable>
-        </Card>
-      )}
-
-      <View style={styles.kamiRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={tr('Нажми на Ками — он что-нибудь расскажет')}
-          onPress={() => setTapLine(kamiFact())}
-        >
-          <Kami size={88} color={kamiColor} mood={tapLine ? 'excited' : mood} />
-        </Pressable>
-        <Pressable style={styles.bubble} onPress={() => setTapLine(kamiFact())} accessibilityRole="button">
-          <Text style={styles.bubbleText}>{tapLine || bubble}</Text>
-          <Text style={styles.bubbleHint}>{tapLine ? tr('Нажми ещё — расскажу другое') : tr('Нажми на меня!')}</Text>
-        </Pressable>
-      </View>
-
-      <FactCard kamiColor={kamiColor} />
-
-      {(() => {
-        const next = exams.find((e) => daysUntil(e.exam_date) >= 0);
+      {examNext && !examSoon && (() => {
+        const next = examNext;
         if (!next) return null;
         const days = daysUntil(next.exam_date);
         const done = examsDone[next.id];
@@ -346,107 +558,22 @@ export default function HomeScreen({
       {!exams.some((e) => daysUntil(e.exam_date) >= 0) && (
         <Text style={styles.link} onPress={onOpenExams} accessibilityRole="button">{tr('📝 Скоро контрольная? Подготовимся вместе')}</Text>
       )}
-
-      {newCheers.length > 0 && (
-        <Pressable accessibilityRole="button" onPress={onOpenFriends} style={styles.cheerCard}>
-          <UserAvatar value={newCheers[0].avatar} size={44} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cheerTitle}>{newCheers[0].from}: {cheerLabels[newCheers[0].cheer]}</Text>
-            <Text style={styles.small}>{tr('{0}Нажми, чтобы ответить', newCheers.length > 1 ? tr('И ещё {0} от друзей · ', newCheers.length - 1) : '')}</Text>
-          </View>
-        </Pressable>
-      )}
-
-      {(student.chests_lesson > 0 || student.chests_skin > 0) && (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onOpenChest(student.chests_lesson > 0 ? 'lesson' : 'skin')}
-          style={styles.chestCard}
-        >
-          <Chest type={student.chests_lesson > 0 ? 'lesson' : 'skin'} size={56} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.chestTitle}>
-              {student.chests_lesson > 0 ? tr('Сундуки за уроки: {0}', student.chests_lesson) : tr('Сундуки со скинами: {0}', student.chests_skin)}
-            </Text>
-            <Text style={styles.small}>{tr('Нажми, чтобы открыть')}</Text>
-          </View>
-          <Text style={styles.chestArrow}>›</Text>
-        </Pressable>
-      )}
-
-      {!hasSchedule && <Button title={tr('Заполнить расписание')} variant="secondary" onPress={onOpenSchedule} />}
-
-      {hasSchedule && onOpenCurrentTopics && shownCodes.length > 0 && !shownCodes.some((c) => currentTopics?.[c]) && (
-        <Pressable accessibilityRole="button" onPress={() => onOpenCurrentTopics()} style={styles.topicsBanner}>
-          <Text style={styles.extraIcon}>📚</Text>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.chestTitle}>{tr('Какие темы сейчас в классе?')}</Text>
-            <Text style={styles.small}>{tr('У каждой школы своя программа. Отметь темы — и я буду готовить именно к ним.')}</Text>
-          </View>
-          <Text style={styles.chestArrow}>›</Text>
-        </Pressable>
-      )}
-
-      <Text style={styles.h2}>{hasSchedule ? tr('{0} в школе', next.label) : tr('Темы')}</Text>
-      {hasSchedule && subjects.length === 0 && (
-        <Text style={styles.muted}>{tr('В расписании на этот день пусто.')}</Text>
-      )}
-      {shownCodes.map((code) => {
-        const subj = subjectByCode(code);
-        const current = currentFor(code);
-        const count = topicsFor(code).length;
-        const blocks = [current].filter(Boolean);
-        return (
-          <Card key={code} style={{ gap: 10 }}>
-            <View style={styles.subjectRow}>
-              <Teacher teacher={teacherFor(code)} size={36} kamiColor={kamiColor} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.subject}>{subj.es}</Text>
-                {!!TEACHERS[code] && <Text style={styles.small}>{tr('Ведёт {0}', TEACHERS[code].name)}</Text>}
-              </View>
-            </View>
-            {blocks.length === 0 && (
-              <Text style={styles.small}>
-                {subj.custom ? tr('Свой предмет — готовых слов для него нет.') : tr('Слова по этому предмету скоро появятся.')}
-              </Text>
-            )}
-            {blocks.map((t) => {
-              const done = learnedCount(t, learned);
-              const chosen = currentTopics?.[code] === t.id;
-              return (
-                <View key={t.id} style={{ gap: 6 }}>
-                  <Text style={styles.muted}>{tr('Тема: {0} · {1}', t.title, t.titleRu)}</Text>
-                  {onOpenCurrentTopics && (
-                    <Text style={styles.small} onPress={() => onOpenCurrentTopics(code)} accessibilityRole="button">
-                      {chosen
-                        ? (done === t.words.length ? tr('✓ Всё выучено! В школе уже новая тема? Сменить ›') : tr('Проходим сейчас · сменить ›'))
-                        : tr('По порядку программы · в школе другая тема? ›')}
-                    </Text>
-                  )}
-                  <ProgressBar value={done / t.words.length} />
-                  <View style={styles.rowBetween}>
-                    <Text style={styles.small}>{tr('{0} из {1} слов', done, t.words.length)}</Text>
-                    <Text style={styles.link} onPress={() => onStartTopic(t.id)} accessibilityRole="button">
-                      {savedLessons?.[t.id] ? tr('Продолжить ›') : done === t.words.length ? tr('Повторить') : tr('Учить')}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-            {count > 1 && (
-              <Text style={styles.link} onPress={() => onOpenTopics(code)} accessibilityRole="button">{tr('Все темы ({0})', count)}</Text>
-            )}
-          </Card>
-        );
-      })}
-
-      {firstUnfinished && <Button title={tr('Начать подготовку')} onPress={() => onStartTopic(firstUnfinished.id)} />}
       {!!onOpenTask && <Button title={tr('Разобрать задание')} variant="secondary" onPress={onOpenTask} />}
+
+      <FactCard kamiColor={kamiColor} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  hero: { gap: 10, padding: 18, borderRadius: radius.xl, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.green },
+  heroLabel: { fontSize: 13, fontWeight: '800', color: colors.green, textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroTitle: { fontSize: 21, fontWeight: '900', color: colors.text },
+  heroText: { fontSize: 15, color: colors.muted },
+  subjectCard: { gap: 10, padding: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  subjectGo: { fontSize: 15, fontWeight: '800', color: colors.green },
+  smallButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
+  smallButtonText: { fontSize: 14, fontWeight: '700', color: colors.green },
   wrap: { padding: 20, gap: 14 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   hello: { fontSize: 24, fontWeight: '800', color: colors.text, flexShrink: 1 },
@@ -501,5 +628,5 @@ const styles = StyleSheet.create({
   subject: { fontSize: 16, fontWeight: '700', color: colors.text },
   muted: { fontSize: 14, color: colors.muted },
   small: { fontSize: 13, color: colors.muted },
-  link: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 6 },
+  link: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 12 },
 });

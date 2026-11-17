@@ -59,7 +59,7 @@ export default function ProfileScreen({
   student, plan, shop, kamiColor, streak, todayDone, learnedTotal,
   prefs, onSavePrefs, onEquip, onChangeGrade, onUpdateStudent,
   reminders, remindersSupported, onToggleReminders,
-  onOpenPlus, onOpenPrivacy, onOpenParent, onOpenShop, onOpenFriends, onToggleFriends, onSignOut, refreshing, onRefresh,
+  onOpenPlus, onOpenPrivacy, onOpenParent, onOpenProgress, onOpenShop, onOpenFriends, onToggleFriends, onSignOut, refreshing, onRefresh,
 }) {
   const [error, setError] = useState('');
   const [adult, setAdult] = useState('closed'); // closed | gate | open
@@ -139,6 +139,17 @@ export default function ProfileScreen({
         {!!planLine && <Text style={styles.plusBadge}>{planLine}</Text>}
       </View>
       {!!error && <Text style={styles.error}>{error}</Text>}
+
+      {onOpenProgress && (
+        <Pressable accessibilityRole="button" onPress={onOpenProgress} style={styles.friends}>
+          <Text style={styles.friendsIcon}>📈</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.friendsTitle}>{tr('Мои успехи')}</Text>
+            <Text style={styles.small}>{tr('Серия, выученные слова, готовность к контрольным')}</Text>
+          </View>
+          <Text style={styles.plusArrow}>›</Text>
+        </Pressable>
+      )}
 
       {student.friends_enabled && (
         <Pressable accessibilityRole="button" onPress={onOpenFriends} style={styles.friends}>
@@ -363,6 +374,6 @@ const styles = StyleSheet.create({
   plusActive: { backgroundColor: '#F3ECFC' },
   plusTitle: { fontSize: 16, fontWeight: '800', color: '#6B3FB8' },
   plusArrow: { fontSize: 26, color: '#6B3FB8' },
-  link: { fontSize: 15, fontWeight: '700', color: colors.green, paddingVertical: 6 },
+  link: { fontSize: 15, fontWeight: '700', color: colors.green, paddingVertical: 12 },
   danger: { fontSize: 15, fontWeight: '700', color: colors.danger, paddingVertical: 6 },
 });

@@ -29,7 +29,7 @@ function Locked({ title, text, plan, onOpenPlus }) {
 }
 
 export default function ProgressScreen({
-  topics, exams = [], student, learned, streakInfo, wordsToday, plan, kamiColor, onOpenPlus, refreshing, onRefresh,
+  topics, exams = [], student, learned, streakInfo, wordsToday, plan, kamiColor, onOpenPlus, refreshing, onRefresh, onBack,
 }) {
   const open = plan.plus || !PLUS_ENABLED;
   const en = !['ru', 'uk'].includes(student.native_lang);
@@ -76,8 +76,13 @@ export default function ProgressScreen({
       contentContainerStyle={styles.wrap}
       refreshControl={<RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
     >
+      {onBack && (
+        <Pressable accessibilityRole="button" onPress={onBack} style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: colors.green }}>‹ {tr('Профиль')}</Text>
+        </Pressable>
+      )}
       <View>
-        <Text style={styles.h1}>{tr('Успехи')}</Text>
+        <Text style={styles.h1}>{tr('Мои успехи')}</Text>
         <Text style={styles.small}>{student.nickname} · {student.grade}</Text>
       </View>
 
