@@ -21,12 +21,64 @@ import PhraseBuilder from '../components/PhraseBuilder';
 import haptic from '../lib/haptics';
 import { useVoiceRecorder, canAutoCheck, recognizeLive } from '../lib/voice';
 import { tr } from '../i18n';
+import { buildGlossary, lookup } from '../data/glossary';
 
 const KINDS = ['choose', 'listen', 'speak', 'type', 'phrase', 'dictation'];
 const TYPED = ['type', 'dictation'];
 
 // Фраза учителя годится для плиток, если в ней 3–12 слов.
-const phraseOk = (w) => { const n = phraseTokens(w.teacher).length; return n >= 3 && n <= 12; };
+// 17 ноя: только короткие фразы учителя (до 7 слов) — длинные без перевода бесполезны.
+const SHORT_PHRASE = 7;
+const isShortPhrase = (text) => { const n = phraseTokens(text).length; return n > 0 && n <= SHORT_PHRASE; };
+const phraseOk = (w) => { const n = phraseTokens(w.teacher).length; return n >= 3 && n <= SHORT_PHRASE; };
+
+// Слова урока (17 ноя): сначала невыученные — урок не гоняет заново то, что уже знаешь.
+// До 6 новых слов; если их мало — добавляем выученные для практики (минимум 4, чтобы была «найди пару»).
+const LESSON_MAX = 6;
+function pickLessonWords(all, learned, plain) {
+  if (plain || !learned) return all;
+  const fresh = all.filter((w) => !learned[w.id]);
+  const known = shuffle(all.filter((w) => learned[w.id]));
+  if (!fresh.length) return known.slice(0, LESSON_MAX);
+  const list = fresh.slice(0, LESSON_MAX);
+  while (list.length < Math.min(4, all.length) && known.length) list.push(known.shift());
+  return list;
+}
+
+// Фраза учителя, где каждое слово можно нажать и увидеть перевод (как в Duolingo).
+function TapPhrase({ text, glossary, style }) {
+  const tokens = useMemo(() => phraseTokens(text), [text]);
+  const known = useMemo(() => tokens.map((_, i) => !!lookup(glossary, tokens, i)), [tokens, glossary]);
+  const [sel, setSel] = useState(null);
+  useEffect(() => { setSel(null); }, [text]);
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={style}>
+        {tokens.map((t, i) => {
+          const on = sel && i >= sel.from && i <= sel.to;
+          return (
+            <Text
+              key={i}
+              onPress={() => setSel(on ? null : lookup(glossary, tokens, i) || { from: i, to: i, text: t, tr: null })}
+              style={[known[i] && styles.tapWord, on && styles.tapWordOn]}
+              suppressHighlighting
+            >
+              {t}{i < tokens.length - 1 ? ' ' : ''}
+            </Text>
+          );
+        })}
+      </Text>
+      {sel ? (
+        <View style={styles.tapBubble}>
+          <Text style={styles.tapBubbleEs}>{sel.text.replace(/[.,;:!¡?¿«»"]/g, '')}</Text>
+          <Text style={styles.tapBubbleTr}>{sel.tr || tr('Перевода пока нет')}</Text>
+        </View>
+      ) : (
+        <Text style={styles.tapHint}>{tr('Нажми на слово — покажу перевод')}</Text>
+      )}
+    </View>
+  );
+}
 
 function shuffle(list) {
   const a = [...list];
@@ -64,11 +116,12 @@ function ListenButtons({ text, lang }) {
   );
 }
 
-export default function LessonScreen({ topics, topicId, review, test, kamiColor, prefs = {}, onAnswer, onComplete, onClose, onOpenChest, onTestScore }) {
+export default function LessonScreen({ topics, topicId, review, test, kamiColor, prefs = {}, learned, onAnswer, onComplete, onClose, onOpenChest, onTestScore }) {
   // test — пробная контрольная: без карточек и «найди пару», в конце оценка от 0 до 10.
   const quiz = review || test;
   const topic = topics.find((t) => t.id === topicId);
-  const words = topic.words;
+  const [words, setWords] = useState(() => pickLessonWords(topic.words, learned, quiz || topicId === 'first'));
+  const glossary = useMemo(() => buildGlossary(topics), [topics]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState(quiz ? 'exercise' : 'learn'); // learn → exercise → (match) → done
   const [picked, setPicked] = useState(null);
@@ -103,7 +156,6 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   // Продолжить урок с того места, где вышел (17 ноя). Только обычные уроки — не повторение и не контрольная.
   const resumable = !quiz && !['first', 'holiday'].includes(topicId);
   const saveKey = `kami.lesson.${topicId}`;
-  const signature = useMemo(() => words.map((w) => w.id).join(','), [words]);
   const [ready, setReady] = useState(!resumable);
   const [resumed, setResumed] = useState(null); // номер слова, с которого продолжили — для плашки
 
@@ -114,8 +166,11 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     if (!resumable) return;
     AsyncStorage.getItem(saveKey).then((raw) => {
       const s = raw ? JSON.parse(raw) : null;
-      const fresh = s && s.sig === signature && Date.now() - s.at < 3 * 86400000 && s.index < words.length;
+      const byId = new Map(topic.words.map((w) => [w.id, w]));
+      const saved = s && Array.isArray(s.ids) ? s.ids.map((id) => byId.get(id)) : null;
+      const fresh = saved && saved.every(Boolean) && Date.now() - s.at < 3 * 86400000 && s.index < saved.length;
       if (fresh && (s.index > 0 || s.phase !== 'learn')) {
+        setWords(saved);
         setIndex(s.index);
         setPhase(s.phase === 'match' ? 'match' : s.phase === 'exercise' ? 'exercise' : 'learn');
         setOffset(s.offset || 0);
@@ -135,7 +190,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     if (phase === 'done') { AsyncStorage.removeItem(saveKey).catch(() => {}); return; }
     if (index === 0 && phase === 'learn') return;
     AsyncStorage.setItem(saveKey, JSON.stringify({
-      sig: signature, index, phase, offset, mistakes, bestCombo, earned: earnedRef.current, at: Date.now(),
+      ids: words.map((w) => w.id), index, phase, offset, mistakes, bestCombo, earned: earnedRef.current, at: Date.now(),
     })).catch(() => {});
   }, [ready, phase, index]);
 
@@ -374,13 +429,13 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
               <Text style={styles.translationLabel}>{tr('Перевод')}</Text>
               <Text style={styles.translation}>{word.ru}</Text>
             </View>
-            {!!word.teacher && (
+            {!!word.teacher && word.teacher !== word.es && isShortPhrase(word.teacher) && (
               <View style={styles.teacherBox}>
                 <View style={styles.wordRow}>
                   <Text style={styles.teacherLabel}>{topic.custom ? tr('Пример') : tr('Как скажет учитель')}</Text>
                   <SpeakButton text={word.teacher} lang={word.lang} label={tr('Послушать фразу')} />
                 </View>
-                <Text style={styles.teacher}>«{word.teacher}»</Text>
+                <TapPhrase text={word.teacher} glossary={glossary} style={styles.teacher} />
               </View>
             )}
           </Card>
@@ -794,7 +849,13 @@ const styles = StyleSheet.create({
   translation: { fontSize: 24, fontWeight: '800', color: '#1D2939' },
   teacherBox: { backgroundColor: colors.bg, borderRadius: 12, padding: 12, gap: 4 },
   teacherLabel: { fontSize: 13, fontWeight: '700', color: colors.muted },
-  teacher: { fontSize: 15, lineHeight: 21, fontStyle: 'italic', color: colors.text },
+  teacher: { fontSize: 17, lineHeight: 26, color: colors.text },
+  tapWord: { textDecorationLine: 'underline', textDecorationStyle: 'dotted', textDecorationColor: '#9AA49F' },
+  tapWordOn: { backgroundColor: '#FFF4CC', color: colors.greenDark, fontWeight: '800' },
+  tapBubble: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', backgroundColor: '#FFF4CC', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 },
+  tapBubbleEs: { fontSize: 15, fontWeight: '800', color: colors.text },
+  tapBubbleTr: { fontSize: 15, color: colors.text },
+  tapHint: { fontSize: 12, color: colors.muted },
   speak: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.greenLight, alignItems: 'center', justifyContent: 'center' },
   speakText: { fontSize: 20 },
   speakPair: { flexDirection: 'row', gap: 8 },

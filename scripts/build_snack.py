@@ -60,6 +60,7 @@ MODULES = [
     ('src/components/UserAvatar.js', ['UserAvatar', 'PersonIcon']),
     ('src/components/RewardReveal.js', ['RewardReveal']),
     ('src/components/Rewards.js', ['DAILY', 'streakReward', 'milestones', 'claimableStreak', 'rewardText', 'DailyRewardModal']),
+    ('src/data/glossary.js', ['buildGlossary', 'lookup']),
     ('src/data/classroom.js', ['CLASSROOM_TOPICS', 'CLASSROOM_SUBJECT', 'isClassroomTopic']),
     ('src/screens/ClassroomScreen.js', ['ClassroomScreen']),
     ('src/screens/LeagueScreen.js', ['LeagueScreen']),

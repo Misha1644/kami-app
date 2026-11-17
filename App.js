@@ -548,6 +548,7 @@ export default function App() {
         }}
         kamiColor={kamiColor}
         prefs={prefs}
+        learned={learned}
         onAnswer={onAnswer}
         onComplete={onCompleteLesson}
         onClose={() => {
