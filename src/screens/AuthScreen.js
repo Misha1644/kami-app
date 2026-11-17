@@ -1,7 +1,7 @@
 // Вход и регистрация. Аккаунт заводит родитель.
 // Почта подтверждается 6-значным кодом из письма (без ссылок — так работает
 // и в приложении, и в браузере). Так же — сброс пароля.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import Kami from '../components/Kami';
 import { Button } from '../components/ui';
@@ -39,6 +39,16 @@ export default function AuthScreen({ lang = 'ru', onLang }) {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [showPrivacy, setShowPrivacy] = useState(false);
+  // Новый код — не чаще раза в минуту (защита от спама; на сервере Supabase тоже 60 с на адрес).
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [now, setNow] = useState(Date.now());
+  const wait = Math.max(0, Math.ceil((waitUntil - now) / 1000));
+  useEffect(() => {
+    if (!wait) return undefined;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [wait > 0]);
+  const codeSent = () => { setWaitUntil(Date.now() + 60000); setNow(Date.now()); };
 
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = code.replace(/\D/g, '');
@@ -81,12 +91,12 @@ export default function AuthScreen({ lang = 'ru', onLang }) {
       if (mode === 'signUp') {
         const { data, error: err } = await supabase.auth.signUp({ email: cleanEmail, password });
         if (err) throw err;
-        if (!data.session) go('verify', tr('Мы отправили код на {0}. Проверьте и папку «Спам».', cleanEmail));
+        if (!data.session) { codeSent(); go('verify', tr('Мы отправили код на {0}. Проверьте и папку «Спам».', cleanEmail)); }
       } else if (mode === 'signIn') {
         const { error: err } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (err) {
           if (err.message?.toLowerCase().includes('email not confirmed')) {
-            await supabase.auth.resend({ type: 'signup', email: cleanEmail });
+            if (!wait) { await supabase.auth.resend({ type: 'signup', email: cleanEmail }); codeSent(); }
             return go('verify', tr('Почта не подтверждена. Мы отправили новый код на {0}.', cleanEmail));
           }
           throw err;
@@ -94,8 +104,10 @@ export default function AuthScreen({ lang = 'ru', onLang }) {
       } else if (mode === 'verify') {
         await verifySignupCode();
       } else if (mode === 'forgot') {
+        if (wait) throw new Error('rate limit');
         const { error: err } = await supabase.auth.resetPasswordForEmail(cleanEmail);
         if (err) throw err;
+        codeSent();
         go('reset', tr('Если аккаунт с {0} есть, мы отправили на него код.', cleanEmail));
         setPassword('');
       } else if (mode === 'reset') {
@@ -108,11 +120,13 @@ export default function AuthScreen({ lang = 'ru', onLang }) {
   }
 
   function resend() {
+    if (wait) return;
     run(async () => {
       const { error: err } = mode === 'verify'
         ? await supabase.auth.resend({ type: 'signup', email: cleanEmail })
         : await supabase.auth.resetPasswordForEmail(cleanEmail);
       if (err) throw err;
+      codeSent();
       setInfo(tr('Отправили новый код.'));
     });
   }
@@ -228,7 +242,14 @@ export default function AuthScreen({ lang = 'ru', onLang }) {
         <Button title={busy ? tr('Подождите…') : buttonTitle} onPress={submit} disabled={busy} />
 
         {needsCode && (
-          <Text style={styles.switch} accessibilityRole="button" onPress={resend}>{tr('Отправить код ещё раз')}</Text>
+          <Text
+            style={[styles.switch, wait > 0 && { opacity: 0.5 }]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: wait > 0 }}
+            onPress={resend}
+          >
+            {wait > 0 ? tr('Отправить код ещё раз — через {0} с', wait) : tr('Отправить код ещё раз')}
+          </Text>
         )}
         {mode === 'signIn' && (
           <Text style={styles.switch} accessibilityRole="button" onPress={() => go('forgot')}>{tr('Забыли пароль?')}</Text>
