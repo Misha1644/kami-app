@@ -12,6 +12,7 @@ import {
   setAudioModeAsync,
   createAudioPlayer,
 } from 'expo-audio';
+import * as Speech from 'expo-speech';
 import { tr } from '../i18n';
 
 function webRecognition() {
@@ -83,9 +84,20 @@ export function recognizeLive(lang = 'es-ES', { onPartial, isDone } = {}) {
   });
 }
 
+// Запись голоса: моно, как для речи. 17 ноя: стерео-запись с двух микрофонов iPhone
+// звучала «эхом» — теперь один канал.
+const VOICE_PRESET = {
+  ...RecordingPresets.HIGH_QUALITY,
+  numberOfChannels: 1,
+  bitRate: 64000,
+  sampleRate: 44100,
+  ios: { ...(RecordingPresets.HIGH_QUALITY.ios || {}), numberOfChannels: 1 },
+  android: { ...(RecordingPresets.HIGH_QUALITY.android || {}), numberOfChannels: 1 },
+};
+
 // Запись своего голоса и прослушивание.
 export function useVoiceRecorder() {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(VOICE_PRESET);
   const player = useRef(null);
   const [recording, setRecording] = useState(false);
   const [uri, setUri] = useState(null);
@@ -114,23 +126,34 @@ export function useVoiceRecorder() {
   }
 
   async function stop() {
+    let done = null;
     try {
       await recorder.stop();
-      setUri(recorder.uri);
+      done = recorder.uri;
     } catch (e) {
       setError(tr('Запись не сохранилась, попробуй ещё раз.'));
     }
     setRecording(false);
-    // Возвращаем звук в динамик, чтобы голос Ками было слышно громко.
+    // Сначала выключаем режим записи (звук — в громкий динамик), и только потом даём слушать:
+    // иначе запись могла начать играть, пока телефон ещё «слушает» микрофон, — получалось эхо.
     try { await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }); } catch (e) { /* ignore */ }
+    try { player.current?.remove(); } catch (e) { /* ignore */ }
+    player.current = null;
+    if (done) setUri(done);
   }
 
+  // Своя запись: один плеер на запись; повторное нажатие — сначала, а не второй плеер поверх первого.
   function playMine() {
     if (!uri) return;
     try {
-      player.current?.remove();
-      player.current = createAudioPlayer(uri);
-      player.current.play();
+      Speech.stop();
+      if (!player.current || player.current.__uri !== uri) {
+        try { player.current?.remove(); } catch (e) { /* ignore */ }
+        player.current = createAudioPlayer(uri);
+        player.current.__uri = uri;
+      }
+      const p = player.current;
+      Promise.resolve(p.seekTo?.(0)).catch(() => {}).finally(() => p.play());
     } catch (e) {
       setError(tr('Не получилось воспроизвести запись.'));
     }
