@@ -1,0 +1,12 @@
+// Codespace для Ками: при открытии сам подтягивает свежий код и запускает сервер для телефона.
+// На iPhone: Expo Go → Development servers → kami-app (вход в Expo — аккаунт nitromart;
+// ключ берётся из секрета Codespaces EXPO_TOKEN). Ничего вводить не нужно.
+{
+  "name": "Kami",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "postCreateCommand": "npm install",
+  "postAttachCommand": "bash scripts/phone.sh",
+  "customizations": {
+    "codespaces": { "openFiles": ["README.md"] }
+  }
+}
