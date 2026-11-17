@@ -23,7 +23,8 @@ import { useVoiceRecorder, canAutoCheck, recognizeLive } from '../lib/voice';
 import { tr } from '../i18n';
 import { buildGlossary, lookup } from '../data/glossary';
 
-const KINDS = ['choose', 'listen', 'speak', 'type', 'phrase', 'dictation'];
+// 17 ноя: «напиши по-испански по русскому слову» убрано — писать только под диктовку (решение пользователя).
+const KINDS = ['choose', 'listen', 'speak', 'dictation', 'phrase'];
 const TYPED = ['type', 'dictation'];
 
 // Фраза учителя годится для плиток, если в ней 3–12 слов.
