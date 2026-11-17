@@ -123,6 +123,8 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const topic = topics.find((t) => t.id === topicId);
   const [words, setWords] = useState(() => pickLessonWords(topic.words, learned, quiz || topicId === 'first'));
   const glossary = useMemo(() => buildGlossary(topics), [topics]);
+  // Без повторов (ошибки в конце добавляются второй раз) — для вариантов ответа и «найди пару».
+  const uniq = useMemo(() => words.filter((w, i) => words.findIndex((x) => x.id === w.id) === i), [words]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState(quiz ? 'exercise' : 'learn'); // learn → exercise → (match) → done
   const [picked, setPicked] = useState(null);
@@ -141,6 +143,8 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   const [dragLock, setDragLock] = useState(false); // тащим слово — экран не прокручивается
   const [earned, setEarned] = useState(0);
   const earnedRef = useRef(0); // актуальное число монет для анимации в конце
+  const missedRef = useRef(new Set()); // слова с ошибкой — повторим в конце
+  const redoneRef = useRef(false);
   const [reveal, setReveal] = useState(null); // награда за урок большой анимацией
   // Реплики Ками: новые на каждое слово, но не меняются при перерисовке.
   // Урок ведёт учитель предмета; повторение и свои предметы — Ками.
@@ -215,9 +219,9 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   if (kind === 'phrase' && !phraseOk(word)) kind = 'listen';
 
   const options = useMemo(() => {
-    const others = shuffle(words.filter((w) => w.id !== word.id)).slice(0, 2);
+    const others = shuffle(uniq.filter((w) => w.id !== word.id)).slice(0, 2);
     return shuffle([word, ...others]);
-  }, [words, word]);
+  }, [uniq, word, index]);
 
   // Озвучка: на карточке и в «услышь и выбери» слово звучит сразу.
   useEffect(() => {
@@ -229,9 +233,9 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   // Чужие слова для плиток-обманок во «собери фразу».
   const decoys = useMemo(() => {
     const own = new Set(phraseTokens(word.teacher).map(tokenKey));
-    const pool = words.filter((w) => w.id !== word.id).flatMap((w) => phraseTokens(w.teacher));
+    const pool = uniq.filter((w) => w.id !== word.id).flatMap((w) => phraseTokens(w.teacher));
     return shuffle([...new Set(pool)].filter((t) => !own.has(tokenKey(t)))).slice(0, 3);
-  }, [words, word]);
+  }, [uniq, word]);
 
   const answered = verdict !== null;
 
@@ -252,7 +256,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
     setAlmost(false);
     onAnswer(word.id, ok);
     if (ok) { earnedRef.current += 1; setEarned((c) => c + 1); }
-    else setMistakes((m) => m + 1);
+    else { setMistakes((m) => m + 1); if (!test) missedRef.current.add(word.id); }
   }
 
   // Ошибка на одну букву / одно слово: «Почти получилось!» и вторая попытка (один раз на задание).
@@ -299,16 +303,27 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   }
 
   function next() {
+    // Ошибки — ещё раз в конце урока (как в Duolingo), один раз: так слово всё же можно выучить в этом уроке.
+    const redo = index + 1 >= words.length && !test && !redoneRef.current
+      ? words.filter((w, i) => missedRef.current.has(w.id) && words.findIndex((x) => x.id === w.id) === i)
+      : [];
+    if (redo.length) {
+      redoneRef.current = true;
+      setWords((list) => [...list, ...redo]);
+    }
     setPicked(null);
     setTyped('');
     setTypedResult(null);
     setVerdict(null);
     setAlmost(false);
     setRetried(false);
-    if (index + 1 < words.length) {
+    if (redo.length) {
+      setIndex(index + 1);
+      setPhase('exercise'); // повтор ошибок — сразу упражнение, без карточки
+    } else if (index + 1 < words.length) {
       setIndex(index + 1);
       setPhase(quiz ? 'exercise' : 'learn');
-    } else if (words.length >= 4 && !test) {
+    } else if (uniq.length >= 4 && !test) {
       setPhase('match');
     } else {
       finish();
@@ -342,7 +357,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
         })()}
         {teacher !== KAMI_TEACHER && <Text style={styles.teacherName}>{tr(teacher.name)} · {tr(teacher.who)}</Text>}
         <Text style={styles.mutedCenter}>{mistakes === 0 ? ending.perfect : review ? ending.review : ending.done}</Text>
-        <Text style={styles.mutedCenter}>{tr('{0} Слов: {1}, ошибок: {2}.', review ? tr('Слова закреплены.') : `${topic.subject}: ${topic.title}.`, words.length, mistakes)}</Text>
+        <Text style={styles.mutedCenter}>{tr('{0} Слов: {1}, ошибок: {2}.', review ? tr('Слова закреплены.') : `${topic.subject}: ${topic.title}.`, uniq.length, mistakes)}</Text>
         <View style={styles.stats}>
           <View style={[styles.stat, { borderColor: colors.greenBar }]}>
             <Text style={[styles.statHead, { backgroundColor: colors.greenBar }]}>{tr('ТОЧНОСТЬ')}</Text>
@@ -377,7 +392,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   if (!ready) return <View style={styles.wrap} />;
 
   if (phase === 'match') {
-    return <MatchRound start={words.length / (words.length + 1)} words={words} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={onClose} />;
+    return <MatchRound start={words.length / (words.length + 1)} words={uniq} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={onClose} />;
   }
 
   const correctNow = verdict === 'right';
