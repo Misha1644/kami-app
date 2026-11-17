@@ -377,7 +377,7 @@ export default function LessonScreen({ topics, topicId, review, test, kamiColor,
   if (!ready) return <View style={styles.wrap} />;
 
   if (phase === 'match') {
-    return <MatchRound words={words} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={onClose} />;
+    return <MatchRound start={words.length / (words.length + 1)} words={words} kamiColor={kamiColor} teacher={teacher} sfx={prefs.sfx !== false} onDone={finish} onClose={onClose} />;
   }
 
   const correctNow = verdict === 'right';
@@ -749,7 +749,8 @@ function Options({ options, word, picked, onChoose }) {
 }
 
 // «Соедини пары»: испанские слова слева, переводы справа.
-function MatchRound({ words, kamiColor, teacher, sfx, onDone, onClose }) {
+// start — сколько урока уже пройдено: шкала продолжает общий прогресс, а не начинается с нуля.
+function MatchRound({ start = 0, words, kamiColor, teacher, sfx, onDone, onClose }) {
   const pairs = useMemo(() => shuffle(words).slice(0, 5), [words]);
   const left = useMemo(() => shuffle(pairs), [pairs]);
   const right = useMemo(() => shuffle(pairs), [pairs]);
@@ -793,7 +794,7 @@ function MatchRound({ words, kamiColor, teacher, sfx, onDone, onClose }) {
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={tr('Закрыть урок')} style={styles.close}>
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
-        <LessonProgress value={matched.size / pairs.length} />
+        <LessonProgress value={start + (1 - start) * (matched.size / pairs.length)} />
       </View>
       <Text style={styles.question}>{tr('Соедини пары')}</Text>
       <Text style={styles.small}>{tr('Нажми на испанское слово, потом на его перевод.')}</Text>
