@@ -2,7 +2,7 @@
 // По нему главная показывает, к каким предметам готовиться на следующий учебный день.
 import { useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { Card } from '../components/ui';
+import { Button, Card } from '../components/ui';
 import { colors, radius } from '../theme';
 import { subjectsForGrade, WEEKDAYS, subjectByCode, nextSchoolDay, customCode, isCustom, CUSTOM_MAX } from '../data/content';
 import { tr } from '../i18n';
@@ -140,7 +140,7 @@ function Holidays({ holidays = [], onAdd, onDelete }) {
   );
 }
 
-export default function ScheduleScreen({ topics = [], currentTopics = {}, onSetTopic, schedule, onSaveDay, holidays, onAddHoliday, onDeleteHoliday }) {
+export default function ScheduleScreen({ topics = [], currentTopics = {}, onSetTopic, onDone, schedule, onSaveDay, holidays, onAddHoliday, onDeleteHoliday }) {
   const [day, setDay] = useState(nextSchoolDay().weekday);
   const [adding, setAdding] = useState(false);
   const [picking, setPicking] = useState(null); // номер урока, у которого раскрыт выбор темы
@@ -178,6 +178,30 @@ export default function ScheduleScreen({ topics = [], currentTopics = {}, onSetT
     <ScrollView contentContainerStyle={styles.wrap}>
       <Text style={styles.h1}>{tr('Расписание')}</Text>
       <Text style={styles.muted}>{tr('Внеси уроки — и Ками будет готовить тебя к завтрашним предметам.')}</Text>
+      {(() => {
+        // Понятный путь: пусто — как заполнять; всё заполнено — куда идти дальше.
+        const filled = [1, 2, 3, 4, 5].filter((d) => (schedule[d] || []).length > 0).length;
+        if (filled === 0) {
+          return (
+            <View style={styles.steps}>
+              <Text style={styles.stepsTitle}>{tr('Как заполнить — 3 шага')}</Text>
+              <Text style={styles.stepsLine}>1. {tr('Выбери день недели сверху')}</Text>
+              <Text style={styles.stepsLine}>2. {tr('Нажми «+ Добавить урок» и выбери предмет — по порядку, как в школе')}</Text>
+              <Text style={styles.stepsLine}>3. {tr('Повтори для всех дней с понедельника по пятницу')}</Text>
+            </View>
+          );
+        }
+        if (filled < 5) {
+          return <Text style={styles.hint}>✏️ {tr('Заполнено дней: {0} из 5. Осталось совсем чуть-чуть!', filled)}</Text>;
+        }
+        return onDone ? (
+          <View style={styles.steps}>
+            <Text style={styles.stepsTitle}>🎉 {tr('Расписание готово!')}</Text>
+            <Text style={styles.stepsLine}>{tr('Теперь на «Сегодня» тебя ждёт урок к завтрашним предметам.')}</Text>
+            <Button title={tr('К уроку')} onPress={onDone} />
+          </View>
+        ) : null;
+      })()}
       {onSetTopic && topics.length > 0 && (
         <Text style={styles.hint}>📚 {tr('Нажми на урок, чтобы выбрать тему, которую сейчас проходите в классе.')}</Text>
       )}
@@ -348,6 +372,9 @@ export default function ScheduleScreen({ topics = [], currentTopics = {}, onSetT
 
 const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 14 },
+  steps: { gap: 8, padding: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.green },
+  stepsTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
+  stepsLine: { fontSize: 15, color: colors.text, lineHeight: 21 },
   hint: { fontSize: 14, color: colors.greenDark, backgroundColor: colors.greenLight, padding: 12, borderRadius: radius.md, lineHeight: 20 },
   topicChosen: { color: colors.greenDark, fontWeight: '700' },
   topicList: { gap: 6, paddingBottom: 12, paddingLeft: 36 },

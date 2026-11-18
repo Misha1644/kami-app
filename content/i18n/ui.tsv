@@ -1269,3 +1269,17 @@ Noche de San Juan: в Валенсии на пляже жгут костры, а
 Показать пароль	Show password	إظهار كلمة المرور
 ✓ Пароль подходит	✓ Password is OK	✓ كلمة المرور مناسبة
 Ещё {0} символов (минимум 8)	{0} more characters (minimum 8)	{0} أحرف أخرى (8 على الأقل)
+Шаг 1 из 2	Step 1 of 2	الخطوة 1 من 2
+Чтобы начать учиться, заполни расписание	To start learning, fill in your timetable	لتبدأ التعلّم، املأ جدولك
+Отметь, какие уроки у тебя в каждый день недели — это займёт минуту. Потом Ками будет готовить тебя к завтрашним предметам.	Mark which lessons you have on each day of the week — it takes a minute. Then Kami will prepare you for tomorrow's subjects.	حدّد حصصك في كل يوم من الأسبوع — يستغرق ذلك دقيقة. ثم سيجهّزك كامي لمواد الغد.
+{0} в расписании нет уроков	{0}: no lessons in your timetable	{0}: لا حصص في جدولك
+Чтобы Ками подготовил тебя к этому дню, добавь его уроки в расписание.	Add this day's lessons to your timetable so Kami can prepare you.	أضف حصص هذا اليوم إلى جدولك ليجهّزك كامي.
+Добавить уроки	Add lessons	أضف الحصص
+Как заполнить — 3 шага	How to fill it in — 3 steps	كيف تملؤه — 3 خطوات
+Выбери день недели сверху	Pick a day of the week at the top	اختر يومًا من الأسبوع في الأعلى
+Нажми «+ Добавить урок» и выбери предмет — по порядку, как в школе	Tap “+ Add lesson” and choose the subject — in the same order as at school	اضغط «+ أضف حصة» واختر المادة — بنفس ترتيب المدرسة
+Повтори для всех дней с понедельника по пятницу	Repeat for every day from Monday to Friday	كرّر لكل الأيام من الاثنين إلى الجمعة
+Заполнено дней: {0} из 5. Осталось совсем чуть-чуть!	Days filled: {0} of 5. Almost there!	الأيام المملوءة: {0} من 5. بقي القليل!
+Расписание готово!	Your timetable is ready!	جدولك جاهز!
+Теперь на «Сегодня» тебя ждёт урок к завтрашним предметам.	Now a lesson for tomorrow's subjects is waiting on “Today”.	الآن ينتظرك في «اليوم» درس لمواد الغد.
+К уроку	Go to lesson	إلى الدرس

@@ -371,8 +371,9 @@ export default function HomeScreen({
       {/* Главное действие — сразу под серией. */}
       {!hasSchedule ? (
         <View style={styles.hero}>
-          <Text style={styles.heroTitle}>📅 {tr('Давай заполним расписание')}</Text>
-          <Text style={styles.heroText}>{tr('Одна минута — и я буду готовить тебя именно к завтрашним урокам.')}</Text>
+          <Text style={styles.heroLabel}>{tr('Шаг 1 из 2')}</Text>
+          <Text style={styles.heroTitle}>📅 {tr('Чтобы начать учиться, заполни расписание')}</Text>
+          <Text style={styles.heroText}>{tr('Отметь, какие уроки у тебя в каждый день недели — это займёт минуту. Потом Ками будет готовить тебя к завтрашним предметам.')}</Text>
           <Button title={tr('Заполнить расписание')} onPress={onOpenSchedule} />
         </View>
       ) : resting ? (
@@ -410,14 +411,19 @@ export default function HomeScreen({
           </Text>
           <Button title={heroSaved ? tr('Продолжить урок') : tr('Начать урок')} onPress={() => onStartTopic(heroTopic.id)} />
         </Pressable>
+      ) : subjects.length === 0 ? (
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>📅 {tr('{0} в расписании нет уроков', next.label)}</Text>
+          <Text style={styles.heroText}>{tr('Чтобы Ками подготовил тебя к этому дню, добавь его уроки в расписание.')}</Text>
+          <Button title={tr('Добавить уроки')} onPress={onOpenSchedule} />
+        </View>
       ) : null}
 
       {top.map((k) => <View key={k}>{promo(k)}</View>)}
 
-      {hasSchedule && (
+      {hasSchedule && subjects.length > 0 && (
         <>
           <Text style={styles.h2}>{tr('{0} в школе', next.label)}</Text>
-          {subjects.length === 0 && <Text style={styles.muted}>{tr('В расписании на этот день пусто.')}</Text>}
           {shownCodes.map((code) => {
             const subj = subjectByCode(code);
             const t = currentFor(code);

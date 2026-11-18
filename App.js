@@ -689,7 +689,7 @@ export default function App() {
   } else {
     showTabs = true;
     if (tab === 'schedule') {
-      screen = <ScheduleScreen topics={allTopics} currentTopics={currentTopics} onSetTopic={setCurrentTopic} schedule={schedule} onSaveDay={onSaveDay} holidays={holidays} onAddHoliday={onAddHoliday} onDeleteHoliday={onDeleteHoliday} />;
+      screen = <ScheduleScreen onDone={() => setTab('home')} topics={allTopics} currentTopics={currentTopics} onSetTopic={setCurrentTopic} schedule={schedule} onSaveDay={onSaveDay} holidays={holidays} onAddHoliday={onAddHoliday} onDeleteHoliday={onDeleteHoliday} />;
     } else if (tab === 'shop') {
       screen = (
         <ShopScreen
