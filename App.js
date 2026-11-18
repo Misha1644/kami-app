@@ -73,6 +73,9 @@ export default function App() {
   const [shop, setShop] = useState(null);
   const [goalBanner, setGoalBanner] = useState('');
   const [tab, setTab] = useState('home');
+  // Перешли на вкладку кнопкой с другого экрана (а не нижним меню) — показываем «‹ Назад» туда, откуда пришли.
+  const [returnTo, setReturnTo] = useState(null);
+  const goTab = (to) => { setReturnTo(tab !== to ? tab : null); setTab(to); };
   const [lessonTopic, setLessonTopic] = useState(null);
 
   const [plan, setPlan] = useState({ plus: false, trialUsed: false });
@@ -689,7 +692,7 @@ export default function App() {
   } else {
     showTabs = true;
     if (tab === 'schedule') {
-      screen = <ScheduleScreen onDone={() => setTab('home')} topics={allTopics} currentTopics={currentTopics} onSetTopic={setCurrentTopic} schedule={schedule} onSaveDay={onSaveDay} holidays={holidays} onAddHoliday={onAddHoliday} onDeleteHoliday={onDeleteHoliday} />;
+      screen = <ScheduleScreen onDone={() => { setReturnTo(null); setTab('home'); }} topics={allTopics} currentTopics={currentTopics} onSetTopic={setCurrentTopic} schedule={schedule} onSaveDay={onSaveDay} holidays={holidays} onAddHoliday={onAddHoliday} onDeleteHoliday={onDeleteHoliday} />;
     } else if (tab === 'shop') {
       screen = (
         <ShopScreen
@@ -753,7 +756,7 @@ export default function App() {
           onOpenPrivacy={() => setShowPrivacy(true)}
           onOpenParent={() => setShowParent(true)}
           onOpenProgress={() => setShowProgress(true)}
-          onOpenShop={() => setTab('shop')}
+          onOpenShop={() => goTab('shop')}
           onOpenFriends={() => setShowFriends(true)}
           onToggleFriends={async (on) => { await setFriendsEnabled(studentId, on); setStudent((s) => ({ ...s, friends_enabled: on })); }}
           onSignOut={signOut}
@@ -785,18 +788,18 @@ export default function App() {
           newCheers={student.friends_enabled ? newCheers : []}
           cheerLabels={CHEERS}
           onOpenFriends={() => setShowFriends(true)}
-          onOpenSchedule={() => setTab('schedule')}
+          onOpenSchedule={() => goTab('schedule')}
           refreshing={refreshing}
           onRefresh={refresh}
           currentTopics={currentTopics}
           onOpenTopics={setTopicsFor}
-          onOpenCurrentTopics={() => setTab('schedule')}
+          onOpenCurrentTopics={() => goTab('schedule')}
           dueCount={dueWords.length}
           onStartReview={() => setLessonTopic('review')}
           onStartHoliday={startHoliday}
           onOpenClassroom={() => setShowClassroom(true)}
           league={student.friends_enabled ? league : null}
-          onOpenLeague={student.friends_enabled ? () => setTab('league') : null}
+          onOpenLeague={student.friends_enabled ? () => goTab('league') : null}
           rewards={rewards}
           onOpenStreakRewards={() => setShowStreakRewards(true)}
           onOpenDaily={() => setShowDaily(true)}
@@ -810,6 +813,17 @@ export default function App() {
       <SafeAreaView style={[styles.root, { backgroundColor: bg.color || colors.bg }]} edges={['top', 'bottom']}>
         {!!bg.pattern && <PatternLayer pattern={bg.pattern} />}
         <StatusBar style="dark" />
+        {showTabs && !!returnTo && returnTo !== tab && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={tr('Назад: {0}', tr(TABS.find((t) => t.key === returnTo)?.label || ''))}
+            onPress={() => { const to = returnTo; setReturnTo(null); setTab(to); }}
+            hitSlop={6}
+            style={styles.backBar}
+          >
+            <Text style={styles.backBarText}>‹ {tr(TABS.find((t) => t.key === returnTo)?.label || 'Назад')}</Text>
+          </Pressable>
+        )}
         <View style={{ flex: 1 }}><ErrorBoundary>{screen}</ErrorBoundary></View>
         {showDaily && showTabs && rewards && !rewards.daily.claimed_today && (
           <DailyRewardModal
@@ -830,7 +844,7 @@ export default function App() {
                   accessibilityRole="tab"
                   accessibilityLabel={tr(t.label)}
                   accessibilityState={{ selected: active }}
-                  onPress={() => { if (t.key === tab) setShowProgress(false); setTab(t.key); }}
+                  onPress={() => { if (t.key === tab) setShowProgress(false); setReturnTo(null); setTab(t.key); }}
                   style={styles.tab}
                 >
                   {t.key === 'profile' && avatarValue !== 'person' ? (
@@ -853,6 +867,8 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  backBar: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, paddingTop: 4 },
+  backBarText: { fontSize: 16, fontWeight: '700', color: colors.green },
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   errorText: { fontSize: 15, color: colors.danger, textAlign: 'center' },
