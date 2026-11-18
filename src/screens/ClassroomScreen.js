@@ -82,7 +82,7 @@ export default function ClassroomScreen({ gloss, onStart, onBack }) {
 
 const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 14 },
-  back: { alignSelf: 'flex-start', paddingVertical: 6 },
+  back: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   backText: { fontSize: 16, fontWeight: '700', color: colors.green },
   h1: { fontSize: 26, fontWeight: '900', color: colors.text },
   small: { fontSize: 13, color: colors.muted, lineHeight: 18 },

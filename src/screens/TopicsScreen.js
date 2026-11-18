@@ -97,6 +97,6 @@ const styles = StyleSheet.create({
   num: { width: 24, fontSize: 15, fontWeight: '800', color: colors.muted, textAlign: 'center' },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   badge: { fontSize: 12, fontWeight: '700', color: colors.greenDark, backgroundColor: colors.greenLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.sm },
-  link: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 6 },
-  linkMuted: { fontSize: 14, fontWeight: '700', color: colors.muted, paddingVertical: 6 },
+  link: { fontSize: 14, fontWeight: '700', color: colors.green, paddingVertical: 12 },
+  linkMuted: { fontSize: 14, fontWeight: '700', color: colors.muted, paddingVertical: 12 },
 });

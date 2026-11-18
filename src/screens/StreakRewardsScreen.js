@@ -125,7 +125,7 @@ export default function StreakRewardsScreen({ streak, claimed = [], shopItems = 
 
 const styles = StyleSheet.create({
   wrap: { padding: 20, gap: 12 },
-  back: { alignSelf: 'flex-start', paddingVertical: 6 },
+  back: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   backText: { fontSize: 16, fontWeight: '700', color: colors.green },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   h1: { fontSize: 24, fontWeight: '900', color: colors.text },

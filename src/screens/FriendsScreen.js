@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   cheerText: { fontSize: 14, fontWeight: '700', color: colors.greenDark },
   cheerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   manage: { flexDirection: 'row', gap: 20 },
-  link: { fontSize: 14, fontWeight: '700', color: colors.muted, paddingVertical: 6 },
+  link: { fontSize: 14, fontWeight: '700', color: colors.muted, paddingVertical: 12 },
   danger: { fontSize: 14, fontWeight: '700', color: colors.danger, paddingVertical: 6 },
   safety: { fontSize: 12, color: colors.muted, textAlign: 'center', lineHeight: 17, marginTop: 8 },
 });

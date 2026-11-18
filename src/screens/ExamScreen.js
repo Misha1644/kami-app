@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: colors.green, backgroundColor: colors.greenLight },
   chipText: { fontSize: 14, color: colors.text },
   chipTextActive: { color: colors.greenDark, fontWeight: '700' },
-  link: { fontSize: 14, fontWeight: '700', color: colors.muted, paddingVertical: 6 },
+  link: { fontSize: 14, fontWeight: '700', color: colors.muted, paddingVertical: 12 },
   locked: { gap: 6, padding: 16, borderRadius: radius.lg, borderWidth: 1.5, borderColor: '#D9C8F5', backgroundColor: '#F7F2FD' },
   lockTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
   lockCta: { fontSize: 14, fontWeight: '800', color: '#6B3FB8' },

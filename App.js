@@ -855,7 +855,7 @@ export default function App() {
                     <TabIcon name={t.key} color={active ? colors.green : colors.muted} />
                   )}
                   {t.key === 'league' && !!league?.last_week?.reward && <View style={styles.tabDot} />}
-                  <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>{tr(t.label)}</Text>
+                  <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{tr(t.label)}</Text>
                 </Pressable>
               );
             })}
