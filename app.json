@@ -30,7 +30,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#EEF6F1"
+        "backgroundColor": "#1F7A52"
       },
       "permissions": [
         "CAMERA",
