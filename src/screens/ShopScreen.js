@@ -229,9 +229,11 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
         {shop.items.filter((i) => i.kind === 'hat').sort((a, b) => a.price - b.price || a.sort - b.sort).map((item) => {
           const owned = shop.owned.has(item.id);
           const isWorn = student.hat === item.id;
+          // новинка агента — первые 3 дня с меткой «НОВИНКА»
+          const fresh = item.added_at && Date.now() - new Date(item.added_at).getTime() < 3 * 86400000 && item.id.startsWith('new-');
           return (
             <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn, item.price >= 5000 && styles.legendCard]}>
-              <View style={styles.tagSlot} />
+              <Tag tag={fresh ? 'new' : null} />
               {item.price >= 5000 && <Text style={styles.legend}>{tr('ЛЕГЕНДАРНОЕ')}</Text>}
               <Kami size={88} color={kamiColor} hat={item.value} />
               <Text style={styles.itemTitle} numberOfLines={1}>{itemTitle(item)}</Text>
