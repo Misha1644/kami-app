@@ -222,6 +222,50 @@ export default function ShopScreen({ student, shop, plan, kamiColor, onBuy, onEq
         </Card>
       )}
 
+      {/* Головные уборы: всегда в продаже. Без покупки Ками ходит без шапки. */}
+      <Text style={styles.h2}>{tr('🧢 Головные уборы')}</Text>
+      <Text style={styles.small}>{tr('Всегда в продаже. Надетый головной убор Ками носит везде в приложении.')}</Text>
+      <View style={styles.grid}>
+        {shop.items.filter((i) => i.kind === 'hat').sort((a, b) => a.price - b.price || a.sort - b.sort).map((item) => {
+          const owned = shop.owned.has(item.id);
+          const isWorn = student.hat === item.id;
+          return (
+            <Card key={item.id} style={[styles.colorCard, isWorn && styles.colorCardWorn, item.price >= 5000 && styles.legendCard]}>
+              <View style={styles.tagSlot} />
+              {item.price >= 5000 && <Text style={styles.legend}>{tr('ЛЕГЕНДАРНОЕ')}</Text>}
+              <Kami size={88} color={kamiColor} hat={item.value} />
+              <Text style={styles.itemTitle} numberOfLines={1}>{itemTitle(item)}</Text>
+              {isWorn ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={tr('Снять: {0}', itemTitle(item))}
+                  disabled={busy === item.id}
+                  onPress={() => run(item.id, () => onEquip('hat-off'), tr('Ками снял головной убор.'))}
+                  style={styles.equip}
+                >
+                  <Text style={styles.equipText}>{tr('Снять')}</Text>
+                </Pressable>
+              ) : owned ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy === item.id}
+                  onPress={() => run(item.id, () => onEquip(item.id), tr('Ками переоделся!'))}
+                  style={styles.equip}
+                >
+                  <Text style={styles.equipText}>{tr('Надеть')}</Text>
+                </Pressable>
+              ) : (
+                <PriceButton
+                  price={item.price}
+                  disabled={busy === item.id || student.coins < item.price}
+                  onPress={() => run(item.id, () => onBuy(item.id), tr('Куплено!'), item)}
+                />
+              )}
+            </Card>
+          );
+        })}
+      </View>
+
       {/* Музыка: всегда в продаже, играет в меню */}
       <Text style={styles.h2}>{tr('🎵 Музыка')}</Text>
       <Text style={styles.small}>{tr('Выбранная музыка играет в меню. На уроках — тишина. Нажми ▶, чтобы послушать.')}</Text>

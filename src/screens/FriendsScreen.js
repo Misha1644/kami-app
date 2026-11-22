@@ -128,7 +128,7 @@ export default function FriendsScreen({ student, onBack }) {
           <Text style={styles.h2}>{tr('Хотят дружить')}</Text>
           {incoming.map((f) => (
             <Card key={f.id} style={styles.row}>
-              <UserAvatar value={f.avatar} size={44} kamiColor={f.kami_color} />
+              <UserAvatar value={f.avatar} size={44} kamiColor={f.kami_color} hat={f.hat_value || null} />
               <Text style={[styles.name, { flex: 1 }]}>{f.nickname}</Text>
               <Pressable accessibilityRole="button" onPress={() => act(() => friendAction(student.id, f.id, 'accept'), tr('Теперь вы друзья! 🎉'))} style={styles.accept}>
                 <Text style={styles.acceptText}>{tr('Принять')}</Text>
@@ -148,7 +148,7 @@ export default function FriendsScreen({ student, onBack }) {
           <Card style={{ gap: 10 }}>
             {cheers.slice(0, 8).map((c) => (
               <View key={c.id} style={styles.cheerRow}>
-                <UserAvatar value={c.avatar} size={32} />
+                <UserAvatar value={c.avatar} size={32} hat={null} />
                 <Text style={[styles.body, { flex: 1 }]}>
                   <Text style={{ fontWeight: '700' }}>{c.from}</Text>: {CHEERS[c.cheer]}
                 </Text>
@@ -168,7 +168,7 @@ export default function FriendsScreen({ student, onBack }) {
       {friends.map((f) => (
         <Card key={f.id} style={{ gap: 10 }}>
           <Pressable accessibilityRole="button" onPress={() => setOpen(open === f.id ? null : f.id)} style={styles.row}>
-            <UserAvatar value={f.avatar} size={48} kamiColor={f.kami_color} />
+            <UserAvatar value={f.avatar} size={48} kamiColor={f.kami_color} hat={f.hat_value || null} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{f.nickname}</Text>
               <Text style={styles.small}>
@@ -218,7 +218,7 @@ export default function FriendsScreen({ student, onBack }) {
           <Text style={styles.h2}>{tr('Ждут подтверждения')}</Text>
           {outgoing.map((f) => (
             <Card key={f.id} style={styles.row}>
-              <UserAvatar value={f.avatar} size={40} kamiColor={f.kami_color} />
+              <UserAvatar value={f.avatar} size={40} kamiColor={f.kami_color} hat={f.hat_value || null} />
               <Text style={[styles.body, { flex: 1 }]}>{f.nickname}</Text>
               <Text style={styles.link} onPress={() => act(() => friendAction(student.id, f.id, 'remove'))}>{tr('Отменить')}</Text>
             </Card>

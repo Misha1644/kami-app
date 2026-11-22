@@ -17,6 +17,7 @@ import StreakRewardsScreen from './src/screens/StreakRewardsScreen';
 import { DailyRewardModal } from './src/components/Rewards';
 import { holidayWords, prepWords, nextGrade, HOLIDAY_TITLE } from './src/data/holidays';
 import { useBackgroundMusic } from './src/lib/music';
+import { KamiHatContext } from './src/components/Kami';
 import { CLASSROOM_TOPICS, isClassroomTopic } from './src/data/classroom';
 import ClassroomScreen from './src/screens/ClassroomScreen';
 import LeagueScreen from './src/screens/LeagueScreen';
@@ -443,7 +444,7 @@ export default function App() {
 
   async function onBuy(itemId) {
     const res = await buyItem(studentId, itemId);
-    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color, avatar: res.avatar, bg: res.bg, music: res.music, chests_lesson: res.chests_lesson, chests_skin: res.chests_skin }));
+    setStudent((s) => ({ ...s, coins: res.coins, streak_freezes: res.freezes, kami_color: res.kami_color, avatar: res.avatar, bg: res.bg, music: res.music, hat: res.hat, chests_lesson: res.chests_lesson, chests_skin: res.chests_skin }));
     setStreakInfo((info) => ({ ...info, freezes: res.freezes }));
     setShop(await loadShop(studentId));
   }
@@ -453,7 +454,8 @@ export default function App() {
     const kind = shop?.items.find((i) => i.id === itemId)?.kind;
     await equipItem(studentId, itemId);
     if (itemId === 'music-off') return setStudent((s) => ({ ...s, music: null }));
-    const field = { color: 'kami_color', avatar: 'avatar', bg: 'bg', music: 'music' }[kind];
+    if (itemId === 'hat-off') return setStudent((s) => ({ ...s, hat: null }));
+    const field = { color: 'kami_color', avatar: 'avatar', bg: 'bg', music: 'music', hat: 'hat' }[kind];
     if (field) setStudent((s) => ({ ...s, [field]: itemId }));
     // Выбрали трек — значит, музыку хотят слышать: снимаем быстрое «🔇».
     if (kind === 'music' && prefs.music === false) onSavePrefs({ ...prefs, music: true });
@@ -517,6 +519,7 @@ export default function App() {
   const itemValue = (id) => shop?.items.find((i) => i.id === id)?.value;
   // Фоновая музыка: выбранный трек играет в меню, на уроках — тишина.
   useBackgroundMusic(student?.music && prefs.music !== false ? itemValue(student.music) : null, !!studentId && !lessonTopic);
+  const kamiHat = student?.hat ? itemValue(student.hat) || student.hat.replace('hat-', '') : null; // головной убор (по умолчанию нет)
   const kamiColor = KAMI_COLORS[student?.kami_color] || (student && itemValue(student.kami_color)) || KAMI_COLORS['color-green'];
   const bg = parseBg((student && itemValue(student.bg)) || colors.bg);
   const avatarValue = (student && itemValue(student.avatar)) || 'person';
@@ -809,6 +812,7 @@ export default function App() {
   }
 
   return (
+    <KamiHatContext.Provider value={kamiHat}>
     <SafeAreaProvider>
       <SafeAreaView style={[styles.root, { backgroundColor: bg.color || colors.bg }]} edges={['top', 'bottom']}>
         {!!bg.pattern && <PatternLayer pattern={bg.pattern} />}
@@ -863,6 +867,7 @@ export default function App() {
         )}
       </SafeAreaView>
     </SafeAreaProvider>
+    </KamiHatContext.Provider>
   );
 }
 

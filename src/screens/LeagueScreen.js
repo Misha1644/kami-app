@@ -95,7 +95,7 @@ export default function LeagueScreen({ league, onReload, onClaim, onOpenFriends,
         {rows.map((r, i) => (
           <View key={r.id} style={[styles.row, r.me && styles.rowMe, i < rows.length - 1 && styles.rowBorder]}>
             <Text style={styles.place}>{r.place ? (MEDAL[r.place - 1] || r.place) : '·'}</Text>
-            <UserAvatar value={r.avatar} size={40} kamiColor={r.kami_color} />
+            <UserAvatar value={r.avatar} size={40} kamiColor={r.kami_color} hat={r.hat_value || null} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.name, r.me && { color: colors.greenDark }]} numberOfLines={1}>
                 {r.nickname || tr('Без имени')}{r.me ? ` · ${tr('ты')}` : ''}

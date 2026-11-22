@@ -109,6 +109,7 @@ function ItemArt({ item, kamiColor }) {
   if (item.kind === 'music') return <View style={styles.note}><Text style={styles.noteText}>♪</Text></View>;
   if (item.kind === 'avatar') return <UserAvatar value={item.value} size={130} kamiColor={kamiColor} />;
   if (item.kind === 'color') return <Kami size={150} color={item.value} />;
+  if (item.kind === 'hat') return <Kami size={150} color={kamiColor} hat={item.value} />;
   return <BgSwatch value={item.value} style={styles.bg} />;
 }
 
@@ -243,7 +244,7 @@ export default function RewardReveal({ item, kamiColor, intro = 'flash', showPri
                 <View style={styles.buttons}>
                   {onEquip && item.kind !== 'pack' && item.kind !== 'music' && (
                     <Button
-                      title={item.kind === 'color' ? tr('Надеть на Ками') : tr('Поставить')}
+                      title={item.kind === 'color' || item.kind === 'hat' ? tr('Надеть на Ками') : tr('Поставить')}
                       onPress={async () => {
                         try { await onEquip(item.id); onClose(); } catch (e) { setError(e.message); }
                       }}

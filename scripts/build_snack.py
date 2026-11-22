@@ -27,7 +27,7 @@ MODULES = [
                              'CUSTOM_PREFIX', 'CUSTOM_MAX', 'customCode', 'isCustom', 'customTopics']),
     ('src/data/holidays.js', ['VALENCIA_HOLIDAYS', 'fmtDate', 'parseDate', 'todayIso', 'suggestions', 'nextGrade', 'todayCodes', 'holidayWords', 'prepWords', 'HOLIDAY_TITLE']),
     ('src/lib/music.js', ['useBackgroundMusic', 'togglePreview', 'stopPreview', 'usePreviewState', 'hasTrack']),
-    ('src/components/Kami.js', ['Kami']),
+    ('src/components/Kami.js', ['Kami', 'KamiHatContext', 'Hat']),
     ('src/components/Teacher.js', ['Teacher']),
     ('src/components/Animals.js', ['ANIMALS', 'AnimalFace']),
     ('src/components/TabIcons.js', ['TabIcon']),
