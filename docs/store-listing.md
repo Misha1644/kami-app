@@ -8,7 +8,8 @@
 - **Цена:** бесплатно; подписка «Ками Плюс» через встроенные покупки (нужно подключить до выпуска, см. `src/config.js`).
 - **Ссылка на политику:** https://claude.ai/artifact/JkQ65UuFf8UXMPG8fArUXN (сделать публичной; исходник — docs/privacy.html, собирается из src/data/privacy.js).
 - **Поддержка:** email из `src/config.js` → `SUPPORT_EMAIL` (заполнить).
-- **Bundle ID / package:** `com.misha1644.kami`
+- **Bundle ID / package:** `com.elysiumprimelabs.kami`
+- **Разработчик / Copyright:** © 2026 Elysium Prime Labs LLC (2520 Coral Way, Ste. 2-135, Miami, FL 33145, United States). Аккаунты разработчика Apple и Google регистрировать на компанию (для Apple нужен D-U-N-S).
 
 ## Описание (ES)
 Kami ayuda a los alumnos que acaban de llegar a España a entender las clases del instituto.

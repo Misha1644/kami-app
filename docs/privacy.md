@@ -1,16 +1,16 @@
 # Kami — политика конфиденциальности / Política de privacidad / Privacy policy
 
-Обновлено / Actualizada / Updated: 13.11.2026
+Обновлено / Actualizada / Updated: 23.11.2026
 
 ## Политика конфиденциальности
 
 ### Кто мы
 
-Приложение «Kami — школьный испанский» помогает детям-иностранцам понимать уроки в испанской школе. Ответственный за обработку данных: [имя и фамилия или название компании], [адрес]. Связь: [email поддержки].
+Приложение «Kami — школьный испанский» помогает детям-иностранцам понимать уроки в испанской школе. Ответственный за обработку данных: Elysium Prime Labs LLC, 2520 Coral Way, Ste. 2-135, Miami, FL 33145, United States (компания из США; данные хранятся на серверах в ЕС). Связь: [email поддержки].
 
 ### Кто создаёт аккаунт
 
-Аккаунт создаёт только родитель или законный представитель ребёнка. В Испании согласие на обработку данных ребёнка младше 14 лет даёт родитель (ст. 7 LOPDGDD). Регистрируясь, родитель подтверждает, что он взрослый и даёт такое согласие.
+Аккаунт создаёт только родитель или законный представитель ребёнка. В Испании согласие на обработку данных ребёнка младше 14 лет даёт родитель (ст. 7 LOPDGDD), в США для детей младше 13 лет — по закону COPPA. Регистрируясь, родитель подтверждает, что он взрослый и даёт такое согласие. Родитель может в любой момент посмотреть данные ребёнка, удалить их или запретить дальнейшую обработку.
 
 ### Какие данные мы храним
 
@@ -53,11 +53,11 @@
 
 ### Quiénes somos
 
-La aplicación «Kami — español para el instituto» ayuda a alumnos extranjeros a entender las clases en el instituto. Responsable del tratamiento: [nombre y apellidos o empresa], [dirección]. Contacto: [email de soporte].
+La aplicación «Kami — español para el instituto» ayuda a alumnos extranjeros a entender las clases en el instituto. Responsable del tratamiento: Elysium Prime Labs LLC, 2520 Coral Way, Ste. 2-135, Miami, FL 33145, United States (empresa de EE. UU.; los datos se guardan en servidores de la UE). Contacto: [email de soporte].
 
 ### Quién crea la cuenta
 
-La cuenta solo la crea el padre, la madre o el tutor legal. En España, el consentimiento para tratar los datos de un menor de 14 años lo da su padre, madre o tutor (art. 7 LOPDGDD). Al registrarse, el adulto confirma que es mayor de edad y da ese consentimiento.
+La cuenta solo la crea el padre, la madre o el tutor legal. En España, el consentimiento para tratar los datos de un menor de 14 años lo da su padre, madre o tutor (art. 7 LOPDGDD); en EE. UU., para menores de 13 años, según la ley COPPA. Al registrarse, el adulto confirma que es mayor de edad y da ese consentimiento. El adulto puede en cualquier momento revisar los datos del menor, borrarlos o impedir que se sigan tratando.
 
 ### Qué datos guardamos
 
@@ -100,11 +100,11 @@ Si la política cambia, lo indicaremos en la aplicación. La fecha de actualizac
 
 ### Who we are
 
-The app «Kami — school Spanish» helps foreign children understand their lessons at a Spanish school. Data controller: [name and surname or company name], [address]. Contact: [support email].
+The app «Kami — school Spanish» helps foreign children understand their lessons at a Spanish school. Data controller: Elysium Prime Labs LLC, 2520 Coral Way, Ste. 2-135, Miami, FL 33145, United States (a US company; data is stored on servers in the EU). Contact: [support email].
 
 ### Who creates the account
 
-Only a parent or legal guardian creates the account. In Spain, consent to process the data of a child under 14 is given by the parent (art. 7 LOPDGDD). By signing up, the parent confirms they are an adult and gives this consent.
+Only a parent or legal guardian creates the account. In Spain, consent to process the data of a child under 14 is given by the parent (art. 7 LOPDGDD); in the US, for children under 13, under COPPA. By signing up, the parent confirms they are an adult and gives this consent. The parent can review the child\'s data, delete it or stop further processing at any time.
 
 ### What data we store
 
@@ -147,11 +147,11 @@ If the policy changes, we will show it in the app. The update date is shown belo
 
 ### من نحن
 
-يساعد تطبيق «Kami — الإسبانية للمدرسة» الأطفال الأجانب على فهم دروسهم في المدرسة الإسبانية. المسؤول عن معالجة البيانات: [الاسم واللقب أو اسم الشركة]، [العنوان]. للتواصل: [بريد الدعم].
+يساعد تطبيق «Kami — الإسبانية للمدرسة» الأطفال الأجانب على فهم دروسهم في المدرسة الإسبانية. المسؤول عن معالجة البيانات: Elysium Prime Labs LLC, 2520 Coral Way, Ste. 2-135, Miami, FL 33145, United States (شركة أمريكية؛ تُحفظ البيانات على خوادم في الاتحاد الأوروبي). للتواصل: [بريد الدعم].
 
 ### من ينشئ الحساب
 
-ينشئ الحساب الوالد أو الوصي القانوني فقط. في إسبانيا، يعطي الوالد الموافقة على معالجة بيانات الطفل الذي يقل عمره عن 14 سنة (المادة 7 من قانون LOPDGDD). عند التسجيل يؤكد الوالد أنه بالغ ويعطي هذه الموافقة.
+ينشئ الحساب الوالد أو الوصي القانوني فقط. في إسبانيا، يعطي الوالد الموافقة على معالجة بيانات الطفل الذي يقل عمره عن 14 سنة (المادة 7 من قانون LOPDGDD)، وفي الولايات المتحدة للأطفال دون 13 سنة وفق قانون COPPA. عند التسجيل يؤكد الوالد أنه بالغ ويعطي هذه الموافقة. ويمكن للوالد في أي وقت الاطلاع على بيانات الطفل أو حذفها أو منع معالجتها لاحقًا.
 
 ### البيانات التي نحفظها
 
